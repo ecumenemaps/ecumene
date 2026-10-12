@@ -45,7 +45,7 @@ details{margin:0}
 .rg-row .lg{margin-bottom:4px}
 .rg-opt{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
 .rg-opt label{display:flex;flex-direction:column;gap:2px}
-.rg-opt label:last-child{flex-direction:row;align-items:center;gap:4px}
+.rg-opt label:has(input[type=checkbox]){flex-direction:row;align-items:center;gap:4px}
 .rg-opt input[type=range]{width:100%}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}

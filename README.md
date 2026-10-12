@@ -13,7 +13,7 @@ Paint countries on an accurate, draggable 3D globe. An open-source alternative t
 - Fill from a pasted list of countries (aliases like USA, UK, Ivory Coast understood)
 - One-click groups: EU, Eurozone, NATO, G7, G20, ASEAN, UN P5, and the continents
 - Colour by data: paste `country, value` rows, pick a scale, classes and method; the legend fills itself
-- Custom regions: draw polygons on the globe (true great-circle edges), edit points, set fill, opacity, outline and dashes, and name them for the legend
+- Custom regions: draw polygons on the globe (true great-circle edges), edit points, set fill, opacity, outline and dashes, and name them; names are drawn on the map, in the hover tag and in the legend
 - Legend editor: rename, recolour, reorder, remove, title and position
 - Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG export (works standalone and in the artifact)
 

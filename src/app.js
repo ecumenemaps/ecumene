@@ -207,7 +207,7 @@ function render(){
  if(HS.outline&&hover&&HL.n){const c=cl('hl');gl.uniform1f(ug.uW,2.4*dpr);gl.uniform4f(ug.uCol,c[0],c[1],c[2],1);gl.bindVertexArray(HL.vao);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,HL.n);}
  gl.bindVertexArray(null);
  oc.setTransform(1,0,0,1,0,0);oc.clearRect(0,0,ov.width,ov.height);oc.setTransform(dpr,0,0,dpr,0,0);
- drawRegions(oc,true);if(L.names)drawNames(oc);
+ drawRegions(oc,true);if(L.names)drawNames(oc);drawRegionNames(oc);
 }
 // ---- custom regions (drawn on the 2D overlay with d3's spherical clipping)
 const setProj=()=>proj.translate([W/2,H/2]).scale(Rb()).rotate([rot[0],rot[1],0]);
@@ -216,6 +216,22 @@ const onFront=g=>d3.geoDistance(g,[-rot[0],-rot[1]])<Math.PI/2-1e-3;
 function rgGeo(pts){const ring=pts.concat([pts[0]]);let g={type:'Polygon',coordinates:[ring]};
  if(d3.geoArea(g)>2*Math.PI)g={type:'Polygon',coordinates:[ring.slice().reverse()]};return g;}
 const darker=c=>d3.color(c).darker(.9).formatHex();
+const anchorCache=new Map();
+function rgAnchor(pts){const key=JSON.stringify(pts);if(anchorCache.has(key))return anchorCache.get(key);
+ const g=rgGeo(pts),c=d3.geoCentroid(g),pj=d3.geoAzimuthalEqualArea().rotate([-c[0],-c[1]]).scale(1000).translate([0,0]);
+ const ring=g.coordinates[0].map(q=>pj(q));
+ const inside=(x,y)=>{let k=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])k=!k;}return k;};
+ const segD=(x,y,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((x-a[0])*dx+(y-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy);};
+ const score=(x,y)=>{if(!inside(x,y))return -1;let m=1e18;for(let i=0;i<ring.length-1;i++)m=Math.min(m,segD(x,y,ring[i],ring[i+1]));return m;};
+ let x0=1e18,y0=1e18,x1=-1e18,y1=-1e18;ring.forEach(q=>{x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1]);});
+ let best=[0,0],bs=score(0,0),step=Math.max(x1-x0,y1-y0)/24;
+ for(let x=x0;x<=x1;x+=step)for(let y=y0;y<=y1;y+=step){const v=score(x,y);if(v>bs){bs=v;best=[x,y];}}
+ for(let k=0;k<5;k++){step/=3;const [bx,by]=best;for(let dx=-3;dx<=3;dx++)for(let dy=-3;dy<=3;dy++){const v=score(bx+dx*step,by+dy*step);if(v>bs){bs=v;best=[bx+dx*step,by+dy*step];}}}
+ const a=pj.invert(best)||c;if(anchorCache.size>200)anchorCache.clear();anchorCache.set(key,a);return a;}
+function drawRegionNames(c){if(!L.regions)return;setProj();c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
+ RG.forEach(r=>{const t=r.label.trim();if(!r.sn||!t||r.pts.length<3)return;const a=rgAnchor(r.pts);if(!onFront(a))return;const p=proj(a);
+  const col=darker(r.col);c.font='700 '+r.fs+'px system-ui,sans-serif';c.lineWidth=Math.max(3,r.fs/4);
+  c.strokeStyle=lum(col)>.5?'#101820':'#ffffff';c.globalAlpha=.9;c.strokeText(t,p[0],p[1]);c.globalAlpha=1;c.fillStyle=col;c.fillText(t,p[0],p[1]);});}
 function drawRegions(c,ui){
  setProj();const path=d3.geoPath(proj,c);
  if(L.regions)RG.forEach(r=>{if(r.pts.length<3)return;c.beginPath();path(rgGeo(r.pts));
@@ -286,7 +302,8 @@ const idAtEv=e=>{const r=cv.getBoundingClientRect();return idAtPx(e.clientX-r.le
 function track(e){const r=cv.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top;}
 function placeTip(){if(tip.hidden)return;const w=tip.offsetWidth,h=tip.offsetHeight;let x=mx+14,y=my+18;
  if(x+w>W-4)x=mx-w-10;if(y+h>H-4)y=my-h-10;tip.style.transform='translate('+Math.max(2,x)+'px,'+Math.max(2,y)+'px)';}
-function setTip(){const nm=hover?feats[hover-1].properties.name:'';sr.textContent=nm;
+let rgHov=-1;
+function setTip(){const rn=rgHov>=0&&RG[rgHov]?RG[rgHov].label.trim():'';const nm=rn||(hover?feats[hover-1].properties.name:'');sr.textContent=nm;
  if(HS.tip&&nm){tip.textContent=nm;tip.hidden=false;placeTip();}else tip.hidden=true;}
 function setHover(id){if(id===hover)return;hover=id;setTip();updHover();redraw();}
 function setFill(n,col){const i=nameId.get(n);
@@ -329,7 +346,7 @@ cv.addEventListener('pointerdown',e=>{if(!ready)return;track(e);cv.setPointerCap
  if(ptrs.size===2){pinched=true;pd=dist();}});
 cv.addEventListener('pointermove',e=>{
  if(!ready)return;
- if(!ptrs.has(e.pointerId)){if(e.pointerType==='mouse'){track(e);if(drawing||rgSel>=0){setHover(0);redraw();}else if(e.ctrlKey||e.metaKey)paintAt(e);else{setHover(idAtEv(e));placeTip();}}return;}
+ if(!ptrs.has(e.pointerId)){if(e.pointerType==='mouse'){track(e);if(drawing||rgSel>=0){setHover(0);redraw();}else if(e.ctrlKey||e.metaKey)paintAt(e);else{const ri=regionAt(mx,my);if(ri!==rgHov){rgHov=ri;setTip();}setHover(idAtEv(e));placeTip();}}return;}
  const p=ptrs.get(e.pointerId),dx=e.clientX-p[0],dy=e.clientY-p[1];
  ptrs.set(e.pointerId,[e.clientX,e.clientY]);
  if(ptrs.size===2){const n=dist();if(pd)setZoom(zoom*n/pd);pd=n;return;}
@@ -349,7 +366,7 @@ const up=e=>{pl=null;if(!ptrs.has(e.pointerId))return;const one=ptrs.size===1;pt
  if(drawing||rgSel>=0)return;
  if(one&&e.type==='pointerup'){track(e);setHover(idAtEv(e));placeTip();if(e.pointerType!=='mouse'){clearTimeout(tt);tt=setTimeout(()=>setHover(0),1800);}}};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')setHover(0);});
+cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'){rgHov=-1;setHover(0);setTip();}});
 cv.addEventListener('wheel',e=>{e.preventDefault();track(e);setZoom(zoom*Math.exp(-e.deltaY*0.0015));setHover(idAtPx(mx,my));placeTip();},{passive:false});
 $('zi').onclick=()=>setZoom(zoom*1.4);$('zo').onclick=()=>setZoom(zoom/1.4);
 $('rv').onclick=()=>{zoom=1;animate(HOME);};
@@ -413,7 +430,7 @@ $('un').onclick=undo;$('re').onclick=redo;
 const KEYS=['water','land','border','bg','river','grat','label'];
 function state(){const g={};fills.forEach((c,n)=>{(g[c]=g[c]||[]).push(n);});
  return {v:1,d:'ne10m',f:Object.entries(g).map(([c,n])=>({c,n,l:labels[c]||''})),s:Object.assign({},S),L:Object.assign({},L),
-  h:{dark:HS.dark,outline:HS.outline,tip:HS.tip,amt:HS.amt},g:RG.map(r=>({p:r.pts.map(q=>[+q[0].toFixed(4),+q[1].toFixed(4)]),c:r.col,o:r.op,w:r.lw,d:r.dash,l:r.label})),lg:{t:LG.title,p:LG.pos,s:LG.show,o:LG.order.filter(c=>fills.size&&[...fills.values()].includes(c))},r:[+rot[0].toFixed(2),+rot[1].toFixed(2)],z:+zoom.toFixed(2)};}
+  h:{dark:HS.dark,outline:HS.outline,tip:HS.tip,amt:HS.amt},g:RG.map(r=>({p:r.pts.map(q=>[+q[0].toFixed(4),+q[1].toFixed(4)]),c:r.col,o:r.op,w:r.lw,d:r.dash,l:r.label,n:r.sn,s:r.fs})),lg:{t:LG.title,p:LG.pos,s:LG.show,o:LG.order.filter(c=>fills.size&&[...fills.values()].includes(c))},r:[+rot[0].toFixed(2),+rot[1].toFixed(2)],z:+zoom.toFixed(2)};}
 function apply(o){
  if(!o||typeof o!=='object'||!Array.isArray(o.f))throw new Error('This is not a map file or code.');
  const hexOk=v=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -428,7 +445,7 @@ function apply(o){
  RG.length=0;rgSel=-1;drawing=null;
  if(Array.isArray(o.g))o.g.forEach(g=>{if(!g||!Array.isArray(g.p)||!hexOk(g.c))return;
   const pts=g.p.filter(q=>Array.isArray(q)&&q.length===2&&q.every(Number.isFinite)).map(q=>[clamp(q[0],-180,180),clamp(q[1],-90,90)]);
-  if(pts.length<3)return;RG.push(newRegion(pts,g.c.toLowerCase(),Number.isFinite(g.o)?clamp(g.o,0,1):.45,Number.isFinite(g.w)?clamp(g.w,0,6):1.8,!!g.d,typeof g.l==='string'?g.l.slice(0,60):''));});
+  if(pts.length<3)return;RG.push(newRegion(pts,g.c.toLowerCase(),Number.isFinite(g.o)?clamp(g.o,0,1):.45,Number.isFinite(g.w)?clamp(g.w,0,6):1.8,!!g.d,typeof g.l==='string'?g.l.slice(0,60):'',g.n!==false,Number.isFinite(g.s)?clamp(g.s,8,40):15));});
  renderRegions();
  if(o.lg&&typeof o.lg==='object'){LG.title=typeof o.lg.t==='string'?o.lg.t.slice(0,80):'';LG.pos=['tl','tr','bl','br'].includes(o.lg.p)?o.lg.p:'bl';LG.show=o.lg.s!==false;LG.order=Array.isArray(o.lg.o)?o.lg.o.filter(hexOk):[];}
  else{LG.title='';LG.pos='bl';LG.show=true;LG.order=[];}
@@ -480,7 +497,7 @@ function renderLegend(){
 }
 $('lt').oninput=e=>{LG.title=e.target.value;};$('lp').onchange=e=>{LG.pos=e.target.value;};$('ls').onchange=e=>{LG.show=e.target.checked;};
 let rgN=0;
-function newRegion(pts,col,op,lw,dash,label){return {id:++rgN,pts,col,op,lw,dash,label};}
+function newRegion(pts,col,op,lw,dash,label,sn,fs){return {id:++rgN,pts,col,op,lw,dash,label,sn:sn!==false,fs:fs||15};}
 function startDraw(){if(!ready)return;selectRegion(-1);drawing={pts:[],col:active};curs(true);renderRegions();redraw();
  note('Click on the globe to add points. Drag to rotate. Click the first point or press Enter to finish; Backspace removes a point; Esc cancels.');}
 function cancelDraw(){drawing=null;curs($('pm').checked);renderRegions();redraw();note('');}
@@ -501,7 +518,7 @@ function renderRegions(){
  RG.forEach((r,i)=>{const row=document.createElement('div');row.className='rg-row'+(i===rgSel?' on':'');
   const top=document.createElement('div');top.className='lg';
   const sw=document.createElement('input');sw.type='color';sw.value=r.col;sw.setAttribute('aria-label','Region color');sw.oninput=()=>{r.col=sw.value.toLowerCase();redraw();};sw.onchange=()=>commit();
-  const t=document.createElement('input');t.type='text';t.placeholder='Name (shows in legend)';t.value=r.label;t.setAttribute('aria-label','Region name');t.oninput=()=>{r.label=t.value;};t.onchange=()=>commit();
+  const t=document.createElement('input');t.type='text';t.placeholder='Name (shows in legend)';t.value=r.label;t.setAttribute('aria-label','Region name');t.oninput=()=>{r.label=t.value;redraw();};t.onchange=()=>commit();
   const mv=d=>()=>{const j=i+d;[RG[i],RG[j]]=[RG[j],RG[i]];if(rgSel===i)rgSel=j;else if(rgSel===j)rgSel=i;renderRegions();redraw();commit();};
   top.append(sw,t,btn(i===rgSel?'✓':'✎',i===rgSel?'Done editing':'Edit points',()=>{if(drawing)cancelDraw();selectRegion(i===rgSel?-1:i);}),
    btn('↑','Draw below the region after it',mv(-1),i===0),btn('↓','Draw above the region after it',mv(1),i===RG.length-1),
@@ -511,7 +528,10 @@ function renderRegions(){
   const lw=document.createElement('input');lw.type='range';lw.min=0;lw.max=6;lw.step=.2;lw.value=r.lw;lw.setAttribute('aria-label','Outline width');lw.oninput=()=>{r.lw=+lw.value;redraw();};lw.onchange=()=>commit();
   const dl=document.createElement('label'),dc=document.createElement('input');dc.type='checkbox';dc.checked=r.dash;dc.onchange=()=>{r.dash=dc.checked;redraw();commit();};dl.append(dc,document.createTextNode(' Dashed'));
   const l1=document.createElement('label');l1.append('Fill',op);const l2=document.createElement('label');l2.append('Outline',lw);
-  opt.append(l1,l2,dl);row.append(top,opt);box.appendChild(row);});
+  const nl=document.createElement('label'),nc=document.createElement('input');nc.type='checkbox';nc.checked=r.sn;nc.onchange=()=>{r.sn=nc.checked;redraw();commit();};nl.append(nc,document.createTextNode(' Name on map'));
+  const fz=document.createElement('input');fz.type='range';fz.min=9;fz.max=36;fz.value=r.fs;fz.setAttribute('aria-label','Name size');fz.oninput=()=>{r.fs=+fz.value;redraw();};fz.onchange=()=>commit();
+  const l3=document.createElement('label');l3.append('Name size',fz);
+  opt.append(l1,l2,dl,l3,nl);row.append(top,opt);box.appendChild(row);});
 }
 $('rgd').onclick=()=>{drawing?cancelDraw():startDraw();};$('rgf').onclick=finishDraw;
 let armed=0;
@@ -525,7 +545,7 @@ $('exp').onclick=async()=>{
  if(!ready)return;
  const k=$('x2').checked?2:1,od=dpr,h=hover;hover=0;dpr=od*k;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);render();
  const o=document.createElement('canvas');o.width=cv.width;o.height=cv.height;const c=o.getContext('2d');
- c.drawImage(cv,0,0);c.setTransform(dpr,0,0,dpr,0,0);drawRegions(c,false);if(L.names)drawNames(c);drawLegend(c,W,H);
+ c.drawImage(cv,0,0);c.setTransform(dpr,0,0,dpr,0,0);drawRegions(c,false);if(L.names)drawNames(c);drawRegionNames(c);drawLegend(c,W,H);
  hover=h;dpr=od;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);render();
  const blob=await new Promise(r=>o.toBlob(r,'image/png'));
  try{await saveBlob('globe-map.png',blob);st.textContent='';}catch(err){if(!err||err.code!=='declined')st.textContent='Could not save the image.';}
