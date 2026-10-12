@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Globe map</title>
+<style>
+:root{--bg:#e8ecef;--panel:#fff;--ink:#1b2430;--mute:#5f6b78;--line:#d7dde3;--ocean:#a8c8dc;--land:#f3f0e8;--border:#7d8a97;--hl:#111;--river:#3f86b8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1319;--panel:#171d25;--ink:#e6ebf0;--mute:#93a0ad;--line:#2a333d;--ocean:#17364d;--land:#2c343d;--border:#66737f;--hl:#fff;--river:#5aa7d8}}
+:root[data-theme="dark"]{--bg:#0e1319;--panel:#171d25;--ink:#e6ebf0;--mute:#93a0ad;--line:#2a333d;--ocean:#17364d;--land:#2c343d;--border:#66737f;--hl:#fff;--river:#5aa7d8}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{display:flex;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+#panel{width:300px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:16px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+#stage{position:relative;flex:1;min-width:0;min-height:0}
+canvas{position:absolute;inset:0;cursor:grab;touch-action:none}
+canvas:active{cursor:grabbing}
+#ov{pointer-events:none;cursor:default}
+h1{font-size:18px;margin:0;font-weight:650;letter-spacing:-.01em}
+h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--mute)}
+p.hint{margin:6px 0 0;color:var(--mute);font-size:13px}
+#pal{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sw{width:28px;height:28px;border-radius:50%;border:1px solid rgba(0,0,0,.25);padding:0;cursor:pointer}
+.sw.on{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--ink)}
+#cc{width:36px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+input[type=text],input[type=search]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+button.b{padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+button.b:hover{border-color:var(--mute)}
+.lay{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+label.sw2{display:flex;align-items:center;gap:8px;cursor:pointer}
+label.sw2 input{width:18px;height:18px;accent-color:#2a7fb8}
+.lg{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.lg i{width:18px;height:18px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.25)}
+.lg input{flex:1;min-width:0;padding:5px 8px}
+.lg small{color:var(--mute);flex:none}
+#tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
+#load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+#zb{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
+#zb button{width:38px;height:38px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:600 18px system-ui;cursor:pointer}
+#st{min-height:1.4em;color:var(--mute);font-size:13px}
+summary{font-size:13px;font-weight:600;color:var(--mute);cursor:pointer;margin-bottom:8px}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 2px}
+.cg label{display:flex;align-items:center;gap:8px;font-size:13px}
+.cg input{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+.rg{display:flex;flex-direction:column;gap:4px;font-size:13px;margin-top:10px;color:var(--mute)}
+.rg input{width:100%}
+button.b:disabled{opacity:.45;cursor:default}
+textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+@media (max-width:720px){body{flex-direction:column}#panel{order:2;width:auto;max-height:46%;border-right:0;border-top:1px solid var(--line);gap:14px}}
+</style>
+</head>
+<body>
+<aside id="panel">
+<h1>Globe map</h1>
+<section>
+<h2>Paint color</h2>
+<div id="pal"></div>
+<p class="hint">Drag to rotate. Scroll or pinch to zoom. Click a country to paint it. Click it again to clear it. Hold Ctrl (Cmd on Mac) and move over countries to paint many at once.</p>
+<label class="sw2" style="margin-top:8px"><input id="pm" type="checkbox"> Paint while dragging (for touch)</label>
+</section>
+<section>
+<h2>Find a country</h2>
+<input id="q" type="search" list="names" placeholder="Type a name, press Enter to paint" autocomplete="off">
+<datalist id="names"></datalist>
+</section>
+<section>
+<h2>Map layers</h2>
+<div class="lay">
+<label class="sw2"><input type="checkbox" data-k="borders" checked> Borders</label>
+<label class="sw2"><input type="checkbox" data-k="names"> Country names</label>
+<label class="sw2"><input type="checkbox" data-k="lakes" checked> Lakes</label>
+<label class="sw2"><input type="checkbox" data-k="rivers"> Rivers</label>
+<label class="sw2"><input type="checkbox" data-k="grat"> Graticule</label>
+</div>
+</section>
+<section>
+<details open><summary>Style</summary>
+<select id="pre" aria-label="Style preset"><option value="light">Light, print friendly</option><option value="dark">Dark</option><option value="mc">Mapchart-like</option></select>
+<div class="cg" id="cg"></div>
+<label class="rg">Border width<input id="sbw" type="range" min="0.5" max="3" step="0.1" value="1.1"></label>
+<label class="rg">Globe shading<input id="ssh" type="range" min="0" max="100" value="40"></label>
+<label class="rg">Hover darkness<input id="shd" type="range" min="5" max="40" value="16"></label>
+</details>
+</section>
+<section>
+<h2>Hover</h2>
+<select id="hs" aria-label="Hover style"><option value="dark">Darken country</option><option value="outline">Outline</option><option value="both">Darken and outline</option><option value="none">None</option></select>
+<label class="sw2" style="margin-top:8px"><input id="tg" type="checkbox" checked> Show name tag</label>
+</section>
+<section>
+<h2>Legend</h2>
+<div id="lgd"></div>
+</section>
+<section>
+<h2>Save and share</h2>
+<div class="row"><button class="b" id="sf" hidden>Save map file</button><button class="b" id="lf">Load map file</button></div>
+<input id="fi" type="file" accept=".json,application/json" hidden>
+<textarea id="mc" rows="3" placeholder="Map code" spellcheck="false" aria-label="Map code"></textarea>
+<div class="row" style="margin-top:8px"><button class="b" id="gc">Get code</button><button class="b" id="uc">Use code</button></div>
+</section>
+<section>
+<div class="row">
+<button class="b" id="un" disabled>Undo</button>
+<button class="b" id="re" disabled>Redo</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="b" id="clr">Clear all colors</button>
+<button class="b" id="exp" hidden>Save PNG</button>
+</div>
+<label class="sw2" style="margin-top:8px"><input id="x2" type="checkbox"> Save at 2x size</label>
+<div id="st" aria-live="polite"></div>
+</section>
+</aside>
+<main id="stage">
+<canvas id="cv" aria-label="Interactive globe"></canvas><canvas id="ov"></canvas>
+<div id="tip" hidden></div><div id="load">Preparing map…</div><div id="sr" class="sr" aria-live="polite"></div>
+<div id="zb"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">&minus;</button><button id="rv" aria-label="Reset view" style="font-size:13px">Reset</button></div>
+</main>

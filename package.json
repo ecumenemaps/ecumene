@@ -1,0 +1,18 @@
+{
+  "name": "ecumene",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Paint countries on an accurate, draggable 3D globe. Open-source MapChart alternative.",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "fetch": "sh scripts/fetch_data.sh",
+    "data": "node scripts/build_tris.js 4 && node scripts/build_phys.js",
+    "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "d3": "^7",
+    "earcut": "2.2.4",
+    "topojson-client": "^3",
+    "world-atlas": "^2"
+  }
+}
