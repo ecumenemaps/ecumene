@@ -40,6 +40,13 @@ label.sw2 input{width:18px;height:18px;accent-color:#2a7fb8}
 .lg button{flex:none;width:24px;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);cursor:pointer;font-size:12px}
 .lg button:disabled{opacity:.35;cursor:default}
 details{margin:0}
+.rg-row{border:1px solid var(--line);border-radius:8px;padding:6px 8px 4px;margin-bottom:8px}
+.rg-row.on{border-color:var(--ink)}
+.rg-row .lg{margin-bottom:4px}
+.rg-opt{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--mute)}
+.rg-opt label{display:flex;flex-direction:column;gap:2px}
+.rg-opt label:last-child{flex-direction:row;align-items:center;gap:4px}
+.rg-opt input[type=range]{width:100%}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -91,6 +98,11 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 </details>
 </section>
 <section>
+<h2>Regions</h2>
+<div class="row"><button class="b" id="rgd">Draw a region</button><button class="b" id="rgf" hidden>Finish</button></div>
+<div id="rgl" style="margin-top:8px"></div>
+</section>
+<section>
 <h2>Map layers</h2>
 <div class="lay">
 <label class="sw2"><input type="checkbox" data-k="borders" checked> Borders</label>
@@ -98,6 +110,7 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <label class="sw2"><input type="checkbox" data-k="lakes" checked> Lakes</label>
 <label class="sw2"><input type="checkbox" data-k="rivers"> Rivers</label>
 <label class="sw2"><input type="checkbox" data-k="grat"> Graticule</label>
+<label class="sw2"><input type="checkbox" data-k="regions" checked> Regions</label>
 </div>
 </section>
 <section>
