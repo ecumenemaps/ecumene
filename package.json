@@ -7,7 +7,8 @@
   "scripts": {
     "fetch": "sh scripts/fetch_data.sh",
     "data": "node scripts/build_tris.js 4 && node scripts/build_phys.js",
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "test": "node scripts/test_groups.js"
   },
   "dependencies": {
     "d3": "^7",

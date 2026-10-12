@@ -36,6 +36,10 @@ label.sw2 input{width:18px;height:18px;accent-color:#2a7fb8}
 .lg i{width:18px;height:18px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.25)}
 .lg input{flex:1;min-width:0;padding:5px 8px}
 .lg small{color:var(--mute);flex:none}
+.lg input[type=color]{flex:none;width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
+.lg button{flex:none;width:24px;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);cursor:pointer;font-size:12px}
+.lg button:disabled{opacity:.35;cursor:default}
+details{margin:0}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -69,6 +73,24 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <datalist id="names"></datalist>
 </section>
 <section>
+<details open><summary>Fill from a list</summary>
+<textarea id="bl" rows="3" placeholder="France, Italy, Kenya (commas or new lines)" spellcheck="false" aria-label="Countries to paint"></textarea>
+<div class="row" style="margin-top:8px"><button class="b" id="blp">Paint list</button></div>
+<select id="grp" aria-label="Country group" style="margin-top:8px"></select>
+<div class="row" style="margin-top:8px"><button class="b" id="grpp">Paint group</button></div>
+<p class="hint" id="grpn"></p>
+</details>
+</section>
+<section>
+<details><summary>Color by data</summary>
+<textarea id="dd" rows="5" placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
+<div class="cg" style="margin-top:8px"><select id="dpal" aria-label="Color scale"></select><select id="dn" aria-label="Number of classes"></select></div>
+<select id="dm" aria-label="Class method"><option value="equal">Equal intervals</option><option value="quantile">Quantiles (equal counts)</option></select>
+<div class="row" style="margin-top:8px"><button class="b" id="dgo">Color the map</button></div>
+<p class="hint">Only the listed countries are colored. Each class becomes a legend entry you can rename.</p>
+</details>
+</section>
+<section>
 <h2>Map layers</h2>
 <div class="lay">
 <label class="sw2"><input type="checkbox" data-k="borders" checked> Borders</label>
@@ -94,11 +116,14 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 </section>
 <section>
 <h2>Legend</h2>
+<input id="lt" type="text" placeholder="Legend title (optional)" aria-label="Legend title" style="margin-bottom:8px">
 <div id="lgd"></div>
+<div class="row" style="margin-top:8px"><select id="lp" aria-label="Legend position" style="width:auto;flex:1"><option value="bl">Bottom left</option><option value="br">Bottom right</option><option value="tl">Top left</option><option value="tr">Top right</option></select>
+<label class="sw2"><input id="ls" type="checkbox" checked> In image</label></div>
 </section>
 <section>
 <h2>Save and share</h2>
-<div class="row"><button class="b" id="sf" hidden>Save map file</button><button class="b" id="lf">Load map file</button></div>
+<div class="row"><button class="b" id="sf">Save map file</button><button class="b" id="lf">Load map file</button></div>
 <input id="fi" type="file" accept=".json,application/json" hidden>
 <textarea id="mc" rows="3" placeholder="Map code" spellcheck="false" aria-label="Map code"></textarea>
 <div class="row" style="margin-top:8px"><button class="b" id="gc">Get code</button><button class="b" id="uc">Use code</button></div>
@@ -110,7 +135,7 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 </div>
 <div class="row" style="margin-top:8px">
 <button class="b" id="clr">Clear all colors</button>
-<button class="b" id="exp" hidden>Save PNG</button>
+<button class="b" id="exp">Save PNG</button>
 </div>
 <label class="sw2" style="margin-top:8px"><input id="x2" type="checkbox"> Save at 2x size</label>
 <div id="st" aria-live="polite"></div>

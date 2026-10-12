@@ -10,7 +10,11 @@ Paint countries on an accurate, draggable 3D globe. An open-source alternative t
 - Exact vector fills and exact point-in-polygon picking (small countries and islands stay clickable)
 - Toggles: borders, rivers, lakes, graticule, country names
 - Hover darkens the country and shows a cursor-following name tag
-- Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG export
+- Fill from a pasted list of countries (aliases like USA, UK, Ivory Coast understood)
+- One-click groups: EU, Eurozone, NATO, G7, G20, ASEAN, UN P5, and the continents
+- Colour by data: paste `country, value` rows, pick a scale, classes and method; the legend fills itself
+- Legend editor: rename, recolour, reorder, remove, title and position
+- Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG export (works standalone and in the artifact)
 
 ## Build
 Requires Node 20+.

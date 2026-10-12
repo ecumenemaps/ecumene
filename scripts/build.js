@@ -10,6 +10,6 @@ const out=rd('src/template.html')
  +'<script type="application/octet-stream" id="tris">'+rd('data/tris.b64')+'</script>\n'
  +'<script>'+rd('node_modules/d3/dist/d3.min.js')+'</script>\n'
  +'<script>'+rd('node_modules/topojson-client/dist/topojson-client.min.js')+'</script>\n'
- +'<script>'+rd('src/app.js')+'</script>\n</body>\n</html>\n';
+ +'<script>'+rd('src/groups.js')+'\n'+rd('src/app.js')+'</script>\n</body>\n</html>\n';
 fs.mkdirSync(R('dist'),{recursive:true});fs.writeFileSync(R('dist/index.html'),out);
 console.log('dist/index.html',(out.length/1e6).toFixed(2),'MB');
