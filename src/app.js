@@ -228,32 +228,69 @@ function rgAnchor(pts){const key=JSON.stringify(pts);if(anchorCache.has(key))ret
  for(let x=x0;x<=x1;x+=step)for(let y=y0;y<=y1;y+=step){const v=score(x,y);if(v>bs){bs=v;best=[x,y];}}
  for(let k=0;k<5;k++){step/=3;const [bx,by]=best;for(let dx=-3;dx<=3;dx++)for(let dy=-3;dy<=3;dy++){const v=score(bx+dx*step,by+dy*step);if(v>bs){bs=v;best=[bx+dx*step,by+dy*step];}}}
  const a=pj.invert(best)||c;if(anchorCache.size>200)anchorCache.clear();anchorCache.set(key,a);return a;}
+const isReg=r=>!r.t||r.t==='region';
+const minPts=r=>isReg(r)?3:r.t==='arrow'?2:1;
+// smooth curve through points on the sphere (Catmull-Rom on unit vectors)
+function smoothPath(pts){if(pts.length<3)return pts;const P=pts.map(q=>V(q[0],q[1])),o=[];
+ const at=i=>P[Math.max(0,Math.min(P.length-1,i))];
+ for(let i=0;i<P.length-1;i++){const p0=at(i-1),p1=at(i),p2=at(i+1),p3=at(i+2);
+  for(let k=0;k<16;k++){const t=k/16,t2=t*t,t3=t2*t,v=[0,1,2].map(d=>.5*(2*p1[d]+(-p0[d]+p2[d])*t+(2*p0[d]-5*p1[d]+4*p2[d]-p3[d])*t2+(-p0[d]+3*p1[d]-3*p2[d]+p3[d])*t3)),n=Math.hypot(...v);
+   o.push([Math.atan2(v[1],v[0])/D,Math.asin(Math.max(-1,Math.min(1,v[2]/n)))/D]);}}
+ o.push(pts[pts.length-1]);return o;}
+function arrowLine(r){const sp=r.sm?smoothPath(r.pts):r.pts;
+ // densify straight segments so the arrowhead direction follows the great circle
+ if(r.sm)return sp;const o=[];for(let i=0;i<sp.length-1;i++){const f=d3.geoInterpolate(sp[i],sp[i+1]);for(let k=0;k<16;k++)o.push(f(k/16));}o.push(sp[sp.length-1]);return o;}
+function headAt(c,tip,prev,size,col){if(!onFront(tip))return;const a=proj(tip),b=proj(prev),ang=Math.atan2(a[1]-b[1],a[0]-b[0]);
+ c.save();c.translate(a[0],a[1]);c.rotate(ang);c.beginPath();c.moveTo(0,0);c.lineTo(-size,-size*.55);c.lineTo(-size*.78,0);c.lineTo(-size,size*.55);c.closePath();c.fillStyle=col;c.fill();c.restore();}
+function drawArrow(c,path,r){if(r.pts.length<2)return;const line=arrowLine(r),hs=6+r.aw*2.6;
+ c.beginPath();path({type:'LineString',coordinates:line});c.lineWidth=r.aw;c.lineCap='round';c.lineJoin='round';c.strokeStyle=r.col;c.setLineDash(r.dash?[r.aw*3,r.aw*2.2]:[]);c.stroke();c.setLineDash([]);
+ if(r.head==='end'||r.head==='both')headAt(c,line[line.length-1],line[Math.max(0,line.length-3)],hs,r.col);
+ if(r.head==='both')headAt(c,line[0],line[Math.min(line.length-1,2)],hs,r.col);}
+const halo=col=>lum(col)>.5?'#101820':'#ffffff';
+function drawMarker(c,r){const g=r.pts[0];if(!onFront(g))return;const p=proj(g),s=r.ms;
+ c.save();c.translate(p[0],p[1]);c.beginPath();
+ if(r.sym==='square')c.rect(-s,-s,2*s,2*s);
+ else if(r.sym==='triangle'){c.moveTo(0,-s*1.2);c.lineTo(s*1.1,s*.8);c.lineTo(-s*1.1,s*.8);c.closePath();}
+ else if(r.sym==='star'){for(let i=0;i<10;i++){const rr=i%2?s*.5:s*1.3,a=-Math.PI/2+i*Math.PI/5;c.lineTo(rr*Math.cos(a),rr*Math.sin(a));}c.closePath();}
+ else c.arc(0,0,s,0,7);
+ c.fillStyle=r.col;c.fill();c.lineWidth=1.5;c.strokeStyle=halo(r.col)==='#ffffff'?'#ffffff':'#101820';c.stroke();
+ const t=r.label.trim();if(t){c.font='600 '+r.fs+'px system-ui,sans-serif';c.textAlign='left';c.textBaseline='middle';c.lineJoin='round';c.lineWidth=Math.max(3,r.fs/4);
+  c.strokeStyle=halo('#1b2430');c.globalAlpha=.9;c.strokeText(t,s+5,0);c.globalAlpha=1;c.fillStyle='#1b2430';c.fillText(t,s+5,0);}
+ c.restore();}
+function drawText(c,r){const g=r.pts[0],t=r.label.trim();if(!t||!onFront(g))return;const p=proj(g);
+ c.save();c.translate(p[0],p[1]);c.rotate(r.rot*D);c.font=(r.it?'italic ':'')+'600 '+r.fs+'px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
+ c.lineWidth=Math.max(3,r.fs/4);c.strokeStyle=halo(r.col);c.globalAlpha=.9;c.strokeText(t,0,0);c.globalAlpha=1;c.fillStyle=r.col;c.fillText(t,0,0);c.restore();}
+// names, markers and text labels go on top of everything else
 function drawRegionNames(c){if(!L.regions)return;setProj();c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
- RG.forEach(r=>{const t=r.label.trim();if(!r.sn||!t||r.pts.length<3)return;const a=rgAnchor(r.pts);if(!onFront(a))return;const p=proj(a);
+ RG.forEach(r=>{if(!isReg(r))return;const t=r.label.trim();if(!r.sn||!t||r.pts.length<3)return;const a=rgAnchor(r.pts);if(!onFront(a))return;const p=proj(a);
   const col=darker(r.col);c.font='700 '+r.fs+'px system-ui,sans-serif';c.lineWidth=Math.max(3,r.fs/4);
-  c.strokeStyle=lum(col)>.5?'#101820':'#ffffff';c.globalAlpha=.9;c.strokeText(t,p[0],p[1]);c.globalAlpha=1;c.fillStyle=col;c.fillText(t,p[0],p[1]);});}
+  c.strokeStyle=halo(col);c.globalAlpha=.9;c.strokeText(t,p[0],p[1]);c.globalAlpha=1;c.fillStyle=col;c.fillText(t,p[0],p[1]);});
+ RG.forEach(r=>{if(r.t==='marker')drawMarker(c,r);else if(r.t==='text')drawText(c,r);});}
 function drawRegions(c,ui){
  setProj();const path=d3.geoPath(proj,c);
- if(L.regions)RG.forEach(r=>{if(r.pts.length<3)return;c.beginPath();path(rgGeo(r.pts));
+ if(L.regions)RG.forEach(r=>{
+  if(r.t==='arrow'){drawArrow(c,path,r);return;}
+  if(!isReg(r)||r.pts.length<3)return;c.beginPath();path(rgGeo(r.pts));
   c.globalAlpha=r.op;c.fillStyle=r.col;c.fill();c.globalAlpha=1;
   c.setLineDash(r.dash?[7,5]:[]);c.lineWidth=r.lw;c.lineJoin='round';c.strokeStyle=darker(r.col);if(r.lw>0)c.stroke();c.setLineDash([]);});
  if(!ui)return;
  const dot=(g,rad,fill)=>{if(!onFront(g))return;const p=proj(g);c.beginPath();c.arc(p[0],p[1],rad,0,7);c.fillStyle=fill;c.fill();c.lineWidth=1.5;c.strokeStyle='#1b2430';c.stroke();};
  const r=RG[rgSel];
- if(r&&!drawing){c.beginPath();path({type:'LineString',coordinates:r.pts.concat([r.pts[0]])});c.lineWidth=2;c.strokeStyle='#ffffff';c.setLineDash([4,3]);c.stroke();c.setLineDash([]);
-  r.pts.forEach((g,i)=>{dot(d3.geoInterpolate(g,r.pts[(i+1)%r.pts.length])(.5),3.5,'rgba(255,255,255,.7)');});
+ if(r&&!drawing){const closed=isReg(r);
+  if(r.pts.length>1){c.beginPath();path({type:'LineString',coordinates:closed?r.pts.concat([r.pts[0]]):r.pts});c.lineWidth=2;c.strokeStyle='#ffffff';c.setLineDash([4,3]);c.stroke();c.setLineDash([]);}
+  if(r.pts.length>1)for(let i=0;i<(closed?r.pts.length:r.pts.length-1);i++)dot(d3.geoInterpolate(r.pts[i],r.pts[(i+1)%r.pts.length])(.5),3.5,'rgba(255,255,255,.7)');
   r.pts.forEach(g=>dot(g,5.5,'#ffffff'));}
  if(drawing){const pts=drawing.pts.slice(),m=geoAt(mx,my);
   if(pts.length){c.beginPath();path({type:'LineString',coordinates:m?pts.concat([m]):pts});c.lineWidth=2;c.strokeStyle=drawing.col;c.stroke();}
-  pts.forEach((g,i)=>dot(g,i===0&&pts.length>2?7:5,i===0?drawing.col:'#ffffff'));}
+  pts.forEach((g,i)=>dot(g,drawing.t==='region'&&i===0&&pts.length>2?7:5,i===0?drawing.col:'#ffffff'));}
 }
-// hit test against the selected region's handles: {v:i} vertex or {m:i} edge midpoint
+// hit test against the selected object's handles: {v:i} vertex or {m:i} segment midpoint
 function rgHit(x,y){const r=RG[rgSel];if(!r||drawing)return null;setProj();
  const near=g=>{if(!onFront(g))return false;const p=proj(g);return Math.hypot(p[0]-x,p[1]-y)<9;};
  for(let i=0;i<r.pts.length;i++)if(near(r.pts[i]))return {v:i};
- for(let i=0;i<r.pts.length;i++)if(near(d3.geoInterpolate(r.pts[i],r.pts[(i+1)%r.pts.length])(.5)))return {m:i};
+ if(r.pts.length>1)for(let i=0;i<(isReg(r)?r.pts.length:r.pts.length-1);i++)if(near(d3.geoInterpolate(r.pts[i],r.pts[(i+1)%r.pts.length])(.5)))return {m:i};
  return null;}
-function regionAt(x,y){const g=geoAt(x,y);if(!g||!L.regions)return -1;for(let i=RG.length-1;i>=0;i--)if(RG[i].pts.length>2&&d3.geoContains(rgGeo(RG[i].pts),g))return i;return -1;}
+function regionAt(x,y){const g=geoAt(x,y);if(!g||!L.regions)return -1;for(let i=RG.length-1;i>=0;i--)if(isReg(RG[i])&&RG[i].pts.length>2&&d3.geoContains(rgGeo(RG[i].pts),g))return i;return -1;}
 function drawNames(c){
  proj.translate([W/2,H/2]).scale(Rb()).rotate([rot[0],rot[1],0]);
  const R=proj.scale(),cen=[-rot[0],-rot[1]],rects=[];
@@ -272,7 +309,7 @@ function drawLegend(c,w,h){
  if(!LG.show)return;
  const cnt={};fills.forEach(col=>cnt[col]=1);
  const items=ordCols(cnt).map(col=>({col,label:(labels[col]||'').trim()})).filter(x=>x.label);
- if(L.regions)RG.forEach(r=>{if(r.label.trim()&&r.pts.length>2)items.push({col:r.col,label:r.label.trim(),reg:r});});
+ if(L.regions)RG.forEach(r=>{if(!r.label.trim())return;if(isReg(r)&&r.pts.length>2)items.push({col:r.col,label:r.label.trim(),reg:r});else if(r.t==='arrow'&&r.pts.length>1)items.push({col:r.col,label:r.label.trim(),arr:r});});
  if(!items.length)return;
  const title=LG.title.trim();
  c.textAlign='left';c.textBaseline='middle';
@@ -284,7 +321,9 @@ function drawLegend(c,w,h){
  c.fillStyle='#1b2430';
  if(title){c.font='600 14px system-ui,sans-serif';c.fillText(title,bx+p,by+p+6);}
  c.font='14px system-ui,sans-serif';
- items.forEach((x,i)=>{const y=by+p+th+i*lh;c.globalAlpha=x.reg?Math.max(.15,x.reg.op):1;c.fillStyle=x.col;c.fillRect(bx+p,y,16,16);c.globalAlpha=1;
+ items.forEach((x,i)=>{const y=by+p+th+i*lh;
+  if(x.arr){const a=x.arr;c.strokeStyle=a.col;c.lineWidth=Math.min(4,a.aw);c.setLineDash(a.dash?[4,3]:[]);c.beginPath();c.moveTo(bx+p,y+8);c.lineTo(bx+p+11,y+8);c.stroke();c.setLineDash([]);c.beginPath();c.moveTo(bx+p+17,y+8);c.lineTo(bx+p+9,y+3.5);c.lineTo(bx+p+9,y+12.5);c.closePath();c.fillStyle=a.col;c.fill();c.fillStyle='#1b2430';c.fillText(x.label,bx+p+26,y+8);return;}
+  c.globalAlpha=x.reg?Math.max(.15,x.reg.op):1;c.fillStyle=x.col;c.fillRect(bx+p,y,16,16);c.globalAlpha=1;
   if(x.reg){c.setLineDash(x.reg.dash?[3,2]:[]);c.lineWidth=Math.max(1,Math.min(2,x.reg.lw));c.strokeStyle=darker(x.col);}else{c.lineWidth=1;c.strokeStyle='rgba(0,0,0,.25)';}c.strokeRect(bx+p,y,16,16);c.setLineDash([]);c.fillStyle='#1b2430';c.fillText(x.label,bx+p+26,y+8);});
 }
 // legend order: remembered order first, new colors appended
@@ -339,7 +378,7 @@ const dist=()=>{const a=[...ptrs.values()];return Math.hypot(a[0][0]-a[1][0],a[0
 cv.addEventListener('pointerdown',e=>{if(!ready)return;track(e);cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
  if(ptrs.size===1){moved=0;pinched=false;
   if(rgSel>=0&&!drawing){const h=rgHit(mx,my);if(h){const r=RG[rgSel];
-   if(h.v!==undefined&&(e.button===2||e.altKey)){if(r.pts.length>3){r.pts.splice(h.v,1);renderRegions();redraw();commit();}else note('A region needs at least 3 points.',1);moved=99;return;}
+   if(h.v!==undefined&&(e.button===2||e.altKey)){if(r.pts.length>minPts(r)&&minPts(r)>1){r.pts.splice(h.v,1);renderRegions();redraw();commit();}else note('That point cannot be removed.',1);moved=99;return;}
    if(h.m!==undefined){r.pts.splice(h.m+1,0,d3.geoInterpolate(r.pts[h.m],r.pts[(h.m+1)%r.pts.length])(.5));rgDrag=h.m+1;}else rgDrag=h.v;
    moved=99;redraw();return;}}
   if(!drawing&&rgSel<0&&painting(e)){paintAt(e);moved=99;}}
@@ -430,7 +469,7 @@ $('un').onclick=undo;$('re').onclick=redo;
 const KEYS=['water','land','border','bg','river','grat','label'];
 function state(){const g={};fills.forEach((c,n)=>{(g[c]=g[c]||[]).push(n);});
  return {v:1,d:'ne10m',f:Object.entries(g).map(([c,n])=>({c,n,l:labels[c]||''})),s:Object.assign({},S),L:Object.assign({},L),
-  h:{dark:HS.dark,outline:HS.outline,tip:HS.tip,amt:HS.amt},g:RG.map(r=>({p:r.pts.map(q=>[+q[0].toFixed(4),+q[1].toFixed(4)]),c:r.col,o:r.op,w:r.lw,d:r.dash,l:r.label,n:r.sn,s:r.fs})),lg:{t:LG.title,p:LG.pos,s:LG.show,o:LG.order.filter(c=>fills.size&&[...fills.values()].includes(c))},r:[+rot[0].toFixed(2),+rot[1].toFixed(2)],z:+zoom.toFixed(2)};}
+  h:{dark:HS.dark,outline:HS.outline,tip:HS.tip,amt:HS.amt},g:RG.map(r=>({t:r.t||'region',p:r.pts.map(q=>[+q[0].toFixed(4),+q[1].toFixed(4)]),c:r.col,o:r.op,w:r.lw,d:r.dash,l:r.label,n:r.sn,s:r.fs,aw:r.aw,h:r.head,sm:r.sm,ro:r.rot,it:r.it,sy:r.sym,ms:r.ms})),lg:{t:LG.title,p:LG.pos,s:LG.show,o:LG.order.filter(c=>fills.size&&[...fills.values()].includes(c))},r:[+rot[0].toFixed(2),+rot[1].toFixed(2)],z:+zoom.toFixed(2)};}
 function apply(o){
  if(!o||typeof o!=='object'||!Array.isArray(o.f))throw new Error('This is not a map file or code.');
  const hexOk=v=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -444,8 +483,12 @@ function apply(o){
  if(o.h){HS.dark=!!o.h.dark;HS.outline=!!o.h.outline;HS.tip=!!o.h.tip;if(Number.isFinite(o.h.amt))HS.amt=clamp(o.h.amt,.05,.4);}
  RG.length=0;rgSel=-1;drawing=null;
  if(Array.isArray(o.g))o.g.forEach(g=>{if(!g||!Array.isArray(g.p)||!hexOk(g.c))return;
+  const t=['region','arrow','text','marker'].includes(g.t)?g.t:'region',num=(v,a,b,d)=>Number.isFinite(v)?clamp(v,a,b):d;
   const pts=g.p.filter(q=>Array.isArray(q)&&q.length===2&&q.every(Number.isFinite)).map(q=>[clamp(q[0],-180,180),clamp(q[1],-90,90)]);
-  if(pts.length<3)return;RG.push(newRegion(pts,g.c.toLowerCase(),Number.isFinite(g.o)?clamp(g.o,0,1):.45,Number.isFinite(g.w)?clamp(g.w,0,6):1.8,!!g.d,typeof g.l==='string'?g.l.slice(0,60):'',g.n!==false,Number.isFinite(g.s)?clamp(g.s,8,40):15));});
+  if(pts.length<(t==='region'?3:t==='arrow'?2:1))return;
+  RG.push(newObj(t,t==='text'||t==='marker'?pts.slice(0,1):pts,g.c.toLowerCase(),{op:num(g.o,0,1,.45),lw:num(g.w,0,6,1.8),dash:!!g.d,label:typeof g.l==='string'?g.l.slice(0,80):'',sn:g.n!==false,
+   fs:num(g.s,8,48,t==='marker'?13:15),aw:num(g.aw,1,12,3),head:['end','both','none'].includes(g.h)?g.h:'end',sm:g.sm!==false,rot:num(g.ro,-90,90,0),it:!!g.it,
+   sym:['dot','square','triangle','star'].includes(g.sy)?g.sy:'dot',ms:num(g.ms,2,16,6.5)}));});
  renderRegions();
  if(o.lg&&typeof o.lg==='object'){LG.title=typeof o.lg.t==='string'?o.lg.t.slice(0,80):'';LG.pos=['tl','tr','bl','br'].includes(o.lg.p)?o.lg.p:'bl';LG.show=o.lg.s!==false;LG.order=Array.isArray(o.lg.o)?o.lg.o.filter(hexOk):[];}
  else{LG.title='';LG.pos='bl';LG.show=true;LG.order=[];}
@@ -497,43 +540,72 @@ function renderLegend(){
 }
 $('lt').oninput=e=>{LG.title=e.target.value;};$('lp').onchange=e=>{LG.pos=e.target.value;};$('ls').onchange=e=>{LG.show=e.target.checked;};
 let rgN=0;
-function newRegion(pts,col,op,lw,dash,label,sn,fs){return {id:++rgN,pts,col,op,lw,dash,label,sn:sn!==false,fs:fs||15};}
-function startDraw(){if(!ready)return;selectRegion(-1);drawing={pts:[],col:active};curs(true);renderRegions();redraw();
- note('Click on the globe to add points. Drag to rotate. Click the first point or press Enter to finish; Backspace removes a point; Esc cancels.');}
+const KIND={region:'region',arrow:'arrow',text:'text label',marker:'marker'};
+function newObj(t,pts,col,o){return Object.assign({id:++rgN,t,pts,col,op:.45,lw:1.8,dash:false,label:'',sn:true,fs:t==='marker'?13:15,aw:3,head:'end',sm:true,rot:0,it:false,sym:'dot',ms:6.5},o||{});}
+function newRegion(pts,col){return newObj('region',pts,col);}
+const HELP={region:'Click on the globe to add points. Drag to rotate. Click the first point or press Enter to finish; Backspace removes a point; Esc cancels.',
+ arrow:'Click to add points along the route, then press Enter or double-click to finish. Backspace removes a point; Esc cancels.',
+ text:'Click where the text should go.',marker:'Click where the marker should go.'};
+function startDraw(t){if(!ready)return;if(drawing){const same=drawing.t===t;cancelDraw();if(same)return;}selectRegion(-1);drawing={pts:[],col:active,t};curs(true);renderRegions();redraw();note(HELP[t]);}
 function cancelDraw(){drawing=null;curs($('pm').checked);renderRegions();redraw();note('');}
-function addPoint(x,y){const g=geoAt(x,y);if(!g)return;const P=drawing.pts;setProj();
+function addPoint(x,y){const g=geoAt(x,y);if(!g)return;const P=drawing.pts,t=drawing.t;setProj();
+ if(t==='text'||t==='marker'){P.push(g);finishDraw();return;}
  if(P.length){const a=proj(P[P.length-1]);if(Math.hypot(a[0]-x,a[1]-y)<7){finishDraw();return;}}
- if(P.length>2&&onFront(P[0])){const a=proj(P[0]);if(Math.hypot(a[0]-x,a[1]-y)<10){finishDraw();return;}}
+ if(t==='region'&&P.length>2&&onFront(P[0])){const a=proj(P[0]);if(Math.hypot(a[0]-x,a[1]-y)<10){finishDraw();return;}}
  P.push(g);redraw();}
-function finishDraw(){if(!drawing)return;const P=drawing.pts;
- if(P.length<3){note('A region needs at least 3 points.',1);return;}
- RG.push(newRegion(P,drawing.col,.45,1.8,false,''));drawing=null;curs($('pm').checked);selectRegion(RG.length-1);commit();
- note('Region added. Drag its points to adjust, drag a small dot to add a point, Alt-click or right-click a point to remove it.');
- const inp=document.querySelector('#rgl .rg-row.on input[type=text]');if(inp)inp.focus();}
+function finishDraw(){if(!drawing)return;const P=drawing.pts,t=drawing.t,need=t==='region'?3:t==='arrow'?2:1;
+ if(P.length<need){note(t==='region'?'A region needs at least 3 points.':'An arrow needs at least 2 points.',1);return;}
+ const o=newObj(t,P,t==='text'?'#1b2430':drawing.col);if(t==='text')o.label='Label';
+ RG.push(o);drawing=null;curs($('pm').checked);selectRegion(RG.length-1);commit();
+ note(t==='region'||t==='arrow'?'Added. Drag its points to adjust, drag a small dot to add a point, Alt-click or right-click a point to remove it.':'Added. Drag it to move it; type its text in the list.');
+ const inp=document.querySelector('#rgl .rg-row.on input[type=text]');if(inp){inp.focus();inp.select();}}
 function selectRegion(i){rgSel=i;if(i<0)curs($('pm').checked);renderRegions();redraw();}
+// build a region from the countries painted in the current color (largest connected piece)
+function regionFromPainted(){if(!ready)return;const names=new Set();fills.forEach((c,n)=>{if(c===active)names.add(n);});
+ if(!names.size){note('Paint some countries in the current color first, then press this again.',1);return;}
+ const geoms=topo.objects.countries.geometries.filter(g=>g.properties&&names.has(ALIAS[g.properties.name]||g.properties.name));
+ const m=topojson.merge(topo,geoms);let best=null,ba=-1;
+ m.coordinates.forEach(poly=>{const a=d3.geoArea({type:'Polygon',coordinates:[poly[0]]});const aa=a>2*Math.PI?4*Math.PI-a:a;if(aa>ba){ba=aa;best=poly[0];}});
+ if(!best){note('Could not build an outline from those countries.',1);return;}
+ let ring=best.slice(0,-1);const pieces=m.coordinates.length;
+ // Douglas-Peucker in lon/lat, loosening until the ring is editable
+ const dp=(pts,eps)=>{const keep=new Uint8Array(pts.length);keep[0]=keep[pts.length-1]=1;const st=[[0,pts.length-1]];
+  while(st.length){const [a,b]=st.pop();let md=-1,mi=-1;const [ax,ay]=pts[a],[bx,by]=pts[b],dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy)||1e-9;
+   for(let i=a+1;i<b;i++){const d=Math.abs(dy*(pts[i][0]-ax)-dx*(pts[i][1]-ay))/l;if(d>md){md=d;mi=i;}}
+   if(md>eps){keep[mi]=1;st.push([a,mi],[mi,b]);}}return pts.filter((_,i)=>keep[i]);};
+ let eps=.02,out=dp(ring,eps);while(out.length>400){eps*=1.6;out=dp(ring,eps);}
+ if(out.length<3){note('That outline is too small to turn into a region.',1);return;}
+ if(drawing)cancelDraw();RG.push(newObj('region',out,active,{op:.35}));selectRegion(RG.length-1);commit();
+ note('Region made from '+names.size+' countr'+(names.size===1?'y':'ies')+' ('+out.length+' points)'+(pieces>1?'. Only the largest connected piece was used; islands and separate parts were left out.':'.'));}
 function renderRegions(){
- const box=$('rgl');box.textContent='';$('rgd').textContent=drawing?'Cancel drawing':'Draw a region';$('rgf').hidden=!drawing;
- if(!RG.length){const p=document.createElement('p');p.className='hint';p.style.margin='0';p.textContent='Regions are freehand areas, such as language groups, cultures or climate zones. They sit on top of country colors.';box.appendChild(p);return;}
+ const box=$('rgl');box.textContent='';
+ document.querySelectorAll('#rgtools button[data-t]').forEach(b=>{const on=drawing&&drawing.t===b.dataset.t;b.classList.toggle('on',!!on);b.textContent=on?'Cancel':b.dataset.n;});
+ $('rgf').hidden=!drawing||drawing.t==='text'||drawing.t==='marker';
+ if(!RG.length){const p=document.createElement('p');p.className='hint';p.style.margin='0';p.textContent='Regions are freehand areas such as language groups, cultures or climate zones. Arrows show routes and migrations; text and markers label places. All of them sit on top of country colors.';box.appendChild(p);return;}
  const btn=(t,label,fn,dis)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-label',label);b.title=label;b.disabled=!!dis;b.onclick=fn;return b;};
- RG.forEach((r,i)=>{const row=document.createElement('div');row.className='rg-row'+(i===rgSel?' on':'');
+ const range=(label,min,max,step,val,set)=>{const l=document.createElement('label'),i=document.createElement('input');i.type='range';i.min=min;i.max=max;i.step=step;i.value=val;i.setAttribute('aria-label',label);i.oninput=()=>{set(+i.value);redraw();};i.onchange=()=>commit();l.append(label,i);return l;};
+ const check=(label,val,set)=>{const l=document.createElement('label'),i=document.createElement('input');i.type='checkbox';i.checked=val;i.onchange=()=>{set(i.checked);redraw();commit();};l.append(i,document.createTextNode(' '+label));return l;};
+ const select=(label,opts,val,set)=>{const l=document.createElement('label'),i=document.createElement('select');i.setAttribute('aria-label',label);i.innerHTML=opts.map(([v,n])=>'<option value="'+v+'"'+(v===val?' selected':'')+'>'+n+'</option>').join('');i.onchange=()=>{set(i.value);redraw();commit();};l.append(label,i);return l;};
+ RG.forEach((r,i)=>{const t=r.t||'region',row=document.createElement('div');row.className='rg-row'+(i===rgSel?' on':'');
   const top=document.createElement('div');top.className='lg';
-  const sw=document.createElement('input');sw.type='color';sw.value=r.col;sw.setAttribute('aria-label','Region color');sw.oninput=()=>{r.col=sw.value.toLowerCase();redraw();};sw.onchange=()=>commit();
-  const t=document.createElement('input');t.type='text';t.placeholder='Name (shows in legend)';t.value=r.label;t.setAttribute('aria-label','Region name');t.oninput=()=>{r.label=t.value;redraw();};t.onchange=()=>commit();
+  const sw=document.createElement('input');sw.type='color';sw.value=r.col;sw.setAttribute('aria-label',KIND[t]+' color');sw.oninput=()=>{r.col=sw.value.toLowerCase();redraw();};sw.onchange=()=>commit();
+  const tx=document.createElement('input');tx.type='text';tx.value=r.label;
+  tx.placeholder=t==='text'?'Text':t==='marker'?'Label (optional)':'Name (shows in legend)';tx.setAttribute('aria-label',KIND[t]+' text');
+  tx.oninput=()=>{r.label=tx.value;redraw();};tx.onchange=()=>commit();
   const mv=d=>()=>{const j=i+d;[RG[i],RG[j]]=[RG[j],RG[i]];if(rgSel===i)rgSel=j;else if(rgSel===j)rgSel=i;renderRegions();redraw();commit();};
-  top.append(sw,t,btn(i===rgSel?'✓':'✎',i===rgSel?'Done editing':'Edit points',()=>{if(drawing)cancelDraw();selectRegion(i===rgSel?-1:i);}),
-   btn('↑','Draw below the region after it',mv(-1),i===0),btn('↓','Draw above the region after it',mv(1),i===RG.length-1),
-   btn('×','Delete region',()=>{RG.splice(i,1);if(rgSel===i)rgSel=-1;else if(rgSel>i)rgSel--;renderRegions();redraw();commit();}));
+  const kind=document.createElement('span');kind.className='kind';kind.textContent=t==='region'?'▭':t==='arrow'?'→':t==='text'?'T':'●';kind.title=KIND[t];
+  top.append(kind,sw,tx,btn(i===rgSel?'✓':'✎',i===rgSel?'Done editing':'Edit or move',()=>{if(drawing)cancelDraw();selectRegion(i===rgSel?-1:i);}),
+   btn('↑','Draw earlier (underneath)',mv(-1),i===0),btn('↓','Draw later (on top)',mv(1),i===RG.length-1),
+   btn('×','Delete '+KIND[t],()=>{RG.splice(i,1);if(rgSel===i)rgSel=-1;else if(rgSel>i)rgSel--;renderRegions();redraw();commit();}));
   const opt=document.createElement('div');opt.className='rg-opt';
-  const op=document.createElement('input');op.type='range';op.min=0;op.max=100;op.value=Math.round(r.op*100);op.setAttribute('aria-label','Fill opacity');op.oninput=()=>{r.op=op.value/100;redraw();};op.onchange=()=>commit();
-  const lw=document.createElement('input');lw.type='range';lw.min=0;lw.max=6;lw.step=.2;lw.value=r.lw;lw.setAttribute('aria-label','Outline width');lw.oninput=()=>{r.lw=+lw.value;redraw();};lw.onchange=()=>commit();
-  const dl=document.createElement('label'),dc=document.createElement('input');dc.type='checkbox';dc.checked=r.dash;dc.onchange=()=>{r.dash=dc.checked;redraw();commit();};dl.append(dc,document.createTextNode(' Dashed'));
-  const l1=document.createElement('label');l1.append('Fill',op);const l2=document.createElement('label');l2.append('Outline',lw);
-  const nl=document.createElement('label'),nc=document.createElement('input');nc.type='checkbox';nc.checked=r.sn;nc.onchange=()=>{r.sn=nc.checked;redraw();commit();};nl.append(nc,document.createTextNode(' Name on map'));
-  const fz=document.createElement('input');fz.type='range';fz.min=9;fz.max=36;fz.value=r.fs;fz.setAttribute('aria-label','Name size');fz.oninput=()=>{r.fs=+fz.value;redraw();};fz.onchange=()=>commit();
-  const l3=document.createElement('label');l3.append('Name size',fz);
-  opt.append(l1,l2,dl,l3,nl);row.append(top,opt);box.appendChild(row);});
+  if(t==='region')opt.append(range('Fill',0,1,.01,r.op,v=>r.op=v),range('Outline',0,6,.2,r.lw,v=>r.lw=v),check('Dashed',r.dash,v=>r.dash=v),range('Name size',9,36,1,r.fs,v=>r.fs=v),check('Name on map',r.sn,v=>r.sn=v));
+  else if(t==='arrow')opt.append(range('Width',1,12,.5,r.aw,v=>r.aw=v),select('Head',[['end','At end'],['both','Both ends'],['none','None']],r.head,v=>r.head=v),check('Dashed',r.dash,v=>r.dash=v),check('Smooth curve',r.sm,v=>r.sm=v));
+  else if(t==='text')opt.append(range('Size',9,48,1,r.fs,v=>r.fs=v),range('Rotation',-90,90,1,r.rot,v=>r.rot=v),check('Italic',r.it,v=>r.it=v));
+  else opt.append(select('Symbol',[['dot','Dot'],['square','Square'],['triangle','Triangle'],['star','Star']],r.sym,v=>r.sym=v),range('Size',2,16,.5,r.ms,v=>r.ms=v),range('Text size',9,32,1,r.fs,v=>r.fs=v));
+  row.append(top,opt);box.appendChild(row);});
 }
-$('rgd').onclick=()=>{drawing?cancelDraw():startDraw();};$('rgf').onclick=finishDraw;
+document.querySelectorAll('#rgtools button[data-t]').forEach(b=>{b.dataset.n=b.textContent;b.onclick=()=>startDraw(b.dataset.t);});
+$('rgf').onclick=finishDraw;$('rgc').onclick=regionFromPainted;
 let armed=0;
 $('clr').onclick=e=>{if(!fills.size)return;
  if(!armed){armed=setTimeout(()=>{armed=0;e.target.textContent='Clear all colors';},3000);e.target.textContent='Click again to clear';return;}

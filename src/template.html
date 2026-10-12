@@ -47,6 +47,9 @@ details{margin:0}
 .rg-opt label{display:flex;flex-direction:column;gap:2px}
 .rg-opt label:has(input[type=checkbox]){flex-direction:row;align-items:center;gap:4px}
 .rg-opt input[type=range]{width:100%}
+.rg-opt select{padding:3px 4px;font-size:12px}
+#rgtools button.on{border-color:var(--ink);background:var(--panel)}
+.lg .kind{flex:none;width:14px;text-align:center;color:var(--mute);font-size:13px}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -98,8 +101,9 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 </details>
 </section>
 <section>
-<h2>Regions</h2>
-<div class="row"><button class="b" id="rgd">Draw a region</button><button class="b" id="rgf" hidden>Finish</button></div>
+<h2>Regions and annotations</h2>
+<div class="row" id="rgtools"><button class="b" data-t="region">Region</button><button class="b" data-t="arrow">Arrow</button><button class="b" data-t="text">Text</button><button class="b" data-t="marker">Marker</button><button class="b" id="rgf" hidden>Finish</button></div>
+<button class="b" id="rgc" style="margin-top:8px;width:100%">Region from countries painted in this color</button>
 <div id="rgl" style="margin-top:8px"></div>
 </section>
 <section>
@@ -110,7 +114,7 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <label class="sw2"><input type="checkbox" data-k="lakes" checked> Lakes</label>
 <label class="sw2"><input type="checkbox" data-k="rivers"> Rivers</label>
 <label class="sw2"><input type="checkbox" data-k="grat"> Graticule</label>
-<label class="sw2"><input type="checkbox" data-k="regions" checked> Regions</label>
+<label class="sw2"><input type="checkbox" data-k="regions" checked> Regions and notes</label>
 </div>
 </section>
 <section>
