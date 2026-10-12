@@ -2,3 +2,4 @@ node_modules/
 dist/
 data/*.b64
 data/src/
+data/admin1/

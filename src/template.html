@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Globe map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,600&family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,600;0,700;1,600&family=Noto+Sans:ital,wght@0,400;0,600;0,700;1,600&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,600&display=swap">
 <style>
 :root{--bg:#e8ecef;--panel:#fff;--ink:#1b2430;--mute:#5f6b78;--line:#d7dde3;--ocean:#a8c8dc;--land:#f3f0e8;--border:#7d8a97;--hl:#111;--river:#3f86b8;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -49,6 +51,13 @@ details{margin:0}
 .rg-opt input[type=range]{width:100%}
 .rg-opt select{padding:3px 4px;font-size:12px}
 #rgtools button.on{border-color:var(--ink);background:var(--panel)}
+.a1p{border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px}
+.a1l{max-height:190px;overflow:auto;margin-top:6px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.a1l small{color:var(--mute)}
+.a1h{font-size:12px;color:var(--mute);margin:8px 0 4px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:3px 9px;margin:0 4px 4px 0;font:12px system-ui,sans-serif;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.rg-row .src{font-size:12px;color:var(--mute);margin:-2px 0 4px 22px}
 .lg .kind{flex:none;width:14px;text-align:center;color:var(--mute);font-size:13px}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
@@ -103,7 +112,17 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <section>
 <h2>Regions and annotations</h2>
 <div class="row" id="rgtools"><button class="b" data-t="region">Region</button><button class="b" data-t="arrow">Arrow</button><button class="b" data-t="text">Text</button><button class="b" data-t="marker">Marker</button><button class="b" id="rgf" hidden>Finish</button></div>
-<button class="b" id="rgc" style="margin-top:8px;width:100%">Region from countries painted in this color</button>
+<button class="b" id="rgc" style="margin-top:8px;width:100%">Exact outline of countries painted in this color</button>
+<button class="b" id="a1o" style="margin-top:8px;width:100%">Exact outline from subdivisions…</button>
+<div id="a1p" class="a1p" hidden>
+<input id="a1c" type="search" list="a1names" placeholder="Country, e.g. United Kingdom" autocomplete="off" aria-label="Country">
+<datalist id="a1names"></datalist>
+<div id="a1g"></div>
+<input id="a1f" type="search" placeholder="Filter, e.g. Cornwall" autocomplete="off" aria-label="Filter subdivisions" style="margin-top:8px">
+<div id="a1l" class="a1l"></div>
+<p class="hint" id="a1s"></p>
+<div class="row"><button class="b" id="a1ok" disabled>Create outline</button><button class="b" id="a1all">All</button><button class="b" id="a1none">None</button><button class="b" id="a1x">Cancel</button></div>
+</div>
 <div id="rgl" style="margin-top:8px"></div>
 </section>
 <section>
@@ -119,7 +138,8 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 </section>
 <section>
 <details open><summary>Style</summary>
-<select id="pre" aria-label="Style preset"><option value="light">Light, print friendly</option><option value="dark">Dark</option><option value="mc">Mapchart-like</option></select>
+<label class="rg" style="margin-top:0">Label font<select id="sfont" aria-label="Label font"></select></label>
+<select id="pre" aria-label="Style preset" style="margin-top:10px"><option value="light">Light, print friendly</option><option value="dark">Dark</option><option value="mc">Mapchart-like</option></select>
 <div class="cg" id="cg"></div>
 <label class="rg">Border width<input id="sbw" type="range" min="0.5" max="3" step="0.1" value="1.1"></label>
 <label class="rg">Globe shading<input id="ssh" type="range" min="0" max="100" value="40"></label>

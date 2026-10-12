@@ -6,7 +6,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "fetch": "sh scripts/fetch_data.sh",
-    "data": "node scripts/build_tris.js 4 && node scripts/build_phys.js",
+    "data": "node scripts/build_tris.js 4 && node scripts/build_phys.js && node scripts/build_admin1.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test_groups.js"
   },
@@ -14,6 +14,7 @@
     "d3": "^7",
     "earcut": "2.2.4",
     "topojson-client": "^3",
+    "topojson-server": "^3.0.1",
     "world-atlas": "^2"
   }
 }

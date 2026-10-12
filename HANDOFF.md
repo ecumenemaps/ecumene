@@ -13,8 +13,12 @@ Context for a new session picking this up.
 
 - Custom regions: stored as lon/lat rings in `RG`, drawn on the 2D overlay with `d3.geoPath` (spherical clipping; winding fixed via `d3.geoArea`). Undo snapshots hold fills plus a JSON copy of regions. Saved in map state as `g`. Arrows, text and markers live in the same `RG` list with a `t` field (`region`, `arrow`, `text`, `marker`), so ordering, selection, undo and saving are shared.
 
+- Exact outlines (`t:'shape'`) are stored by reference, never by coordinates: `{k:'c',names}` for merged countries or `{k:'a1',c,ids}` for merged subdivisions. Geometry is rebuilt with `topojson.merge` and cached; subdivision files load lazily from `admin1/<A3>.json` (index inlined in the page as `#a1idx`).
+- Fonts: `S.font` keys into `FONTS`; Google Fonts are linked in the template and awaited before PNG export.
+
 ## Known limits
 - Natural Earth 10m: Jutland's northern tip appears attached (data limit).
+- Natural Earth admin-1 is coarse for some countries and uses odd groupings in places (the UK 'region' field mixes NUTS regions); finer data (geoBoundaries, CC BY 4.0) would need attribution.
 - The built page is about 12.8 MB, which is the artifact limit (16 MB). Subdivisions and history need hosted, lazily loaded data.
 - The newest build (vector lakes/rivers/graticule, save/share) has had no user test report yet.
 

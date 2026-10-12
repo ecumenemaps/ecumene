@@ -15,7 +15,8 @@ Paint countries on an accurate, draggable 3D globe. An open-source alternative t
 - Colour by data: paste `country, value` rows, pick a scale, classes and method; the legend fills itself
 - Custom regions: draw polygons on the globe (true great-circle edges), edit points, set fill, opacity, outline and dashes, and name them; names are drawn on the map, in the hover tag and in the legend
 - Annotations: curved or great-circle arrows (heads at one or both ends, dashes, legend entry), free text labels (size, rotation, italic) and point markers (dot, square, triangle, star) with labels
-- Region from countries: turn the countries painted in one colour into an editable region outline
+- Exact outlines: snap a region to real borders, either the countries painted in one colour or any set of subdivisions (states, provinces, counties; e.g. Scotland, Wales, Cornwall, Greater London), picked from a list, by group, or by clicking the map
+- Label font: one setting for every label on the map and in the legend
 - Legend editor: rename, recolour, reorder, remove, title and position
 - Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG export (works standalone and in the artifact)
 
@@ -27,17 +28,18 @@ Requires Node 20+.
     npm run data     # triangulate countries and pack lakes/rivers into data/*.b64
     npm run build    # writes dist/index.html, a single self-contained page
 
-Open `dist/index.html` in a browser. No server is needed.
+Serve `dist/` with any static server (for example `npx serve dist` or `python3 -m http.server -d dist`) and open it. Opening the file directly works, except for subdivision outlines, which are fetched from `dist/admin1/` on demand.
 
 ## Layout
 - `src/template.html` page shell and UI; `src/app.js` renderer and app logic; `src/tri.js` polygon triangulation helper
-- `scripts/build_tris.js` country meshes; `scripts/build_phys.js` lakes and rivers; `scripts/build.js` assembles the page
+- `scripts/build_admin1.js` per-country subdivision files; `scripts/build_tris.js` country meshes; `scripts/build_phys.js` lakes and rivers; `scripts/build.js` assembles the page
 
 ## Data and licences
 | Data | Source | Licence |
 |---|---|---|
 | Countries (10m) | Natural Earth via `world-atlas` | Public domain |
 | Lakes, rivers (10m) | Natural Earth | Public domain |
+| States and provinces (admin-1, 10m) | Natural Earth | Public domain |
 
 Natural Earth depicts de facto boundaries and is not authoritative for disputed areas. Any future data (geoBoundaries CC BY 4.0, GADM and Eurostat non-commercial, CShapes CC BY-NC-SA, historical-basemaps GPL-3.0, OpenHistoricalMap CC0) must be checked against this project's licence before use.
 
