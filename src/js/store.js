@@ -25,7 +25,7 @@ export const PRESETS = {
     shade: 1,
     bw: 1.1,
   },
-  mc: {
+  classic: {
     bg: '#ffffff',
     water: '#c9e4f9',
     land: '#eeeeee',

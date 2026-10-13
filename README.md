@@ -1,6 +1,6 @@
 # Ecumene
 
-Paint countries on an accurate, draggable 3D globe. An open-source alternative to MapChart for people who want globe maps, built so the output is trustworthy enough for Wikipedia-style use.
+Paint countries on an accurate, draggable 3D globe. Open source, and built so the output holds up as a Wikipedia-style reference map.
 
 > Status: early prototype. The name is a working title, pending trademark and domain checks.
 

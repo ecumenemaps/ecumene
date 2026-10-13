@@ -2,7 +2,7 @@
   "name": "ecumene",
   "version": "0.2.0",
   "private": true,
-  "description": "Paint countries on an accurate, draggable 3D globe. Open-source MapChart alternative.",
+  "description": "Paint countries on an accurate, draggable 3D globe. Open source.",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "fetch": "sh scripts/fetch_data.sh",
