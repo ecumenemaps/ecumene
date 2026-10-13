@@ -46,14 +46,16 @@ Conventions: modules share state only through `app`; UI panels re-render on even
 
 ## Known limits
 - Natural Earth 10m: Jutland's northern tip appears attached; admin-1 is coarse for some countries and its UK "region" grouping mixes NUTS regions.
-- Browser tests are slow on SwiftShader at high zoom.
+- Browser tests are slow on SwiftShader (software rendering), about 13 minutes for the suite. CI and headless Linux without a display use it; other machines use the real GPU (see `playwright.config.js`).
 - Untested on real phones and touch screens.
 
-## Roadmap
-Tracked as GitHub issues with Now / Next / Later milestones. Done: SVG export with provenance (#1), Wikipedia preset (#2), flat projections (#3). Still open from the original list: interface redesign around modes (Paint, Regions, Annotate, Data, Style, Export) with phone support; disputed-area styles and worldviews; tiny-country markers; context-loss handling; multi-part freehand regions; finer subdivisions; historical borders.
+## Roadmap and where things stand (13 Oct 2026)
+Plans live in GitHub issues, grouped by the milestones Now / Next / Later. The Now milestone is finished: SVG export with provenance (#1), Wikipedia preset (#2), flat projections (#3), panel modes with phone support (#4), draggable legend (#5). From Next: home page done (#6), example gallery started (#7, four examples on the home page). Up next, in order: microstates as clickable markers (#8), paintable subdivisions (#9), then the UK & Ireland and US packs, colour schemes, one-click statistics, spreadsheet import. Later: historical borders, disputed areas and worldviews, patterns, map furniture, time-lapse, embeds, cities, languages, quiz mode, custom maps, more country packs, offline, WebGL context loss, multi-part freehand regions.
+
+Working agreements with Ari: never mention or compare to other map sites in the repo or the site; every reference data layer needs a named, openly licensed source; casual features must not weaken accuracy; examples and copy say plainly when something is fictional or when data is missing. Run the browser tests that touch a change locally and let CI run the full suite.
 
 Exports swap the drawing projection with `view.withProjection()` for one synchronous draw, so overlay.js draws regions, labels and the legend through any d3 projection. The Wikipedia conventions page's colour table is missing its green values (template fault); #346733 and #c6debd come from the published orthographic maps.
 
 ## Naming and licensing
 Working name Ecumene (org `ecumenemaps`). Still to check: trademarks (UK IPO, EUIPO, USPTO, classes 9 and 42) and registrar prices for `ecumene.app` / `ecumenemaps.com`.
-Licence: AGPL-3.0-or-later (confirm before making the repo public). GitHub Pages on the free plan needs a public repo.
+Licence: AGPL-3.0-or-later. The repo is public and deploys to GitHub Pages (https://ecumenemaps.github.io/ecumene/) on every push to main; CI runs unit and browser tests on every push.

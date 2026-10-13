@@ -1,6 +1,6 @@
 // Splits Natural Earth 10m admin-1 (states/provinces) into one small TopoJSON file per country,
 // written to data/admin1/<A3>.json, plus data/admin1/index.json mapping map country names to files.
-// Run: node scripts/build_admin1.js   (needs data/src/ne_10m_admin_1_states_provinces.geojson; see scripts/fetch_data.sh)
+// Run: node scripts/build_admin1.js   (needs data/src/ne_10m_admin_1_states_provinces.geojson; see scripts/fetch_data.js)
 const fs=require('fs'),path=require('path'),ts=require('topojson-server'),tj=require('topojson-client');
 const R=p=>path.join(__dirname,'..',p);
 const src=JSON.parse(fs.readFileSync(R('data/src/ne_10m_admin_1_states_provinces.geojson')));

@@ -33,7 +33,7 @@ jobs:
             data/src
             data/*.bin
             data/admin1
-          key: data-${{ hashFiles('scripts/fetch_data.sh', 'scripts/build_*.js', 'scripts/lib/**', 'package-lock.json') }}
+          key: data-${{ hashFiles('scripts/fetch_data.js', 'scripts/build_*.js', 'scripts/lib/**', 'package-lock.json') }}
       - run: |
           [ -f data/src/ne_10m_admin_1_states_provinces.geojson ] || npm run fetch
           [ -f data/tris.bin ] && [ -f data/phys.bin ] && [ -f data/admin1/index.json ] || npm run data
