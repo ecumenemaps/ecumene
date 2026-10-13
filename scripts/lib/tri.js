@@ -34,5 +34,5 @@ async function triangulate(feats,earcut,STEP,tick,idOf){
   }
   if(tick&&fi%8===7)await tick();
  }
- return {ll:new Float32Array(LL),id:new Uint8Array(ID),idx:new Uint32Array(IDX),PL};
+ return {ll:new Float32Array(LL),id:new Uint16Array(ID),idx:new Uint32Array(IDX),PL};
 }

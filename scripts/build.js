@@ -12,7 +12,8 @@ fs.rmSync(R('dist'), { recursive: true, force: true });
 for (const d of ['dist/app/data', 'dist/app/admin1', 'dist/fonts', 'dist/home', 'dist/examples']) fs.mkdirSync(R(d), { recursive: true });
 
 // editor data files, fetched in parallel by the editor
-fs.writeFileSync(R('dist/app/data/countries.json'), JSON.stringify(require('world-atlas/countries-10m.json')));
+// with overseas parts (French Guiana, Réunion, Caribbean Netherlands...) as their own units, as in tris.bin
+fs.writeFileSync(R('dist/app/data/countries.json'), JSON.stringify(require('../src/overseas.js').splitOverseas(require('world-atlas/countries-10m.json'), require('topojson-client').feature)));
 fs.copyFileSync(R('data/tris.bin'), R('dist/app/data/tris.bin'));
 fs.copyFileSync(R('data/phys.bin'), R('dist/app/data/phys.bin'));
 // base64 copies for hosts that refuse .bin (see fetchBin in src/js/data.js)

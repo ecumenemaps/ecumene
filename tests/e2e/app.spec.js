@@ -159,6 +159,30 @@ test('small countries get markers that paint, export and hide when zoomed in', a
   expect(errors).toEqual([]);
 });
 
+test('overseas parts paint on their own; maps saved before the split keep their look', async ({ page }) => {
+  const errors = await openApp(page);
+  const PARTS = ['French Guiana', 'Guadeloupe', 'Martinique', 'Mayotte', 'Réunion', 'Caribbean Netherlands'];
+  const load = (s) =>
+    page.evaluate((s) => {
+      window.ecumene.setState(Object.assign(window.ecumene.getState(), s));
+      return window.ecumene.getState();
+    }, s);
+  // centred on French Guiana, a click paints it and not France
+  await load({ f: [], r: [53.2, -3.9], z: 4 });
+  const c = await globeCentre(page);
+  await page.mouse.click(c.x, c.y);
+  let st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.d).toBe('ne10m-2');
+  expect(st.f.flatMap((g) => g.n)).toEqual(['French Guiana']);
+  // painting France and the Netherlands now leaves their overseas parts alone
+  st = await load({ d: 'ne10m-2', f: [{ c: '#123456', n: ['France', 'Netherlands'], l: '' }] });
+  expect(st.f[0].n.sort()).toEqual(['France', 'Netherlands']);
+  // an older map painted them with their parent, so loading one adds the parts in the same colour
+  st = await load({ d: 'ne10m', f: [{ c: '#123456', n: ['France', 'Netherlands'], l: '' }] });
+  expect(st.f[0].n.sort()).toEqual(['France', 'Netherlands', ...PARTS].sort());
+  expect(errors).toEqual([]);
+});
+
 test('paste a list and paint a group', async ({ page }) => {
   const errors = await openApp(page);
   await mode(page, 'paint');

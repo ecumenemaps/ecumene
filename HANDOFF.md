@@ -27,6 +27,8 @@ Context for anyone (or any session) picking this up. See README for build and te
 | `ui-modes.js` | Panel modes (Paint, Data, Draw, Style, Legend, Export): rail on desktop, bottom tabs and a resizable sheet on phones; keys 1–6; remembers the last mode; selecting an object switches to Draw. `window.ecumene.mode(m)` for tests |
 | `svgctx.js` | Canvas-2D-compatible recorder that writes SVG, so overlay drawing and d3 `geoPath` are shared by screen and SVG output |
 
+Outside `src/js/`: `src/groups.js` (country groups and name matching) and `src/overseas.js` (the overseas parts split from France and the Netherlands), both CommonJS so the build scripts and tests can require them.
+
 Conventions: modules share state only through `app`; UI panels re-render on events rather than being called directly; anything pure goes in a module without DOM access so it can be unit tested.
 
 ## Rendering design
@@ -36,6 +38,8 @@ Conventions: modules share state only through `app`; UI panels re-render on even
 - Regions and annotations: the 2D overlay canvas with d3's spherical clipping, so edges follow great circles.
 - Picking: exact point-in-polygon on unwrapped polygons, not a raster.
 - Enclaves merged by alias: Baikonur to Kazakhstan, USNB Guantanamo Bay to Cuba.
+- Overseas parts split out (`src/overseas.js`): French Guiana, Guadeloupe, Martinique, Mayotte and Réunion from France, the Caribbean Netherlands (Bonaire, Saba, Sint Eustatius) from the Netherlands, as Natural Earth's map units do. Polygons are moved by lon/lat box into new geometries appended after the 255 world-atlas ones, so existing ids do not move. `build_tris.js` and `build.js` (which writes `countries.json`) both use the split topology. Continents place them geographically; the EU and Eurozone groups include the French regions (EU territory, euro), NATO does not (outside the treaty area). Maps saved with data `ne10m` (before the split) paint each part like its parent on load (`persist.js`); maps now save `d: 'ne10m-2'`.
+- Country ids are 16-bit in `tris.bin` and the palette texture has 1024 entries (`PAL_N` in `gl.js`), so more units fit; there are 259 names now.
 - Small-country markers: any country under about 40,000 km² (`TINY_MAX` in `data.js`) gets a dot while it is under 5 px across on screen (`TINY_PX` in `view.js`), clickable within 7 px. Drawn on the overlay below regions, filled with the country's paint, and written to SVG as `<circle data-name>` in a `small-countries` group. Uninhabited reefs and banks, the sovereign base areas and the Cyprus buffer zone are left out (`NO_MARKER`). The Vatican has zero area in the 10m data (quantisation collapses it), so its marker shows at every zoom. Layer toggle `layers.tiny`.
 
 ## Data
@@ -47,7 +51,7 @@ Conventions: modules share state only through `app`; UI panels re-render on even
 
 ## Known limits
 - Natural Earth 10m: Jutland's northern tip appears attached; admin-1 is coarse for some countries and its UK "region" grouping mixes NUTS regions.
-- Admin-0 countries keep overseas parts inside the parent: French Guiana, Guadeloupe, Martinique, Réunion and Mayotte are part of France, Bonaire of the Netherlands, Svalbard of Norway, the Canaries of Spain, the Azores and Madeira of Portugal. They paint with the parent and get no marker of their own.
+- Admin-0 countries keep some overseas parts inside the parent. French Guiana, Guadeloupe, Martinique, Mayotte, Réunion and the Caribbean Netherlands are split out (see Data); Svalbard (Norway), the Canaries (Spain), and the Azores and Madeira (Portugal) still paint with their parent. Subdivisions for the split parts are still listed under France (`FRA.json`); the parts have no subdivision file of their own.
 - Browser tests are slow on SwiftShader (software rendering), about 13 minutes for the suite. CI and headless Linux without a display use it; other machines use the real GPU (see `playwright.config.js`).
 - Untested on real phones and touch screens.
 

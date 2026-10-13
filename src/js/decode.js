@@ -29,15 +29,15 @@ function prefix(d, n) {
   return o;
 }
 
-/** Country fill mesh: {ll: Float32Array lon/lat pairs, ids: Uint8Array country id per vertex, idx: Uint32Array triangles} */
+/** Country fill mesh: {ll: Float32Array lon/lat pairs, ids: Uint16Array country id per vertex, idx: Uint32Array triangles} */
 export function decodeTris(buf) {
   const h = new Uint32Array(buf, 0, 2),
     nv = h[0],
     ni = h[1];
   const ll = undelta(new Int32Array(buf, 8, 2 * nv), nv);
   let off = 8 + 8 * nv;
-  const ids = new Uint8Array(buf, off, nv);
-  off += (nv + 3) & ~3;
+  const ids = new Uint16Array(buf, off, nv);
+  off += 2 * ((nv + 1) & ~1);
   const idx = prefix(new Int32Array(buf, off, ni), ni);
   return { ll, ids, idx };
 }

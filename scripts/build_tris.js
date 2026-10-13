@@ -1,7 +1,8 @@
 const fs=require('fs'),zlib=require('zlib'),tj=require('topojson-client'),earcut=require('earcut');
 eval(fs.readFileSync(__dirname+'/lib/tri.js','utf8')+';global.triangulate=triangulate');
 (async()=>{
- const t=require('world-atlas/countries-10m.json');
+ // the same split topology that scripts/build.js serves as countries.json, so feature order and ids match
+ const t=require('../src/overseas.js').splitOverseas(require('world-atlas/countries-10m.json'),tj.feature);
  const feats=tj.feature(t,t.objects.countries).features.filter(f=>f.properties&&f.properties.name);
  const ALIAS={'Baikonur':'Kazakhstan','USNB Guantanamo Bay':'Cuba'};
  feats.forEach(f=>{const a=ALIAS[f.properties.name];if(a)f.properties.name=a;});
@@ -14,7 +15,7 @@ eval(fs.readFileSync(__dirname+'/lib/tri.js','utf8')+';global.triangulate=triang
  const q=new Int32Array(2*nv);let px=0,py=0;
  for(let i=0;i<nv;i++){const x=Math.round(r.ll[2*i]*1e5),y=Math.round(r.ll[2*i+1]*1e5);q[2*i]=x-px;q[2*i+1]=y-py;px=x;py=y;}
  const di=new Int32Array(ni);let p=0;for(let i=0;i<ni;i++){di[i]=r.idx[i]-p;p=r.idx[i];}
- const idPad=(nv+3)&~3,ids=new Uint8Array(idPad);ids.set(r.id);
+ const idPad=(nv+1)&~1,ids=new Uint16Array(idPad);ids.set(r.id); // 16-bit ids, padded to 4 bytes
  const buf=Buffer.concat([Buffer.from(hdr.buffer),Buffer.from(q.buffer),Buffer.from(ids.buffer),Buffer.from(di.buffer)]);
  const z=zlib.deflateRawSync(buf,{level:9});
  fs.writeFileSync(__dirname+'/../data/tris.bin',z);

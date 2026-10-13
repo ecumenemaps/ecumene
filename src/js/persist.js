@@ -6,8 +6,14 @@ import { newObj, TYPES } from './objects.js';
 import { commit } from './history.js';
 import { FONTS, loadFont } from './fonts.js';
 import { hexOk, clamp } from './util.js';
+import { OVERSEAS } from '../overseas.js';
 
 const AUTOSAVE_KEY = 'globeMap1';
+// Map data version. 'ne10m' maps were saved before French Guiana, Réunion, the Caribbean Netherlands and the
+// other overseas parts were split from France and the Netherlands; loading one paints each part like its parent.
+const DATA = 'ne10m-2';
+/** Names to add for a pre-split map: the overseas parts whose parent is in names. */
+const splitParts = (names) => OVERSEAS.filter((p) => names.includes(p.parent) && !names.includes(p.name)).map((p) => p.name);
 
 /** Plain, JSON-serialisable description of the whole map. */
 export function getState() {
@@ -17,7 +23,7 @@ export function getState() {
     L = app.legend;
   return {
     v: 1,
-    d: 'ne10m',
+    d: DATA,
     f: Object.entries(groups).map(([c, n]) => ({ c, n, l: app.labels[c] || '' })),
     s: Object.assign({}, app.style),
     L: Object.assign({}, app.layers),
@@ -47,7 +53,7 @@ export function getState() {
   };
 }
 
-function parseObject(g) {
+function parseObject(g, preSplit) {
   if (!g || !Array.isArray(g.p) || !hexOk(g.c)) return null;
   const t = TYPES.includes(g.t) ? g.t : 'region';
   const num = (v, a, b, d) => (Number.isFinite(v) ? clamp(v, a, b) : d);
@@ -60,6 +66,7 @@ function parseObject(g) {
     if (f.k === 'c' && Array.isArray(f.names)) {
       const names = f.names.filter((x) => typeof x === 'string' && geo.nameId.has(x));
       if (!names.length) return null;
+      if (preSplit) names.push(...splitParts(names));
       ref = { k: 'c', names };
     } else if (f.k === 'a1' && typeof f.c === 'string' && geo.a1index[f.c] && Array.isArray(f.ids)) {
       const ids = f.ids.filter(Number.isInteger);
@@ -91,11 +98,12 @@ export function setState(o) {
   [...app.fills.keys()].forEach((n) => setFill(n, null));
   for (const k in app.labels) delete app.labels[k];
   let skipped = 0;
+  const preSplit = o.d !== DATA;
   for (const g of o.f) {
     if (!g || !hexOk(g.c) || !Array.isArray(g.n)) continue;
     const c = g.c.toLowerCase();
     if (g.l) app.labels[c] = String(g.l).slice(0, 60);
-    for (const n of g.n) {
+    for (const n of preSplit ? g.n.concat(splitParts(g.n)) : g.n) {
       if (geo.nameId.has(n)) setFill(n, c);
       else skipped++;
     }
@@ -129,7 +137,7 @@ export function setState(o) {
   app.drawing = null;
   if (Array.isArray(o.g))
     for (const g of o.g) {
-      const r = parseObject(g);
+      const r = parseObject(g, preSplit);
       if (r) app.objects.push(r);
     }
   const L = app.legend,

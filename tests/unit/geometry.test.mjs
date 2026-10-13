@@ -9,6 +9,8 @@ import { feature } from 'topojson-client';
 import { ringPolygon, labelAnchor, smoothPath, arrowLine, largestRing, smallUnits } from '../../src/js/shapes.js';
 import { ALIAS, NO_MARKER } from '../../src/js/data.js';
 
+const require = createRequire(import.meta.url);
+const world = require('../../src/overseas.js').splitOverseas(require('world-atlas/countries-10m.json'), feature);
 const bin = (p) => inflate(readFileSync(new URL('../../' + p, import.meta.url)));
 
 test('fill mesh decodes to valid triangles', async () => {
@@ -22,8 +24,10 @@ test('fill mesh decodes to valid triangles', async () => {
   assert.ok(max < nv, 'indices in range');
   for (let i = 0; i < nv; i += 997) {
     assert.ok(Math.abs(t.ll[2 * i + 1]) <= 90.0001, 'latitude in range');
-    assert.ok(t.ids[i] > 0 && t.ids[i] < 256, 'country id in range');
+    assert.ok(t.ids[i] > 0 && t.ids[i] <= world.objects.countries.geometries.length, 'country id in range');
   }
+  // the overseas parts are appended after the 255 world-atlas countries, so their ids need more than 8 bits
+  assert.ok(t.ids.includes(world.objects.countries.geometries.length), 'last overseas part is in the mesh');
 });
 
 test('lakes and rivers decode with consistent counts', async () => {
@@ -119,8 +123,7 @@ test('largestRing picks the biggest part and drops the closing point', () => {
 });
 
 test('smallUnits picks microstates and far territories, not reefs or large countries', () => {
-  const topo = createRequire(import.meta.url)('world-atlas/countries-10m.json');
-  const feats = feature(topo, topo.objects.countries).features.filter((f) => f.properties && f.properties.name);
+  const feats = feature(world, world.objects.countries).features.filter((f) => f.properties && f.properties.name);
   feats.forEach((f) => (f.properties.name = ALIAS[f.properties.name] || f.properties.name));
   const units = smallUnits(feats, 1e-3, NO_MARKER),
     by = new Map(units.map((u) => [u.n, u]));
@@ -136,9 +139,14 @@ test('smallUnits picks microstates and far territories, not reefs or large count
     'Jersey',
     'Bermuda',
     'Pitcairn Is.',
+    'Guadeloupe',
+    'Martinique',
+    'Mayotte',
+    'Réunion',
+    'Caribbean Netherlands',
   ])
     assert.ok(by.has(n), n);
-  for (const n of ['Scarborough Reef', 'Spratly Is.', 'Akrotiri', 'France', 'Cuba', 'USNB Guantanamo Bay']) assert.ok(!by.has(n), n);
+  for (const n of ['Scarborough Reef', 'Spratly Is.', 'Akrotiri', 'France', 'French Guiana', 'Cuba', 'USNB Guantanamo Bay']) assert.ok(!by.has(n), n);
   for (const u of units) assert.ok(u.a >= 0 && u.a < 1e-3 && u.c.every(Number.isFinite), u.n);
   // quantisation collapses the Vatican to a sliver of zero area, so its marker shows at every zoom
   assert.strictEqual(by.get('Vatican').a, 0);
