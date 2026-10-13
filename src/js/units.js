@@ -7,7 +7,7 @@ import { feature } from 'topojson-client';
 import earcut from 'earcut';
 import { triangulate } from '../../scripts/lib/tri.js';
 import { app, emit, redraw } from './store.js';
-import { geo } from './data.js';
+import { geo, inSea } from './data.js';
 import { loadSubdivisions } from './objects.js';
 import { commit } from './history.js';
 import { uploadUnitMesh, setUnitPainter, UPAL_ROWS } from './gl.js';
@@ -119,7 +119,7 @@ function inBounds(f, g) {
 /** The loaded unit of a country at a lon/lat, or null. */
 export function unitAtLL(country, g) {
   const U = ready.get(country);
-  return U && g ? U.feats.find((f) => inBounds(f, g) && geoContains(f, g)) || null : null;
+  return U && g && !inSea(g[0], g[1]) ? U.feats.find((f) => inBounds(f, g) && geoContains(f, g)) || null : null;
 }
 /** The units a click on f paints at the current detail: its region or part where the country has them, else f alone. */
 export function targetsOf(country, f) {

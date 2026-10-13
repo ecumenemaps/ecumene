@@ -42,10 +42,14 @@ export function decodeTris(buf) {
   return { ll, ids, idx };
 }
 
-/** Lakes (triangles + outlines, major lakes first) and rivers (polylines in three zoom tiers). */
+/** Lakes (triangles + outlines: always-water first, then major lakes, then the rest) and rivers (polylines in three zoom tiers). */
 export function decodePhys(buf) {
   const [nLV, nLI, nRP, nRG, nVP, nVL, t0, t1, majIdx, majRings] = new Uint32Array(buf, 0, 10);
-  let off = 40;
+  // Files built before the always-water lakes have a 10-number header and no always-water prefix.
+  const body = 4 * (2 * nLV + nLI + 2 * nRP + nRG + 2 * nVP + nVL),
+    old = buf.byteLength === 40 + body;
+  const [seaIdx, seaRings] = old ? [0, 0] : new Uint32Array(buf, 40, 2);
+  let off = old ? 40 : 48;
   const take = (n) => {
     const a = new Int32Array(buf, off, n);
     off += 4 * n;
@@ -63,6 +67,8 @@ export function decodePhys(buf) {
     lakeLines: { pts: undelta(rq, nRP), lens: rl },
     // Major lakes come first: their triangles are lakeIdx[0, majIdx), their outlines rings [0, majRings).
     lakeMajor: { idx: majIdx, rings: majRings },
+    // Within that, the always-water lakes (drawn at every Lakes setting) are lakeIdx[0, seaIdx), rings [0, seaRings).
+    lakeSea: { idx: seaIdx, rings: seaRings },
     rivers: {
       pts: undelta(vq, nVP),
       lens: vl,

@@ -45,6 +45,56 @@ test('lakes and rivers decode with consistent counts', async () => {
   assert.ok(p.lakeMajor.idx > 0 && p.lakeMajor.idx < p.lakeIdx.length);
   assert.strictEqual(p.lakeMajor.idx % 3, 0);
   assert.ok(p.lakeMajor.rings > 0 && p.lakeMajor.rings < p.lakeLines.lens.length);
+  // The always-water lakes are a non-empty prefix of the major ones.
+  assert.ok(p.lakeSea.idx > 0 && p.lakeSea.idx < p.lakeMajor.idx);
+  assert.strictEqual(p.lakeSea.idx % 3, 0);
+  assert.ok(p.lakeSea.rings > 0 && p.lakeSea.rings < p.lakeMajor.rings);
+});
+
+/** Whether a point is inside an odd number of lake rings [from, to) (the rings carry no hole information). */
+function inRings(p, from, to, x, y) {
+  let o = 0,
+    c = false;
+  for (let i = 0; i < to; i++) {
+    const n = p.lakeLines.lens[i];
+    if (i >= from)
+      for (let a = 0, b = n - 1; a < n; b = a++) {
+        const ax = p.lakeLines.pts[2 * (o + a)],
+          ay = p.lakeLines.pts[2 * (o + a) + 1],
+          bx = p.lakeLines.pts[2 * (o + b)],
+          by = p.lakeLines.pts[2 * (o + b) + 1];
+        if (ay > y !== by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax) c = !c;
+      }
+    o += n;
+  }
+  return c;
+}
+test('the IJsselmeer is always water', async () => {
+  const p = decodePhys(await bin('data/phys.bin'));
+  const sea = (x, y) => inRings(p, 0, p.lakeSea.rings, x, y),
+    major = (x, y) => inRings(p, p.lakeSea.rings, p.lakeMajor.rings, x, y);
+  assert.ok(sea(5.35, 52.75), 'IJsselmeer');
+  assert.ok(sea(5.25, 52.5), 'Markermeer');
+  assert.ok(!sea(5.6, 52.5), 'Flevoland is land');
+  // Georgian Bay is ranked below major but Lake Huron's outline already covers it
+  assert.ok(!sea(-80.6, 45.3) && major(-80.6, 45.3), 'Georgian Bay');
+  // picking uses the same rings
+  const { geo, setPhys, inSea } = await import('../../src/js/data.js');
+  setPhys(p);
+  assert.ok(inSea(5.35, 52.75) && !inSea(5.6, 52.5) && !inSea(-80.6, 45.3));
+  geo.sea = [];
+});
+
+test('lakes built before the always-water prefix still decode', async () => {
+  const b = new Uint8Array(await bin('data/phys.bin'));
+  const old = new Uint8Array(b.length - 8);
+  old.set(b.subarray(0, 40));
+  old.set(b.subarray(48), 40);
+  const p = decodePhys(old.buffer),
+    q = decodePhys(b.buffer);
+  assert.deepStrictEqual(p.lakeSea, { idx: 0, rings: 0 });
+  assert.deepStrictEqual(p.lakeMajor, q.lakeMajor);
+  assert.deepStrictEqual(p.rivers.lens, q.rivers.lens);
 });
 
 const square = [

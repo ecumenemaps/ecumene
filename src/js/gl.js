@@ -66,7 +66,7 @@ const pal = new Uint8Array(PAL_N * 4);
 // subdivision palette: 1024 x UPAL_ROWS entries, one per loaded unit (units.js assigns the ids)
 export const UPAL_ROWS = 8;
 const upal = new Uint8Array(1024 * UPAL_ROWS * 4);
-let palTex, upalTex, BL, HL, LO, LOM, GRL, RV;
+let palTex, upalTex, BL, HL, LO, LOM, SL, GRL, RV;
 const TV = { vao: null, n: 0 },
   LK = { vao: null, n: 0 },
   UV = { vao: null, n: 0, bufs: null };
@@ -189,6 +189,7 @@ export function initGL(canvas) {
   HL = lineSet();
   LO = lineSet();
   LOM = lineSet();
+  SL = lineSet();
   GRL = lineSet();
   RV = [lineSet(), lineSet(), lineSet()];
   TV.vao = gl.createVertexArray();
@@ -257,9 +258,13 @@ export function uploadUnitMesh(ll, idx, ids) {
 }
 export function uploadPhys(p) {
   meshVAO(LK, p.lakeLL, p.lakeIdx, null);
-  setLines(LO, packedSegs(p.lakeLines.pts, p.lakeLines.lens, 0, p.lakeLines.lens.length));
-  setLines(LOM, packedSegs(p.lakeLines.pts, p.lakeLines.lens, 0, p.lakeMajor.rings));
+  // always-water shores are drawn with the borders; the lake shore sets start after them
+  const s = p.lakeSea.rings;
+  setLines(SL, packedSegs(p.lakeLines.pts, p.lakeLines.lens, 0, s));
+  setLines(LO, packedSegs(p.lakeLines.pts, p.lakeLines.lens, s, p.lakeLines.lens.length));
+  setLines(LOM, packedSegs(p.lakeLines.pts, p.lakeLines.lens, s, p.lakeMajor.rings));
   LK.nMajor = p.lakeMajor.idx;
+  LK.nSea = p.lakeSea.idx;
   p.rivers.tiers.forEach(([a, b], i) => setLines(RV[i], packedSegs(p.rivers.pts, p.rivers.lens, a, b)));
 }
 export const setBorders = (arr) => setLines(BL, arr);
@@ -329,7 +334,8 @@ export function render(R) {
     gl.uniform1i(uP.uSkip, 0);
     gl.bindTexture(gl.TEXTURE_2D, palTex);
   }
-  const lakeN = Ly.lakes === 'all' ? LK.n : Ly.lakes === 'major' ? LK.nMajor : 0;
+  // the always-water lakes come first, so every setting draws at least them
+  const lakeN = Ly.lakes === 'all' ? LK.n : Ly.lakes === 'major' ? LK.nMajor : LK.nSea || 0;
   if (lakeN) {
     gl.uniform4f(uP.uFlat, ...rgb01(S.water), 1);
     gl.vertexAttribI4ui(gl.getAttribLocation(pFill, 'aId'), 0, 0, 0, 1);
@@ -352,12 +358,15 @@ export function render(R) {
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, set.n);
   };
   if (Ly.grat) lines(GRL, 1, S.grat, 0.3);
-  if (lakeN) lines(Ly.lakes === 'all' ? LO : LOM, 0.9, S.river, 0.9);
+  if (Ly.lakes !== 'none') lines(Ly.lakes === 'all' ? LO : LOM, 0.9, S.river, 0.9);
   if (Ly.rivers)
     RV.forEach((r, i) => {
       if (app.zoom >= RIVER_MIN_ZOOM[i]) lines(r, RIVER_WIDTH[i], S.river, 0.95);
     });
-  if (Ly.borders) lines(BL, S.bw, S.border, 0.95);
+  if (Ly.borders) {
+    lines(BL, S.bw, S.border, 0.95);
+    lines(SL, S.bw, S.border, 0.95);
+  }
   full(1);
   gl.useProgram(pLine);
   if (HS.outline && app.hover) lines(HL, 2.4, lum(S.water) > 0.5 ? '#111111' : '#ffffff', 1);

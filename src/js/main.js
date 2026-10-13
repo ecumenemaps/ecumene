@@ -2,7 +2,7 @@
 import { mesh } from 'topojson-client';
 import { app, setRenderer, redraw, emit, VERSION } from './store.js';
 import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, segs, render } from './gl.js';
-import { geo, loadBase, nameOf } from './data.js';
+import { geo, loadBase, nameOf, setPhys } from './data.js';
 import { Rb, tinyMarkers, setProj, proj } from './view.js';
 import { loadUnits } from './units.js';
 import { drawUnitHover, drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
@@ -143,7 +143,7 @@ async function main() {
   redraw();
   phys.then(
     (p) => {
-      geo.phys = p;
+      setPhys(p);
       uploadPhys(p);
       redraw();
     },

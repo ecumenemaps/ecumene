@@ -251,6 +251,52 @@ test('subdivisions load under the pointer and paint by unit or constituent part'
   expect(errors).toEqual([]);
 });
 
+test('the IJsselmeer is water at every Lakes setting: clicks there paint nothing', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    Object.assign(s, { r: [-5.4, -52.6], z: 30, f: [], u: [] });
+    s.L.lakes = 'none';
+    window.ecumene.setState(s);
+  });
+  // lakes load after the first frame; the SVG has the always-water group once they have
+  await expect.poll(async () => (await page.evaluate(() => window.ecumene.svg())).includes('<g id="inland-sea">')).toBe(true);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).not.toContain('<g id="lakes">');
+  expect(svg).toContain('Lakes and rivers: Natural Earth');
+  const box = await page.locator('#cv').boundingBox(),
+    at = async (lon, lat) => {
+      const p = await page.evaluate((g) => window.ecumene.px(g), [lon, lat]);
+      return [box.x + p[0], box.y + p[1]];
+    };
+  const st = () => page.evaluate(() => window.ecumene.getState());
+  // IJsselmeer and Markermeer paint nothing, Flevoland paints the Netherlands
+  for (const [lon, lat] of [
+    [5.35, 52.75],
+    [5.25, 52.5],
+  ]) {
+    const q = await at(lon, lat);
+    await page.mouse.click(q[0], q[1]);
+  }
+  expect((await st()).f).toEqual([]);
+  const fl = await at(5.6, 52.5);
+  await page.mouse.click(fl[0], fl[1]);
+  expect((await st()).f.flatMap((g) => g.n)).toEqual(['Netherlands']);
+  // with subdivisions on, the water is not part of a province either
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const ij = await at(5.35, 52.75);
+  await page.mouse.move(ij[0], ij[1]);
+  await page.mouse.move(ij[0] + 2, ij[1] + 1);
+  await page.waitForTimeout(400);
+  await page.mouse.click(ij[0] + 2, ij[1] + 1);
+  await page.waitForTimeout(400);
+  expect((await st()).u).toEqual([]);
+  await page.mouse.click(fl[0], fl[1]);
+  await expect.poll(async () => (await st()).u.flatMap((g) => g.k.Netherlands || []).length).toBe(1);
+  expect(errors).toEqual([]);
+});
+
 test('areas the subdivision data leaves out paint as "Rest of" the country', async ({ page }) => {
   const errors = await openApp(page);
   await page.evaluate(() => {
