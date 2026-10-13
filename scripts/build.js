@@ -15,6 +15,8 @@ fs.mkdirSync(R('dist/admin1'), { recursive: true });
 fs.writeFileSync(R('dist/data/countries.json'), JSON.stringify(require('world-atlas/countries-10m.json')));
 fs.copyFileSync(R('data/tris.bin'), R('dist/data/tris.bin'));
 fs.copyFileSync(R('data/phys.bin'), R('dist/data/phys.bin'));
+// base64 copies for hosts that refuse .bin (see fetchBin in src/js/data.js)
+for (const k of ['tris', 'phys']) fs.writeFileSync(R('dist/data/' + k + '.b64.txt'), fs.readFileSync(R('data/' + k + '.bin')).toString('base64'));
 for (const f of fs.readdirSync(R('data/admin1'))) fs.copyFileSync(R('data/admin1/' + f), R('dist/admin1/' + f));
 
 // script bundle, inlined into the page

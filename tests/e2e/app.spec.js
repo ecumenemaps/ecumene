@@ -197,6 +197,17 @@ test('scripting API round-trips state; lakes and rivers load after first frame',
   expect(errors).toEqual([]);
 });
 
+test('falls back to base64 data when .bin files are not served', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(e.message));
+  await page.route('**/*.bin', (route) => route.fulfill({ status: 404, body: 'not found' }));
+  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.getElementById('load').hidden, null, { timeout: 120000 });
+  await expect(page.locator('#st')).not.toContainText('failed');
+  expect(await page.locator('#names option').count()).toBeGreaterThan(240);
+  expect(pageErrors).toEqual([]);
+});
+
 test('PNG export downloads an image', async ({ page }) => {
   const errors = await openApp(page);
   await page.fill('#bl', 'Brazil');

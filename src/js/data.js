@@ -21,7 +21,20 @@ async function fetchOk(url) {
   if (!r.ok) throw new Error('could not load ' + url + ' (HTTP ' + r.status + ')');
   return r;
 }
-export const fetchBin = async (url) => inflate(await (await fetchOk(url)).arrayBuffer());
+/**
+ * Binary data files. Some hosts (the Claude artifact viewer) do not serve .bin, so the build also writes a
+ * base64 copy as .b64.txt and we fall back to it.
+ */
+export async function fetchBin(url) {
+  let bytes;
+  try {
+    bytes = await (await fetchOk(url)).arrayBuffer();
+  } catch (e) {
+    const text = await (await fetchOk(url.replace(/\.bin$/, '.b64.txt'))).text();
+    bytes = Uint8Array.from(atob(text.trim()), (c) => c.charCodeAt(0));
+  }
+  return inflate(bytes);
+}
 export const fetchJSON = async (url) => (await fetchOk(url)).json();
 
 /**
