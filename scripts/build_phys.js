@@ -1,5 +1,5 @@
 const fs=require('fs'),zlib=require('zlib'),earcut=require('earcut');
-eval(fs.readFileSync(__dirname+'/../src/tri.js','utf8')+';global.triangulate=triangulate');
+eval(fs.readFileSync(__dirname+'/lib/tri.js','utf8')+';global.triangulate=triangulate');
 (async()=>{
  const lk=JSON.parse(fs.readFileSync(__dirname+'/../data/src/ne_10m_lakes.geojson')).features.filter(f=>f.geometry);
  const rv=JSON.parse(fs.readFileSync(__dirname+'/../data/src/ne_10m_rivers_lake_centerlines_scale_rank.geojson')).features.filter(f=>f.geometry&&f.properties.featurecla!=='Lake Centerline');
@@ -19,6 +19,6 @@ eval(fs.readFileSync(__dirname+'/../src/tri.js','utf8')+';global.triangulate=tri
  const buf=Buffer.concat([Buffer.from(hdr.buffer),...secs.map(s=>Buffer.from(s.buffer,s.byteOffset,s.byteLength))]);
  const expect=32+4*(2*nLV+nLI+2*nRP+nRG+2*nVP+nVL);
  const z=zlib.deflateRawSync(buf,{level:9});
- fs.writeFileSync(__dirname+'/../data/phys.b64',z.toString('base64'));
+ fs.writeFileSync(__dirname+'/../data/phys.bin',z);
  console.log({nLV,nLI,nRP,nRG,nVP,nVL,tiers:cnt,rawMB:(buf.length/1e6).toFixed(2),expectOK:expect===buf.length,deflMB:(z.length/1e6).toFixed(2),b64MB:(z.length*4/3/1e6).toFixed(2)});
 })();

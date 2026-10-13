@@ -1,0 +1,47 @@
+# Publishes dist/ to GitHub Pages on every push to main.
+# Needs Pages enabled (Settings > Pages > Source: GitHub Actions). On GitHub's free plan
+# Pages only works for public repositories.
+name: Deploy to Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: |
+            data/src
+            data/*.bin
+            data/admin1
+          key: data-${{ hashFiles('scripts/fetch_data.sh', 'scripts/build_*.js', 'scripts/lib/**', 'package-lock.json') }}
+      - run: |
+          [ -f data/src/ne_10m_admin_1_states_provinces.geojson ] || npm run fetch
+          [ -f data/tris.bin ] && [ -f data/phys.bin ] && [ -f data/admin1/index.json ] || npm run data
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

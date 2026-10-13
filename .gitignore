@@ -1,5 +1,8 @@
 node_modules/
 dist/
 data/*.b64
+data/*.bin
 data/src/
 data/admin1/
+test-results/
+playwright-report/

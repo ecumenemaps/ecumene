@@ -1,30 +1,53 @@
 # Handoff notes
 
-Context for a new session picking this up.
+Context for anyone (or any session) picking this up. See README for build and test commands.
+
+## Module map (`src/js/`)
+| Module | Role |
+|---|---|
+| `main.js` | Entry: WebGL setup, data load, panel wiring, frame function, `window.ecumene` API |
+| `store.js` | The shared `app` state object, style presets, `redraw()` and a tiny event bus (`on`/`emit` for `legend`, `objects`, `history`, `style`) |
+| `data.js` | Fetches `data/countries.json`, `data/tris.bin`, `data/phys.bin`, `admin1/index.json`; country lookups; exact picking `idAtLL` |
+| `decode.js` | Pure decoders for the packed binary data (unit tested) |
+| `gl.js` | WebGL2 renderer: ocean and shading pass, fill mesh with a 256-entry palette texture, instanced lines |
+| `view.js` | Orthographic camera: screen to lon/lat, zoom, animation |
+| `shapes.js` | Pure spherical geometry: ring winding, label anchors, smooth curves (unit tested) |
+| `objects.js` | Map objects model (regions, exact outlines, arrows, text, markers), outline geometry cache, hit tests |
+| `editing.js` | Drawing mode, selection, creating exact outlines, reorder and delete |
+| `picker.js` | Subdivision picker (groups, list, map clicks) |
+| `overlay.js` | 2D canvas drawing for objects, names, legend, editing handles; reused by PNG export |
+| `paint.js` | Country fills, recolour, legend colour order |
+| `history.js` | Undo and redo (snapshots of fills and objects) |
+| `persist.js` | `getState`/`setState` (validated), map codes `GM1.`, downloads, autosave |
+| `fonts.js` | Label fonts; web fonts load only when chosen |
+| `input.js` | Pointer, wheel, keyboard, hover tag |
+| `ui-*.js` | Panels: paint (palette, search, lists, data), style, legend, objects, file |
+| `export.js` | PNG export |
+
+Conventions: modules share state only through `app`; UI panels re-render on events rather than being called directly; anything pure goes in a module without DOM access so it can be unit tested.
 
 ## Rendering design
-- Ocean and shading: fullscreen-triangle shader (`uMode` 0 ocean/bg, 1 lakes, 2 rivers, 3 graticule, 4 shading overlay).
+- Ocean and shading: fullscreen triangle (`uMode` 0 ocean and background, 1 limb shading and rim).
 - Country fills: triangle mesh (earcut, 4-degree grid clipping, antimeridian unwrap, Antarctica closed through the pole) with a per-vertex country id and a 256-entry palette texture. Hover and painting change palette entries.
-- Borders and hover outlines: instanced line program.
-- Picking: exact point-in-polygon on unwrapped polygons (`idAtLL`), not a raster grid.
-- Packed data: deflate-raw + base64 blobs, 1e5-quantised delta-coded coordinates, decoded with `DecompressionStream`.
+- Lines (borders, graticule, lakes, rivers, hover outline): instanced quads with back-hemisphere clipping in the vertex shader.
+- Regions and annotations: the 2D overlay canvas with d3's spherical clipping, so edges follow great circles.
+- Picking: exact point-in-polygon on unwrapped polygons, not a raster.
 - Enclaves merged by alias: Baikonur to Kazakhstan, USNB Guantanamo Bay to Cuba.
-- State: style object `S` with presets; undo/redo (200 snapshots); map codes `GM1.` + deflate-base64url; autosave to localStorage key `globeMap1`.
 
-- Custom regions: stored as lon/lat rings in `RG`, drawn on the 2D overlay with `d3.geoPath` (spherical clipping; winding fixed via `d3.geoArea`). Undo snapshots hold fills plus a JSON copy of regions. Saved in map state as `g`. Arrows, text and markers live in the same `RG` list with a `t` field (`region`, `arrow`, `text`, `marker`), so ordering, selection, undo and saving are shared.
-
-- Exact outlines (`t:'shape'`) are stored by reference, never by coordinates: `{k:'c',names}` for merged countries or `{k:'a1',c,ids}` for merged subdivisions. Geometry is rebuilt with `topojson.merge` and cached; subdivision files load lazily from `admin1/<A3>.json` (index inlined in the page as `#a1idx`).
-- Fonts: `S.font` keys into `FONTS`; Google Fonts are linked in the template and awaited before PNG export.
+## Data
+- Countries: Natural Earth 10m via `world-atlas`, served as `data/countries.json`.
+- `tris.bin` and `phys.bin`: deflate-raw, 1e-5 degree quantised, delta-coded (formats in `decode.js`).
+- Subdivisions: Natural Earth 10m admin-1, one TopoJSON per country in `admin1/`, fetched on demand.
+- Exact outlines (`t:'shape'`) are saved by reference (`{k:'c',names}` or `{k:'a1',c,ids}`), never by coordinates, and rebuilt with `topojson.merge`.
 
 ## Known limits
-- Natural Earth 10m: Jutland's northern tip appears attached (data limit).
-- Natural Earth admin-1 is coarse for some countries and uses odd groupings in places (the UK 'region' field mixes NUTS regions); finer data (geoBoundaries, CC BY 4.0) would need attribution.
-- The built page is about 12.8 MB, which is the artifact limit (16 MB). Subdivisions and history need hosted, lazily loaded data.
-- The newest build (vector lakes/rivers/graticule, save/share) has had no user test report yet.
+- Natural Earth 10m: Jutland's northern tip appears attached; admin-1 is coarse for some countries and its UK "region" grouping mixes NUTS regions.
+- Browser tests are slow on SwiftShader at high zoom.
+- Untested on real phones and touch screens.
 
 ## Roadmap
-Paste-a-list country input with presets (EU, NATO, continents); colour by data; legend editor; tiny-country markers; WebGL context-loss handler; Wikipedia-grade SVG/PNG export with provenance text and dashed disputed areas; worldview variants; admin-1 subdivisions; flat projections; multi-part regions (islands and holes) so region-from-countries keeps every piece; historical borders; mobile test; hosting and a site shell.
+SVG export with provenance and a Wikipedia locator-map preset; interface redesign around modes (Paint, Regions, Annotate, Data, Style, Export) with phone support; disputed-area styles and worldviews; tiny-country markers; context-loss handling; multi-part freehand regions; finer subdivisions; flat projections; historical borders.
 
 ## Naming and licensing
-Working name Ecumene (org `ecumenemaps`). Still to check: trademarks (UK IPO, EUIPO, USPTO, classes 9 and 42), registrar prices for `ecumene.app` / `ecumenemaps.com`.
-Licence choice: AGPL-3.0-or-later (recommended; confirm before making the repo public).
+Working name Ecumene (org `ecumenemaps`). Still to check: trademarks (UK IPO, EUIPO, USPTO, classes 9 and 42) and registrar prices for `ecumene.app` / `ecumenemaps.com`.
+Licence: AGPL-3.0-or-later (confirm before making the repo public). GitHub Pages on the free plan needs a public repo.

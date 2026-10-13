@@ -20,19 +20,31 @@ Paint countries on an accurate, draggable 3D globe. An open-source alternative t
 - Legend editor: rename, recolour, reorder, remove, title and position
 - Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG export (works standalone and in the artifact)
 
-## Build
+## Build and run
 Requires Node 20+.
 
     npm install
-    npm run fetch    # download Natural Earth lakes and rivers (public domain)
-    npm run data     # triangulate countries and pack lakes/rivers into data/*.b64
-    npm run build    # writes dist/index.html, a single self-contained page
+    npm run fetch    # download Natural Earth lakes, rivers and admin-1 sources (public domain)
+    npm run data     # build data/: tris.bin (country meshes), phys.bin (lakes, rivers), admin1/ (subdivisions)
+    npm run build    # write dist/: index.html (page + bundled script) and the data files it loads
+    npm run serve    # serve dist/ on http://127.0.0.1:8790
 
-Serve `dist/` with any static server (for example `npx serve dist` or `python3 -m http.server -d dist`) and open it. Opening the file directly works, except for subdivision outlines, which are fetched from `dist/admin1/` on demand.
+`npm run dev` builds unminified with a source map and serves it. The page fetches its data, so it must be served over HTTP; any static host works (GitHub Pages, Cloudflare Pages, `python3 -m http.server -d dist`).
+
+## Tests
+
+    npm run test:unit   # Node's built-in test runner: groups, parsing, data decoding, spherical geometry
+    npm run test:e2e    # Playwright: every feature end to end in Chromium (WebGL via SwiftShader)
+    npm test            # both
+
+The browser tests are slow on a software GPU (around 15 minutes); on a machine with a GPU they are much faster. CI runs both on every push (`.github/workflows/ci.yml`).
 
 ## Layout
-- `src/template.html` page shell and UI; `src/app.js` renderer and app logic; `src/tri.js` polygon triangulation helper
-- `scripts/build_admin1.js` per-country subdivision files; `scripts/build_tris.js` country meshes; `scripts/build_phys.js` lakes and rivers; `scripts/build.js` assembles the page
+- `src/template.html`: page shell, panel markup and CSS
+- `src/js/`: the app as ES modules, bundled by esbuild (see `HANDOFF.md` for the module map)
+- `src/groups.js`: country groups, name aliases and data parsing (shared with the build scripts and tests)
+- `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, helper `lib/tri.js`), `fetch_data.sh`, and `build.js`
+- `tests/unit/`, `tests/e2e/`: tests; `tests/server.js` is a minimal static server
 
 ## Data and licences
 | Data | Source | Licence |

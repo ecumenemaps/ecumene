@@ -1,0 +1,40 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Natural Earth sources and the built data change rarely; cache them
+      - uses: actions/cache@v4
+        with:
+          path: |
+            data/src
+            data/*.bin
+            data/admin1
+          key: data-${{ hashFiles('scripts/fetch_data.sh', 'scripts/build_*.js', 'scripts/lib/**', 'package-lock.json') }}
+      - name: Fetch and build data
+        run: |
+          [ -f data/src/ne_10m_admin_1_states_provinces.geojson ] || npm run fetch
+          [ -f data/tris.bin ] && [ -f data/phys.bin ] && [ -f data/admin1/index.json ] || npm run data
+      - run: npm run build
+      - run: npm run test:unit
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site
+          path: dist
+          retention-days: 7
