@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ecumene: accurate maps on a globe you can turn</title>
+<meta name="description" content="Paint countries, draw regions and arrows on a 3D globe, and export maps that name their sources. Free and open source.">
+<link rel="preload" href="fonts/source-serif-4-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Source Serif";src:url(fonts/source-serif-4-latin-opsz-normal.woff2) format("woff2");font-weight:200 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Source Serif";src:url(fonts/source-serif-4-latin-opsz-italic.woff2) format("woff2");font-weight:200 900;font-style:italic;font-display:swap}
+:root{
+ --plate:#eceee6;--ink:#1d2733;--mute:#55606b;--sea:#b9cfd6;--blue:#1f4e79;--red:#a3262a;--rule:#c9cec4;
+ --t1:#efd8cc;--t2:#efe4b2;--t3:#d4e2c1;--t4:#dcd4e5;
+ color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --plate:#141b22;--ink:#e3e6df;--mute:#a3acb4;--sea:#22374a;--blue:#8fb7dd;--red:#e07a6f;--rule:#2e3a45;
+ --t1:#5b4038;--t2:#5a5236;--t3:#3e5137;--t4:#4a4458}}
+:root[data-theme="dark"]{--plate:#141b22;--ink:#e3e6df;--mute:#a3acb4;--sea:#22374a;--blue:#8fb7dd;--red:#e07a6f;--rule:#2e3a45;--t1:#5b4038;--t2:#5a5236;--t3:#3e5137;--t4:#4a4458}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--plate);color:var(--ink);font:400 1.0625rem/1.6 "Source Serif",Charter,"Iowan Old Style",Georgia,serif;font-optical-sizing:auto}
+a{color:var(--blue);text-underline-offset:.18em;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.wrap{max-width:72rem;margin:0 auto;padding:0 clamp(1rem,4vw,2.5rem)}
+/* hero: lettering on the left, the plate on the right */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(1.5rem,4vw,4rem);align-items:center;min-height:min(92vh,48rem);padding:clamp(2rem,6vh,4rem) 0}
+.mast{font-size:clamp(3.4rem,8.5vw,6.6rem);line-height:.92;font-weight:600;letter-spacing:-.025em;margin:0 0 1.2rem;font-variation-settings:"opsz" 60}
+.lede{font-size:clamp(1.25rem,2.1vw,1.55rem);line-height:1.35;margin:0 0 1rem;max-width:30rem;font-weight:500}
+.sub{color:var(--mute);margin:0 0 1.8rem;max-width:31rem}
+.acts{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+.btn{display:inline-block;padding:.72rem 1.25rem;border-radius:3px;font:600 1rem/1.2 "Source Serif",Georgia,serif;text-decoration:none;border:1.5px solid var(--blue)}
+.btn.primary{background:var(--blue);color:var(--plate)}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn.second{color:var(--blue);background:transparent}
+.btn.second:hover{background:color-mix(in srgb,var(--blue) 8%,transparent)}
+.small{font-size:.9rem;color:var(--mute);margin:.9rem 0 0;max-width:31rem}
+figure.plate{margin:0}
+#globe{display:block;width:100%;aspect-ratio:1;touch-action:none;cursor:grab;border-radius:50%}
+#globe:active{cursor:grabbing}
+.plate figcaption{margin-top:.8rem;text-align:center;font-style:italic;font-size:.95rem;color:var(--mute)}
+/* sections */
+section{padding:clamp(2.5rem,7vh,4.5rem) 0;border-top:1px solid var(--rule)}
+h2{font-size:clamp(1.7rem,3vw,2.2rem);line-height:1.15;font-weight:600;letter-spacing:-.01em;margin:0 0 .4rem;font-variation-settings:"opsz" 36}
+.intro{color:var(--mute);margin:0 0 2rem;max-width:38rem}
+/* starting points, set like an atlas contents page */
+.contents{list-style:none;margin:0;padding:0;max-width:52rem}
+.contents a{display:grid;grid-template-columns:auto 1fr auto;column-gap:.6rem;align-items:baseline;padding:.9rem 0;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule)}
+.contents a:hover .t,.contents a:focus-visible .t{color:var(--blue);text-decoration:underline;text-decoration-thickness:1px}
+.contents .t{font-size:1.25rem;font-weight:600}
+.contents .lead{border-bottom:1.5px dotted color-mix(in srgb,var(--ink) 35%,transparent);transform:translateY(-.3em)}
+.contents .go{color:var(--blue);font-weight:600}
+.contents .d{grid-column:1/-1;color:var(--mute);font-size:.98rem;margin-top:.15rem;max-width:40rem}
+/* examples as plates with captions */
+.plates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(1.25rem,3vw,2.5rem)}
+.plates a{color:var(--ink);text-decoration:none;display:block}
+.plates img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;background:var(--sea);border:1px solid var(--rule)}
+.plates a:hover img{outline:2px solid var(--blue);outline-offset:2px}
+.plates .ct{margin:.7rem 0 0;font-size:1.1rem;font-weight:600}
+.plates .cd{margin:.15rem 0 0;font-style:italic;color:var(--mute);font-size:.95rem}
+/* accuracy */
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(1.5rem,4vw,3.5rem);align-items:start}
+.two p{margin:0 0 1rem;max-width:34rem}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+caption{text-align:left;font-style:italic;color:var(--mute);margin-bottom:.5rem}
+th,td{text-align:left;padding:.5rem .6rem .5rem 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:600}
+footer{border-top:1px solid var(--rule);padding:2rem 0 3rem;color:var(--mute);font-size:.95rem}
+footer p{margin:0 0 .6rem;max-width:44rem}
+@media (max-width:820px){
+ .hero{grid-template-columns:1fr;min-height:0;padding-top:1.5rem}
+ figure.plate{order:-1;max-width:26rem;width:100%;margin:0 auto}
+ .plates,.two{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+<div class="wrap">
+<header class="hero">
+<div>
+<h1 class="mast">Ecumene</h1>
+<p class="lede">Maps of the world that say where their borders come from.</p>
+<p class="sub">Paint countries, outline regions, add arrows and labels on a globe you can turn, then export a globe or a flat map that names its sources.</p>
+<div class="acts">
+<a class="btn primary" href="app/?new">Start a new map</a>
+<a class="btn second" id="cont" href="app/" hidden>Continue your map</a>
+</div>
+<p class="small" id="newnote" hidden>Starting a new map replaces the one saved in this browser. To keep it, open it and save it as a file first.</p>
+<p class="small">Free and open source. No account needed.</p>
+</div>
+<figure class="plate">
+<canvas id="globe" tabindex="0" aria-label="A political globe. Drag or use the arrow keys to turn it."></canvas>
+<figcaption id="cap">Orthographic projection</figcaption>
+</figure>
+</header>
+</div>
+
+<section>
+<div class="wrap">
+<h2>Start from</h2>
+<p class="intro">Each of these opens the editor ready for that kind of map. You can change everything afterwards.</p>
+<ul class="contents">
+<li><a href="app/?new"><span class="t">A blank world</span><span class="lead" aria-hidden="true"></span><span class="go">Open</span><span class="d">Click countries to paint them, name the colours, and the legend writes itself.</span></a></li>
+<li><a href="app/?start=wikipedia"><span class="t">A Wikipedia locator map</span><span class="lead" aria-hidden="true"></span><span class="go">Open</span><span class="d">Follows the WikiProject Maps conventions for orthographic maps: grey land, white borders, the subject in green, exported at 550 by 550 pixels.</span></a></li>
+<li><a href="app/?start=data"><span class="t">A map coloured by data</span><span class="lead" aria-hidden="true"></span><span class="go">Open</span><span class="d">Paste one country and value per line, pick a colour scale and the number of classes.</span></a></li>
+<li><a href="app/?start=flat"><span class="t">A flat world map</span><span class="lead" aria-hidden="true"></span><span class="go">Open</span><span class="d">Work on the globe and export in Equal Earth, Robinson, Winkel tripel or a regional projection.</span></a></li>
+</ul>
+</div>
+</section>
+
+<section>
+<div class="wrap">
+<h2>Made with Ecumene</h2>
+<p class="intro">Open any of these in the editor and change it into your own map.</p>
+<div class="plates">
+<a href="app/?example=eu"><img src="examples/eu.webp" alt="Orthographic globe centred on Europe with the 27 European Union members in green" width="800" height="500" loading="lazy"><p class="ct">The European Union</p><p class="cd">Orthographic, in the Wikipedia locator style.</p></a>
+<a href="app/?example=gdp"><img src="examples/gdp.webp" alt="World map in Equal Earth projection, countries shaded by GDP per capita in five classes" width="800" height="500" loading="lazy"><p class="ct">GDP per capita, 2022</p><p class="cd">Equal Earth. World Bank data, five classes by quantile.</p></a>
+<a href="app/?example=althist"><img src="examples/althist.webp" alt="Globe of the eastern Mediterranean showing a fictional 1453, with empires drawn as regions and campaigns as arrows" width="800" height="500" loading="lazy"><p class="ct">A restored Byzantium, 1453</p><p class="cd">A fictional scenario, drawn with freehand regions and arrows.</p></a>
+<a href="app/?example=uk"><img src="examples/uk.webp" alt="Lambert conformal conic map of the United Kingdom with England, Scotland, Wales and Northern Ireland outlined" width="800" height="500" loading="lazy"><p class="ct">The countries of the United Kingdom</p><p class="cd">Lambert conformal conic. Exact outlines from Natural Earth subdivisions.</p></a>
+</div>
+</div>
+</section>
+
+<section>
+<div class="wrap two">
+<div>
+<h2>Made to be checked</h2>
+<p>Every border comes from Natural Earth, a public-domain dataset made by volunteer cartographers with the support of the North American Cartographic Information Society.</p>
+<p>Natural Earth draws borders where they are in practice. Disputed areas are not yet marked separately, and every exported file says so rather than leaving you to find out.</p>
+<p>Each export can carry a small source line with the data, projection, version and date. SVG files also hold the full details inside, so anyone can see how a map was made.</p>
+</div>
+<table>
+<caption>Where the data comes from</caption>
+<thead><tr><th scope="col">Layer</th><th scope="col">Source</th><th scope="col">Licence</th></tr></thead>
+<tbody>
+<tr><td>Countries</td><td>Natural Earth 1:10m, version 4.1</td><td>Public domain</td></tr>
+<tr><td>States and provinces</td><td>Natural Earth 1:10m admin-1</td><td>Public domain</td></tr>
+<tr><td>Lakes and rivers</td><td>Natural Earth 1:10m physical</td><td>Public domain</td></tr>
+<tr><td>Example statistics</td><td>World Bank, via datasets on GitHub</td><td>CC BY 4.0</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<footer>
+<div class="wrap">
+<p>Ecumene is open source under the GNU AGPL. The code, the plans and a place to report mistakes are on <a href="https://github.com/ecumenemaps/ecumene">GitHub</a>.</p>
+<p>No accounts and no tracking. Your maps are saved in your own browser until you save them as files. This page loads nothing from other sites; in the editor, extra label fonts come from Google Fonts only if you choose one.</p>
+</div>
+</footer>

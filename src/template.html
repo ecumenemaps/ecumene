@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Globe map</title>
+<title>Ecumene</title>
 
 <style>
 :root{--bg:#e8ecef;--panel:#fff;--ink:#1b2430;--mute:#5f6b78;--line:#d7dde3;--ocean:#a8c8dc;--land:#f3f0e8;--border:#7d8a97;--hl:#111;--river:#3f86b8;
@@ -37,6 +37,8 @@ canvas{position:absolute;inset:0;cursor:grab;touch-action:none}
 canvas:active{cursor:grabbing}
 #ov{pointer-events:none;cursor:default}
 h1{font-size:18px;margin:0;font-weight:650;letter-spacing:-.01em}
+h1 a{color:inherit;text-decoration:none}
+h1 a:hover{text-decoration:underline}
 h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--mute)}
 p.hint{margin:6px 0 0;color:var(--mute);font-size:13px}
 #pal{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -125,7 +127,7 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 </nav>
 <aside id="panel">
 <button type="button" id="grab" aria-label="Resize panel"><i></i></button>
-<header id="ph"><h1>Globe map</h1><div class="row"><button class="b sm" id="un" disabled aria-label="Undo" title="Undo (Ctrl+Z)">Undo</button><button class="b sm" id="re" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)">Redo</button></div></header>
+<header id="ph"><h1><a href="../" title="Ecumene home">Ecumene</a></h1><div class="row"><button class="b sm" id="un" disabled aria-label="Undo" title="Undo (Ctrl+Z)">Undo</button><button class="b sm" id="re" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)">Redo</button></div></header>
 <div class="mode" data-mode="paint">
 <section>
 <h2>Paint color</h2>

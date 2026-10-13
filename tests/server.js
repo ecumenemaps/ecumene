@@ -11,6 +11,10 @@ const types = {
   '.bin': 'application/octet-stream',
   '.css': 'text/css',
   '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
 };
 http
   .createServer((req, res) => {

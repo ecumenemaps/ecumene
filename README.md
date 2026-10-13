@@ -28,8 +28,9 @@ Requires Node 20+.
     npm install
     npm run fetch    # download Natural Earth lakes, rivers and admin-1 sources (public domain)
     npm run data     # build data/: tris.bin (country meshes), phys.bin (lakes, rivers), admin1/ (subdivisions)
-    npm run build    # write dist/: index.html (page + bundled script) and the data files it loads
-    npm run serve    # serve dist/ on http://127.0.0.1:8790
+    npm run build    # write dist/: the home page (index.html), the editor (app/) with its data, fonts, examples
+    npm run serve    # serve dist/ on http://127.0.0.1:8790 (home) and /app/ (editor)
+    node scripts/make_examples.js   # optional: rebuild the home-page example maps in site/examples (needs serve)
 
 `npm run dev` builds unminified with a source map and serves it. The page fetches its data, so it must be served over HTTP; any static host works (GitHub Pages, Cloudflare Pages, `python3 -m http.server -d dist`).
 
@@ -46,6 +47,7 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 - `src/js/`: the app as ES modules, bundled by esbuild (see `HANDOFF.md` for the module map)
 - `src/groups.js`: country groups, name aliases and data parsing (shared with the build scripts and tests)
 - `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, helper `lib/tri.js`), `fetch_data.sh`, and `build.js`
+- `src/home/`: the home page (template and the hero globe script); `site/examples/`: example maps (state JSON and thumbnails, made by `scripts/make_examples.js`); `site/data/`: data used by examples
 - `tests/unit/`, `tests/e2e/`: tests; `tests/server.js` is a minimal static server
 
 ## Data and licences
@@ -55,6 +57,8 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 | Lakes, rivers (10m) | Natural Earth | Public domain |
 | States and provinces (admin-1, 10m) | Natural Earth | Public domain |
 | Robinson and Winkel tripel projections | `d3-geo-projection` | ISC |
+| Home-page typeface: Source Serif 4 | Adobe, via `@fontsource-variable/source-serif-4` (self-hosted) | SIL OFL 1.1 |
+| GDP per capita example | World Bank (NY.GDP.MKTP.CD ÷ SP.POP.TOTL, 2022) via github.com/datasets | CC BY 4.0 |
 
 Natural Earth depicts de facto boundaries and is not authoritative for disputed areas. Any future data (geoBoundaries CC BY 4.0, GADM and Eurostat non-commercial, CShapes CC BY-NC-SA, historical-basemaps GPL-3.0, OpenHistoricalMap CC0) must be checked against this project's licence before use.
 

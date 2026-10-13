@@ -38,7 +38,8 @@ Conventions: modules share state only through `app`; UI panels re-render on even
 - Enclaves merged by alias: Baikonur to Kazakhstan, USNB Guantanamo Bay to Cuba.
 
 ## Data
-- Countries: Natural Earth 10m via `world-atlas`, served as `data/countries.json`.
+- Site layout: `dist/index.html` is the home page (`src/home/`), `dist/app/` the editor with `data/` and `admin1/` beside it. The editor reads `?new`, `?start=wikipedia|data|flat` and `?example=<name>` (loads `../examples/<name>.json`, whose `x` field sets export options and `mode` the panel mode); without them it continues the autosaved map. Starting fresh only overwrites the autosave once something changes. The home page loads no third-party resources (fonts self-hosted) and its globe uses world-atlas 110m.
+- Countries: Natural Earth 10m via `world-atlas`, served as `app/data/countries.json`.
 - `tris.bin` and `phys.bin`: deflate-raw, 1e-5 degree quantised, delta-coded (formats in `decode.js`). `phys.bin` stores the 29 major lakes (scalerank 0–1) first so they can be drawn alone.
 - Subdivisions: Natural Earth 10m admin-1, one TopoJSON per country in `admin1/`, fetched on demand.
 - Exact outlines (`t:'shape'`) are saved by reference (`{k:'c',names}` or `{k:'a1',c,ids}`), never by coordinates, and rebuilt with `topojson.merge`.

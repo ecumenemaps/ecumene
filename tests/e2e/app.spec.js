@@ -77,6 +77,39 @@ test('legend shows on the map, drags, and keeps its place in exports', async ({ 
   expect(errors).toEqual([]);
 });
 
+test('home page: no third-party requests, continue button, and its links open the editor', async ({ page }) => {
+  const hosts = new Set();
+  page.on('request', (r) => hosts.add(new URL(r.url()).host));
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(e.message));
+  await page.goto('/');
+  await expect(page.locator('h1')).toHaveText('Ecumene');
+  await expect(page.locator('#cont')).toBeHidden();
+  await expect(page.locator('#cap')).toContainText('Orthographic projection, centred on');
+  await expect(page.locator('.plates img')).toHaveCount(4);
+  await page.waitForLoadState('networkidle');
+  expect([...hosts]).toEqual(['127.0.0.1:8790']);
+  // an example opens in the editor, painted, with its export settings
+  await page.click('a[href="app/?example=eu"]');
+  await page.waitForFunction(() => window.ecumene && document.getElementById('load').hidden, null, { timeout: 120000 });
+  await expect(page.locator('#st')).toContainText('Example opened');
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.f[0].n.length).toBe(27);
+  expect(st.s.land).toBe('#b9b9b9');
+  await expect(page.locator('#xw')).toHaveValue('550');
+  expect(new URL(page.url()).search).toBe('');
+  // the saved map now offers "Continue" on the home page; "start" links open ready-made setups
+  await page.waitForTimeout(3500); // autosave interval
+  await page.goto('/');
+  await expect(page.locator('#cont')).toBeVisible();
+  await expect(page.locator('#newnote')).toBeVisible();
+  await page.goto('/app/?start=flat');
+  await page.waitForFunction(() => window.ecumene && document.getElementById('load').hidden, null, { timeout: 120000 });
+  await expect(page.locator('#xproj')).toHaveValue('equalearth');
+  expect((await page.evaluate(() => window.ecumene.getState())).f).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
 test('click paints a country; undo and redo', async ({ page }) => {
   const errors = await openApp(page);
   const c = await globeCentre(page);
@@ -294,7 +327,7 @@ test('falls back to base64 data when .bin files are not served', async ({ page }
   const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(e.message));
   await page.route('**/*.bin', (route) => route.fulfill({ status: 404, body: 'not found' }));
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/app/index.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.getElementById('load').hidden, null, { timeout: 120000 });
   await expect(page.locator('#st')).not.toContainText('failed');
   expect(await page.locator('#names option').count()).toBeGreaterThan(240);

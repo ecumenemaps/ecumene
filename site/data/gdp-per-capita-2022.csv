@@ -1,0 +1,204 @@
+# GDP per capita (current US$), 2022, computed as World Bank GDP (NY.GDP.MKTP.CD) divided by World Bank population (SP.POP.TOTL).
+# Source: World Bank, via https://github.com/datasets/gdp and https://github.com/datasets/population. Licence: CC BY 4.0.
+# Country names follow Natural Earth. Used by the 'gdp' example map (scripts/make_examples.js).
+Afghanistan, 357
+Albania, 7716
+Algeria, 4960
+American Samoa, 18017
+Andorra, 42414
+Angola, 2930
+Antigua and Barb., 20118
+Argentina, 13899
+Armenia, 6572
+Aruba, 33032
+Australia, 65067
+Austria, 52085
+Azerbaijan, 7771
+Bahamas, 33044
+Bahrain, 29110
+Bangladesh, 2716
+Barbados, 20688
+Belarus, 7995
+Belgium, 49966
+Belize, 7028
+Benin, 1266
+Bermuda, 120897
+Bhutan, 3711
+Bolivia, 3644
+Bosnia and Herz., 7656
+Botswana, 8329
+Brazil, 9281
+Brunei, 36633
+Bulgaria, 13974
+Burkina Faso, 836
+Burundi, 251
+Cabo Verde, 4432
+Cambodia, 1715
+Cameroon, 1579
+Canada, 55494
+Cayman Is., 92202
+Central African Rep., 467
+Chad, 672
+Chile, 15451
+China, 12663
+Colombia, 6675
+Comoros, 1489
+Congo, 2621
+Costa Rica, 13626
+Croatia, 18673
+Curaçao, 20048
+Cyprus, 21970
+Czechia, 27227
+Côte d'Ivoire, 2309
+Dem. Rep. Congo, 643
+Denmark, 67790
+Djibouti, 3231
+Dominica, 9086
+Dominican Rep., 10110
+Ecuador, 6541
+Egypt, 4233
+El Salvador, 5094
+Eq. Guinea, 7478
+Estonia, 28114
+Ethiopia, 1011
+Faeroe Is., 65969
+Fiji, 5416
+Finland, 50735
+Fr. Polynesia, 20739
+France, 40758
+Gabon, 8669
+Gambia, 825
+Georgia, 6730
+Germany, 49081
+Ghana, 2240
+Greece, 20846
+Grenada, 10474
+Guam, 41833
+Guatemala, 5323
+Guinea, 1494
+Guinea-Bissau, 814
+Guyana, 17913
+Haiti, 1761
+Honduras, 3003
+Hong Kong, 48828
+Hungary, 18428
+Iceland, 75135
+India, 2353
+Indonesia, 4731
+Iran, 4618
+Iraq, 6504
+Ireland, 102274
+Israel, 54931
+Italy, 35025
+Jamaica, 6022
+Japan, 34017
+Jordan, 4322
+Kazakhstan, 11255
+Kenya, 2091
+Kiribati, 2073
+Kosovo, 5291
+Kuwait, 39831
+Kyrgyzstan, 1740
+Laos, 2046
+Latvia, 21508
+Lebanon, 3654
+Lesotho, 1001
+Liberia, 745
+Libya, 7744
+Liechtenstein, 186480
+Lithuania, 25079
+Luxembourg, 125006
+Macao, 36121
+Macedonia, 7486
+Madagascar, 503
+Malawi, 638
+Malaysia, 11731
+Maldives, 11774
+Mali, 814
+Malta, 34563
+Marshall Is., 6457
+Mauritania, 1999
+Mauritius, 10240
+Mexico, 11378
+Micronesia, 3835
+Moldova, 5738
+Monaco, 225630
+Mongolia, 4994
+Montenegro, 9990
+Morocco, 3507
+Mozambique, 564
+Myanmar, 1158
+Namibia, 4349
+Nauru, 13035
+Nepal, 1386
+Netherlands, 57025
+New Caledonia, 33516
+New Zealand, 48553
+Nicaragua, 2325
+Niger, 610
+Nigeria, 2118
+Norway, 108798
+Oman, 24241
+Pakistan, 1538
+Palau, 13646
+Palestine, 3800
+Panama, 17388
+Papua New Guinea, 3097
+Paraguay, 6206
+Peru, 7363
+Philippines, 3548
+Poland, 18732
+Portugal, 24457
+Puerto Rico, 35268
+Qatar, 88724
+Romania, 15691
+Russia, 15710
+Rwanda, 975
+Saint Lucia, 13109
+Samoa, 3869
+Saudi Arabia, 34454
+Senegal, 1565
+Serbia, 9538
+Seychelles, 17167
+Sierra Leone, 495
+Singapore, 88429
+Sint Maarten, 36477
+Slovakia, 21279
+Slovenia, 28438
+Solomon Is., 2005
+Somalia, 585
+South Africa, 6497
+South Korea, 32395
+Spain, 29670
+Sri Lanka, 3343
+St. Kitts and Nevis, 21012
+St. Vin. and Gren., 9471
+Sudan, 1046
+Suriname, 5811
+Sweden, 56300
+Switzerland, 93246
+São Tomé and Principe, 2398
+Tajikistan, 1052
+Tanzania, 1171
+Thailand, 6909
+Timor-Leste, 2340
+Togo, 1013
+Tonga, 4763
+Trinidad and Tobago, 22004
+Tunisia, 3678
+Turkey, 10675
+Turkmenistan, 7820
+Turks and Caicos Is., 26802
+Tuvalu, 5911
+Uganda, 963
+Ukraine, 3946
+United Arab Emirates, 50329
+United Kingdom, 45669
+United States of America, 77079
+Uruguay, 20692
+Uzbekistan, 2322
+Vanuatu, 3265
+Vietnam, 4116
+Zambia, 1447
+Zimbabwe, 1703
+eSwatini, 3930

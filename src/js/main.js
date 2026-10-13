@@ -16,7 +16,7 @@ import { initFilePanel } from './ui-file.js';
 import { initModes, setMode } from './ui-modes.js';
 import { setExportCanvas, buildSVG } from './export.js';
 import { getState, setState, encode, decode, restoreAutosave, startAutosave } from './persist.js';
-import { $ } from './util.js';
+import { $, note } from './util.js';
 
 const cv = $('cv'),
   ov = $('ov'),
@@ -68,6 +68,46 @@ function updateHoverOutline(force) {
   setHoverOutline(segs(mesh(geo.topo, { type: 'GeometryCollection', geometries: gs }, notSame).coordinates));
 }
 
+// Links from the home page: ?new, ?start=wikipedia|data|flat, ?example=<name>. Anything else
+// continues the map saved in this browser.
+async function applyStart() {
+  const q = new URLSearchParams(location.search),
+    start = q.get('start'),
+    example = q.get('example');
+  const fresh = q.has('new') || !!start || !!example;
+  restoreAutosave(!fresh);
+  if (fresh) history.replaceState(null, '', location.pathname);
+  if (start === 'wikipedia') {
+    $('pre').value = 'wikipedia';
+    $('pre').dispatchEvent(new Event('change'));
+    setMode('paint');
+  } else if (start === 'data') {
+    setMode('data');
+    $('dd').focus();
+    note('Paste one country and value per line, then choose Color the map.');
+  } else if (start === 'flat') {
+    Object.assign(app.exportOpts, { proj: 'equalearth', area: 'world', width: 0 });
+    emit('export');
+    setMode('paint');
+    note('Paint on the globe. Exports come out as a flat Equal Earth world map; change the projection in Export.');
+  } else if (example && /^[a-z0-9-]{1,40}$/.test(example)) {
+    try {
+      const r = await fetch('../examples/' + example + '.json');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const s = await r.json();
+      setState(s);
+      if (s.x && typeof s.x === 'object') {
+        Object.assign(app.exportOpts, s.x);
+        emit('export');
+      }
+      if (s.mode) setMode(s.mode);
+      note('Example opened. Change anything you like; it saves in this browser like any map.');
+    } catch (e) {
+      note('Could not open that example (' + e.message + ').', 1);
+    }
+  } else if (fresh) setMode('paint');
+}
+
 async function main() {
   const err = initGL(cv);
   if (err) {
@@ -95,7 +135,7 @@ async function main() {
   emit('history');
   app.ready = true;
   $('load').hidden = true;
-  restoreAutosave();
+  await applyStart();
   startAutosave();
   redraw();
   phys.then(

@@ -190,9 +190,10 @@ export async function saveBlob(filename, blob) {
 
 // ---- autosave to this browser
 let last = '';
-export function restoreAutosave() {
+/** Load the map saved in this browser. With load=false, start fresh but only overwrite it once something changes. */
+export function restoreAutosave(load = true) {
   try {
-    const s = localStorage.getItem(AUTOSAVE_KEY);
+    const s = load && localStorage.getItem(AUTOSAVE_KEY);
     if (s) setState(JSON.parse(s));
   } catch (_) {}
   last = JSON.stringify(getState());

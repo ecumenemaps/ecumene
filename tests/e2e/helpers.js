@@ -6,7 +6,7 @@ async function openApp(page) {
   page.on('console', (m) => {
     if (m.type() === 'error' && !/fonts\.g|ERR_TUNNEL|ERR_NAME|ERR_INTERNET|net::ERR/.test(m.text())) errors.push(m.text());
   });
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/app/index.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.getElementById('load').hidden, null, { timeout: 120000 });
   await expect(page.locator('#st')).not.toContainText('failed');
   return errors;
