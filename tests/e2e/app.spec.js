@@ -40,6 +40,43 @@ test('panel modes: tabs, keys, collapse, memory and phone layout', async ({ page
   expect(errors).toEqual([]);
 });
 
+test('legend shows on the map, drags, and keeps its place in exports', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    s.f = [{ c: '#e4572e', n: ['France'], l: 'Members' }];
+    window.ecumene.setState(s);
+  });
+  await page.waitForFunction(() => !!document.querySelector('#cv') && window.ecumene && true);
+  const r0 = await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => ok(window.ecumene.legendRect()))));
+  expect(r0).not.toBeNull();
+  const b = await page.locator('#cv').boundingBox();
+  const sx = b.x + r0.x + r0.w / 2,
+    sy = b.y + r0.y + r0.h / 2;
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move(sx + 300, sy - 250, { steps: 6 });
+  await page.mouse.up();
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.lg.xy).not.toBeNull();
+  const r1 = await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => ok(window.ecumene.legendRect()))));
+  expect(Math.round(r1.x - r0.x)).toBe(300);
+  expect(Math.round(r1.y - r0.y)).toBe(-250);
+  // dragging the legend does not rotate the globe or paint
+  expect(st.f).toEqual([{ c: '#e4572e', n: ['France'], l: 'Members' }]);
+  await mode(page, 'legend');
+  await expect(page.locator('#lp')).toHaveValue('xy');
+  // the SVG legend is in the same place
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  const m = /<g id="legend">\s*<path d="M([\d.]+) ([\d.]+)/.exec(svg);
+  expect(Math.abs(+m[1] - r1.x)).toBeLessThan(1);
+  expect(Math.abs(+m[2] - r1.y)).toBeLessThan(1);
+  // back to a corner
+  await page.selectOption('#lp', 'tr');
+  expect((await page.evaluate(() => window.ecumene.getState())).lg.xy).toBeNull();
+  expect(errors).toEqual([]);
+});
+
 test('click paints a country; undo and redo', async ({ page }) => {
   const errors = await openApp(page);
   const c = await globeCentre(page);

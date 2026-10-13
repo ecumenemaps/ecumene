@@ -65,13 +65,37 @@ function render() {
 export function initLegendPanel() {
   const L = app.legend;
   $('lt').oninput = (e) => (L.title = e.target.value);
-  $('lp').onchange = (e) => (L.pos = e.target.value);
-  $('ls').onchange = (e) => (L.show = e.target.checked);
-  on('legend', render);
+  const syncPos = () => {
+    $('lp').querySelector('[value=xy]').hidden = !L.xy;
+    $('lp').value = L.xy ? 'xy' : L.pos;
+  };
+  $('lp').onchange = (e) => {
+    if (e.target.value === 'xy') return;
+    L.pos = e.target.value;
+    L.xy = null;
+    syncPos();
+    redraw();
+  };
+  $('ls').onchange = (e) => {
+    L.show = e.target.checked;
+    redraw();
+  };
+  $('lk').oninput = (e) => {
+    L.scale = +e.target.value / 100;
+    redraw();
+  };
+  $('lt').addEventListener('input', redraw);
+  $('lgd').addEventListener('input', redraw); // renamed entries show on the map at once
+  on('legend', () => {
+    render();
+    redraw();
+  });
+  on('legendpos', syncPos);
   on('style', () => {
     $('lt').value = L.title;
-    $('lp').value = L.pos;
+    syncPos();
     $('ls').checked = L.show;
+    $('lk').value = Math.round(L.scale * 100);
   });
   render();
 }

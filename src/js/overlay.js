@@ -262,8 +262,9 @@ export function drawCountryNames(c) {
 }
 
 /** Small source line along the bottom edge, on the side away from the legend. */
-export function drawSourceNote(c, w, h, text) {
-  const left = app.legend.show && app.legend.pos === 'br';
+export function drawSourceNote(c, w, h, text, legend) {
+  // move to the left when the legend sits over the bottom-right corner
+  const left = !!legend && legend.x + legend.w > w * 0.55 && legend.y + legend.h > h - 40;
   c.font = font('400', 10);
   c.textAlign = left ? 'left' : 'right';
   c.textBaseline = 'bottom';
@@ -283,7 +284,7 @@ export function drawSourceNote(c, w, h, text) {
 /** Legend box with named colours, named regions and named arrows. */
 export function drawLegend(c, w, h) {
   const L = app.legend;
-  if (!L.show) return;
+  if (!L.show) return null;
   const items = legendColours()
     .map((col) => ({ col, label: (app.labels[col] || '').trim() }))
     .filter((x) => x.label);
@@ -294,7 +295,7 @@ export function drawLegend(c, w, h) {
       if (isArea(r) && areaGeo(r)) items.push({ col: r.col, label, reg: r });
       else if (r.t === 'arrow' && r.pts.length > 1) items.push({ col: r.col, label, arr: r });
     }
-  if (!items.length) return;
+  if (!items.length) return null;
   const title = L.title.trim();
   c.textAlign = 'left';
   c.textBaseline = 'middle';
@@ -308,10 +309,25 @@ export function drawLegend(c, w, h) {
   const p = 12,
     lh = 24,
     th = title ? 26 : 0,
+    k = L.scale || 1,
     bw = mw + p * 2,
     bh = items.length * lh + p * 2 - 6 + th;
-  const bx = L.pos[1] === 'r' ? w - bw - 16 : 16,
-    by = L.pos[0] === 't' ? 16 : h - bh - 16;
+  // position: dragged (fractions of the frame, so it carries over to exports of any size) or a corner
+  const W = bw * k,
+    H = bh * k;
+  let X, Y;
+  if (L.xy) {
+    X = Math.max(4, Math.min(w - W - 4, L.xy[0] * w));
+    Y = Math.max(4, Math.min(h - H - 4, L.xy[1] * h));
+  } else {
+    X = L.pos[1] === 'r' ? w - W - 16 : 16;
+    Y = L.pos[0] === 't' ? 16 : h - H - 16;
+  }
+  c.save();
+  c.translate(X, Y);
+  c.scale(k, k);
+  const bx = 0,
+    by = 0;
   c.fillStyle = '#ffffff';
   c.fillRect(bx, by, bw, bh);
   c.strokeStyle = '#d7dde3';
@@ -361,4 +377,6 @@ export function drawLegend(c, w, h) {
     c.fillStyle = INK;
     c.fillText(x.label, bx + p + 26, y + 8);
   });
+  c.restore();
+  return { x: X, y: Y, w: W, h: H };
 }

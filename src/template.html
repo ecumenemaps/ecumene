@@ -84,7 +84,9 @@ details{margin:0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
 #zb{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
-#zb button{width:38px;height:38px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:600 18px system-ui;cursor:pointer}
+#zb{align-items:stretch}
+#zb #rv{padding:0 9px;font:600 13px system-ui;text-align:center}
+#zb button{min-width:38px;height:38px;padding:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:600 18px system-ui;cursor:pointer}
 #st{min-height:1.4em;color:var(--mute);font-size:13px}
 summary{font-size:13px;font-weight:600;color:var(--mute);cursor:pointer;margin-bottom:8px}
 .cg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 2px}
@@ -220,8 +222,10 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <h2>Legend</h2>
 <input id="lt" type="text" placeholder="Legend title (optional)" aria-label="Legend title" style="margin-bottom:8px">
 <div id="lgd"></div>
-<div class="row" style="margin-top:8px"><select id="lp" aria-label="Legend position" style="width:auto;flex:1"><option value="bl">Bottom left</option><option value="br">Bottom right</option><option value="tl">Top left</option><option value="tr">Top right</option></select>
-<label class="sw2"><input id="ls" type="checkbox" checked> In image</label></div>
+<div class="row" style="margin-top:8px"><select id="lp" aria-label="Legend position" style="width:auto;flex:1"><option value="bl">Bottom left</option><option value="br">Bottom right</option><option value="tl">Top left</option><option value="tr">Top right</option><option value="xy" hidden>Where you dragged it</option></select>
+<label class="sw2"><input id="ls" type="checkbox" checked> Show legend</label></div>
+<label class="rg">Legend size<input id="lk" type="range" min="60" max="200" step="5" value="100" aria-label="Legend size"></label>
+<p class="hint">Drag the legend on the map to place it anywhere. Exports put it in the same place.</p>
 </section>
 </div>
 <div class="mode" data-mode="export">

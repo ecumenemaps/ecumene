@@ -4,7 +4,7 @@ import { app, setRenderer, redraw, emit, VERSION } from './store.js';
 import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, segs, render } from './gl.js';
 import { geo, loadBase, nameOf } from './data.js';
 import { Rb } from './view.js';
-import { drawObjects, drawObjectLabels, drawCountryNames } from './overlay.js';
+import { drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
 import { configureEditing } from './editing.js';
 import { configurePicker, closePicker, initPicker } from './picker.js';
 import { initInput, setCursor, refreshTip } from './input.js';
@@ -33,6 +33,8 @@ function frame() {
   drawObjects(oc, true);
   if (app.layers.names) drawCountryNames(oc);
   drawObjectLabels(oc);
+  // the legend is shown on the map too; its box is kept for dragging
+  app.legendRect = drawLegend(oc, app.W, app.H);
 }
 function fit() {
   app.W = stage.clientWidth;
@@ -105,7 +107,7 @@ async function main() {
     (e) => console.warn('Lakes and rivers did not load:', e),
   );
   // small scripting API, also used by the tests
-  window.ecumene = { version: VERSION, getState, setState, encode, decode, svg: buildSVG, mode: setMode };
+  window.ecumene = { version: VERSION, getState, setState, encode, decode, svg: buildSVG, mode: setMode, legendRect: () => app.legendRect };
 }
 main().catch((e) => {
   $('load').hidden = true;

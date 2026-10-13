@@ -39,8 +39,8 @@ function drawTopLayers(c, W, H, label) {
   drawObjects(c, false);
   if (app.layers.names) drawCountryNames(c);
   drawObjectLabels(c);
-  drawLegend(c, W, H);
-  if (app.legend.note) drawSourceNote(c, W, H, sourceLine(label));
+  const lg = drawLegend(c, W, H);
+  if (app.legend.note) drawSourceNote(c, W, H, sourceLine(label), lg);
 }
 
 // ---- PNG
@@ -299,11 +299,11 @@ function drawSVG(v) {
   drawObjectLabels(c);
   c.end();
   c.group('legend');
-  drawLegend(c, W, H);
+  const lg = drawLegend(c, W, H);
   c.end();
   if (app.legend.note) {
     c.group('source-note');
-    drawSourceNote(c, W, H, sourceLine(label));
+    drawSourceNote(c, W, H, sourceLine(label), lg);
     c.end();
   }
   const title = app.legend.title.trim() || 'Map made with Ecumene';
