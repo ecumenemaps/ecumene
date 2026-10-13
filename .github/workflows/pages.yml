@@ -1,10 +1,11 @@
-# Publishes dist/ to GitHub Pages on every push to main.
-# Needs Pages enabled (Settings > Pages > Source: GitHub Actions). On GitHub's free plan
-# Pages only works for public repositories.
+# Publishes dist/ to GitHub Pages.
+# Needs Pages enabled (Settings > Pages > Source: GitHub Actions). On GitHub's free plan Pages only
+# works for public repositories, so this runs manually for now. Once the repo is public and Pages is
+# enabled, add a push trigger here:
+#   push:
+#     branches: [main]
 name: Deploy to Pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
