@@ -94,7 +94,7 @@ test('home page: no third-party requests, continue button, and its links open th
   await page.waitForFunction(() => window.ecumene && document.getElementById('load').hidden, null, { timeout: 120000 });
   await expect(page.locator('#st')).toContainText('Example opened');
   const st = await page.evaluate(() => window.ecumene.getState());
-  expect(st.f[0].n.length).toBe(27);
+  expect(st.f[0].n.length).toBe(32); // 27 member states plus France's five overseas regions
   expect(st.s.land).toBe('#b9b9b9');
   await expect(page.locator('#xw')).toHaveValue('550');
   expect(new URL(page.url()).search).toBe('');
