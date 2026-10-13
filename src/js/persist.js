@@ -9,8 +9,9 @@ import { hexOk, clamp } from './util.js';
 import { OVERSEAS } from '../overseas.js';
 import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
 
-// Natural Earth adm1_code, such as GBR-2083 (a few read like RUS+99?)
-const UNIT_CODE = /^[A-Z]{3}[-+][0-9?]{1,6}$/;
+// Natural Earth adm1_code, such as GBR-2083 (a few read like RUS+99?), or ALD+0 for the "Rest of" unit the build
+// adds where no subdivision covers part of a country (an overseas part's file adds digits: NLD535+0)
+const UNIT_CODE = /^[A-Z]{3}[0-9]{0,3}[-+][0-9?]{1,6}$/;
 
 const AUTOSAVE_KEY = 'globeMap1';
 // Map data version. 'ne10m' maps were saved before French Guiana, Réunion, the Caribbean Netherlands and the

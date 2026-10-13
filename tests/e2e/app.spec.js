@@ -251,6 +251,25 @@ test('subdivisions load under the pointer and paint by unit or constituent part'
   expect(errors).toEqual([]);
 });
 
+test('areas the subdivision data leaves out paint as "Rest of" the country', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    Object.assign(s, { r: [-20, -60.2], z: 40, f: [], u: [] });
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const box = await page.locator('#cv').boundingBox(),
+    p = await page.evaluate(() => window.ecumene.px([19.99, 60.23])); // Finström, in the north of Åland's main island
+  await page.mouse.move(box.x + p[0], box.y + p[1]);
+  await page.mouse.move(box.x + p[0] + 1, box.y + p[1]);
+  await expect(page.locator('#tip')).toHaveText('Rest of Åland');
+  await page.mouse.click(box.x + p[0] + 1, box.y + p[1]);
+  await expect.poll(() => page.evaluate(() => window.ecumene.getState().u)).toEqual([{ c: '#e4572e', k: { Åland: ['ALD+0'] }, l: '' }]);
+  expect(errors).toEqual([]);
+});
+
 test('paste a list and paint a group', async ({ page }) => {
   const errors = await openApp(page);
   await mode(page, 'paint');

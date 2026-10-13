@@ -88,14 +88,16 @@ export function refreshSub() {
     if (hasUnits(n)) {
       if (unitsOf(n)) {
         const f = unitAtLL(n, geoAt(app.mx, app.my));
-        if (f) h = { country: n, feats: targetsOf(n, f), label: targetLabel(n, f) };
+        // between the two datasets' coastlines no unit may lie under the pointer; say so rather than show the
+        // country's name, which reads like a subdivision of that name
+        h = f ? { country: n, feats: targetsOf(n, f), label: targetLabel(n, f) } : { country: n, feats: [], label: n + ' · no subdivision here' };
       } else want = n;
     }
   }
   scheduleLoad(want);
   const o = app.subHov;
   if (!h && !o) return;
-  if (h && o && h.country === o.country && h.feats[0] === o.feats[0] && h.feats.length === o.feats.length) return;
+  if (h && o && h.country === o.country && h.feats[0] === o.feats[0] && h.feats.length === o.feats.length && h.label === o.label) return;
   app.subHov = h;
   refreshTip();
   redraw();
