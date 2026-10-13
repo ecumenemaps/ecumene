@@ -3,12 +3,12 @@
 import { geoPath, geoDistance, geoInterpolate } from 'd3-geo';
 import { app } from './store.js';
 import { geo } from './data.js';
-import { proj, setProj, pxPerRad, isFlat, geoAt, onFront } from './view.js';
+import { proj, setProj, pxPerRad, isFlat, geoAt, onFront, tinyMarkers, MARK_R } from './view.js';
 import { arrowLine } from './shapes.js';
 import { isRegion, isArea, areaGeo, areaAnchor } from './objects.js';
 import { legendColours } from './paint.js';
 import { font } from './fonts.js';
-import { D, darker, halo, lum } from './util.js';
+import { D, darker, halo, hx, lum } from './util.js';
 
 const INK = '#1b2430';
 
@@ -225,6 +225,33 @@ export function drawObjectLabels(c) {
   for (const r of app.objects) {
     if (r.t === 'marker') drawMarker(c, r);
     else if (r.t === 'text') drawText(c, r);
+  }
+}
+
+/** Fill and edge of a tiny-country marker: the country's colour when painted, otherwise land with a border-coloured edge. */
+export function markerPaint(m) {
+  const col = app.fills.get(m.n);
+  return col ? { fill: col, edge: darker(col) } : { fill: app.style.land, edge: app.style.border };
+}
+// the globe's hover shading (see gl.js): light colours darken, dark ones lighten
+function hoverShade(h, k) {
+  const up = lum(h) <= 0.45,
+    ch = (v) => Math.round(up ? v + (255 - v) * k : v * (1 - k));
+  return '#' + hx(h).map((v) => ch(v).toString(16).padStart(2, '0')).join('');
+}
+/** Dots for countries too small to see at this zoom; ui adds the hover style. */
+export function drawTinyMarkers(c, ui) {
+  const H = app.hoverStyle;
+  for (const m of tinyMarkers()) {
+    const k = markerPaint(m),
+      hov = ui && m.id === app.hover;
+    c.beginPath();
+    c.arc(m.p[0], m.p[1], MARK_R, 0, 7);
+    c.fillStyle = hov && H.dark ? hoverShade(k.fill, H.amt) : k.fill;
+    c.fill();
+    c.lineWidth = hov && H.outline ? 2 : 1;
+    c.strokeStyle = hov && H.outline ? INK : k.edge;
+    c.stroke();
   }
 }
 

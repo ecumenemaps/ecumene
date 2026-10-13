@@ -137,3 +137,36 @@ export function largestRing(multi) {
   }
   return best ? best.slice(0, -1) : null;
 }
+/**
+ * Countries small enough to need a marker at some zoom: total area under maxArea steradians.
+ * feats are GeoJSON features with properties.name (several may share a name); names in skip are left out.
+ * Returns [{n, a, c}] (name, total area, centroid of the largest part), largest first so the smallest draw on top.
+ */
+export function smallUnits(feats, maxArea, skip = new Set()) {
+  const by = new Map();
+  for (const f of feats) {
+    const n = f.properties.name,
+      g = f.geometry;
+    if (skip.has(n)) continue;
+    let e = by.get(n);
+    if (!e) by.set(n, (e = { n, a: 0, big: -1, c: null }));
+    for (const poly of g.type === 'Polygon' ? [g.coordinates] : g.coordinates) {
+      let p = { type: 'Polygon', coordinates: poly },
+        a = geoArea(p);
+      // a few tiny islands wind the wrong way after quantisation, which reads as "everything else"
+      if (a > 2 * Math.PI) {
+        a = 4 * Math.PI - a;
+        p = { type: 'Polygon', coordinates: poly.map((r) => r.slice().reverse()) };
+      }
+      e.a += a;
+      if (a > e.big) {
+        e.big = a;
+        e.c = geoCentroid(p);
+      }
+    }
+  }
+  return [...by.values()]
+    .filter((e) => e.a < maxArea)
+    .sort((x, y) => y.a - x.a)
+    .map(({ n, a, c }) => ({ n, a, c }));
+}

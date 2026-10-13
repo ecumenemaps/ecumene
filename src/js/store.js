@@ -89,7 +89,7 @@ export const app = {
   exportOpts: { proj: 'ortho', area: 'screen', width: 0 },
   // style and layers
   style: Object.assign({}, PRESETS.light, { font: 'sys' }),
-  layers: { borders: true, lakes: 'major', rivers: false, grat: false, names: false, regions: true },
+  layers: { borders: true, lakes: 'major', rivers: false, grat: false, names: false, regions: true, tiny: true },
   hoverStyle: { dark: true, outline: false, tip: true, amt: 0.16 },
   // regions, arrows, text, markers and exact outlines (see regions.js)
   objects: [],

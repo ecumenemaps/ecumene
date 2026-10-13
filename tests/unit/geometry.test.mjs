@@ -4,7 +4,10 @@ import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { geoContains, geoArea } from 'd3-geo';
 import { inflate, decodeTris, decodePhys } from '../../src/js/decode.js';
-import { ringPolygon, labelAnchor, smoothPath, arrowLine, largestRing } from '../../src/js/shapes.js';
+import { createRequire } from 'node:module';
+import { feature } from 'topojson-client';
+import { ringPolygon, labelAnchor, smoothPath, arrowLine, largestRing, smallUnits } from '../../src/js/shapes.js';
+import { ALIAS, NO_MARKER } from '../../src/js/data.js';
 
 const bin = (p) => inflate(readFileSync(new URL('../../' + p, import.meta.url)));
 
@@ -113,4 +116,36 @@ test('largestRing picks the biggest part and drops the closing point', () => {
     ];
   const r = largestRing({ type: 'MultiPolygon', coordinates: [[small], [big]] });
   assert.deepStrictEqual(r, big.slice(0, -1));
+});
+
+test('smallUnits picks microstates and far territories, not reefs or large countries', () => {
+  const topo = createRequire(import.meta.url)('world-atlas/countries-10m.json');
+  const feats = feature(topo, topo.objects.countries).features.filter((f) => f.properties && f.properties.name);
+  feats.forEach((f) => (f.properties.name = ALIAS[f.properties.name] || f.properties.name));
+  const units = smallUnits(feats, 1e-3, NO_MARKER),
+    by = new Map(units.map((u) => [u.n, u]));
+  for (const n of [
+    'Vatican',
+    'Monaco',
+    'San Marino',
+    'Liechtenstein',
+    'Nauru',
+    'Tuvalu',
+    'Maldives',
+    'Gibraltar',
+    'Jersey',
+    'Bermuda',
+    'Pitcairn Is.',
+  ])
+    assert.ok(by.has(n), n);
+  for (const n of ['Scarborough Reef', 'Spratly Is.', 'Akrotiri', 'France', 'Cuba', 'USNB Guantanamo Bay']) assert.ok(!by.has(n), n);
+  for (const u of units) assert.ok(u.a >= 0 && u.a < 1e-3 && u.c.every(Number.isFinite), u.n);
+  // quantisation collapses the Vatican to a sliver of zero area, so its marker shows at every zoom
+  assert.strictEqual(by.get('Vatican').a, 0);
+  // the Maldives has wrongly wound islands; its area must still be tiny and its point in the Indian Ocean
+  const mv = by.get('Maldives');
+  assert.ok(mv.a < 1e-5 && mv.c[0] > 72 && mv.c[0] < 74.5 && mv.c[1] > -1 && mv.c[1] < 8, JSON.stringify(mv));
+  const va = by.get('Vatican').c;
+  assert.ok(Math.abs(va[0] - 12.45) < 0.02 && Math.abs(va[1] - 41.9) < 0.02, 'Vatican ' + va);
+  assert.ok(units[0].a >= units[units.length - 1].a, 'largest first');
 });

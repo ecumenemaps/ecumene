@@ -2,9 +2,26 @@
 import { feature } from 'topojson-client';
 import { geoArea, geoCentroid } from 'd3-geo';
 import { inflate, decodeTris, decodePhys } from './decode.js';
+import { smallUnits } from './shapes.js';
 
 // Natural Earth splits these out; we merge them into the country that contains them.
 export const ALIAS = { Baikonur: 'Kazakhstan', 'USNB Guantanamo Bay': 'Cuba' };
+// Countries under this area (steradians, about 40,000 km²) get a marker when too small to see; see tinyMarkers().
+const TINY_MAX = 1e-3;
+// No marker for uninhabited reefs and banks, military bases and the buffer zone.
+export const NO_MARKER = new Set([
+  'Ashmore and Cartier Is.',
+  'Bajo Nuevo Bank',
+  'Clipperton I.',
+  'Coral Sea Is.',
+  'Scarborough Reef',
+  'Serranilla Bank',
+  'Spratly Is.',
+  'U.S. Minor Outlying Is.',
+  'Akrotiri',
+  'Dhekelia',
+  'Cyprus U.N. Buffer Zone',
+]);
 
 export const geo = {
   topo: null,
@@ -12,6 +29,7 @@ export const geo = {
   nameId: new Map(), // name -> id of its first feature (aliases share one id)
   names: [], // sorted unique names
   labelPts: [], // [{n, a, c}] largest part's area and centroid, for country name labels
+  tiny: [], // [{n, id, a, c}] countries that can get a marker: total area and marker point
   polys: [], // unwrapped polygons with bounding boxes, for exact picking
   a1index: {}, // country name -> subdivision file info
   phys: null, // decoded lakes and rivers, once loaded
@@ -80,6 +98,7 @@ function indexCountries(topo) {
       return { n: f.properties.name, a, c: geoCentroid({ type: 'Polygon', coordinates: poly }) };
     })
     .sort((x, y) => y.a - x.a);
+  geo.tiny = smallUnits(geo.feats, TINY_MAX, NO_MARKER).map((t) => ({ ...t, id: geo.nameId.get(t.n) }));
   geo.polys = [];
   geo.feats.forEach((f) => {
     const g = f.geometry;

@@ -122,6 +122,43 @@ test('click paints a country; undo and redo', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('small countries get markers that paint, export and hide when zoomed in', async ({ page }) => {
+  const errors = await openApp(page);
+  // centre on Italy at the starting zoom
+  const at = (r, z, tiny = true) =>
+    page.evaluate(
+      ([r, z, tiny]) => {
+        const s = window.ecumene.getState();
+        Object.assign(s, { r, z, f: [] });
+        s.L.tiny = tiny;
+        window.ecumene.setState(s);
+        return window.ecumene.markers();
+      },
+      [r, z, tiny],
+    );
+  let marks = await at([-12, -42], 1);
+  const names = marks.map((m) => m.n);
+  for (const n of ['Vatican', 'Monaco', 'San Marino', 'Malta']) expect(names).toContain(n);
+  expect(names).not.toContain('Italy');
+  const v = marks.find((m) => m.n === 'Vatican'),
+    box = await page.locator('#cv').boundingBox();
+  await page.mouse.click(box.x + v.x, box.y + v.y);
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.f.flatMap((g) => g.n)).toEqual(['Vatican']);
+  await expect(page.locator('#lgd .lg')).toHaveCount(1);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toMatch(new RegExp('<circle id="marker-Vatican" data-name="Vatican"[^>]*fill="' + st.f[0].c + '"'));
+  expect(svg).toContain('data-name="Monaco"');
+  // zoomed in, Malta (316 km²) is big enough to click but the Vatican (no area at all) keeps its marker
+  marks = (await at([-12, -42], 30)).map((m) => m.n);
+  expect(marks).toContain('Vatican');
+  expect(marks).not.toContain('Malta');
+  // the layer can be turned off
+  expect(await at([-12, -42], 1, false)).toEqual([]);
+  await expect(page.locator('input[data-k=tiny]')).not.toBeChecked();
+  expect(errors).toEqual([]);
+});
+
 test('paste a list and paint a group', async ({ page }) => {
   const errors = await openApp(page);
   await mode(page, 'paint');

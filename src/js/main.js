@@ -3,8 +3,8 @@ import { mesh } from 'topojson-client';
 import { app, setRenderer, redraw, emit, VERSION } from './store.js';
 import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, segs, render } from './gl.js';
 import { geo, loadBase, nameOf } from './data.js';
-import { Rb } from './view.js';
-import { drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
+import { Rb, tinyMarkers } from './view.js';
+import { drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
 import { configureEditing } from './editing.js';
 import { configurePicker, closePicker, initPicker } from './picker.js';
 import { initInput, setCursor, refreshTip } from './input.js';
@@ -30,6 +30,7 @@ function frame() {
   oc.setTransform(1, 0, 0, 1, 0, 0);
   oc.clearRect(0, 0, ov.width, ov.height);
   oc.setTransform(app.dpr, 0, 0, app.dpr, 0, 0);
+  drawTinyMarkers(oc, true);
   drawObjects(oc, true);
   if (app.layers.names) drawCountryNames(oc);
   drawObjectLabels(oc);
@@ -147,7 +148,18 @@ async function main() {
     (e) => console.warn('Lakes and rivers did not load:', e),
   );
   // small scripting API, also used by the tests
-  window.ecumene = { version: VERSION, getState, setState, encode, decode, svg: buildSVG, mode: setMode, legendRect: () => app.legendRect };
+  window.ecumene = {
+    version: VERSION,
+    getState,
+    setState,
+    encode,
+    decode,
+    svg: buildSVG,
+    mode: setMode,
+    legendRect: () => app.legendRect,
+    // small-country markers on screen, in canvas pixels
+    markers: () => tinyMarkers().map((m) => ({ n: m.n, x: m.p[0], y: m.p[1] })),
+  };
 }
 main().catch((e) => {
   $('load').hidden = true;
