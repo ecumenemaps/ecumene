@@ -16,13 +16,17 @@ async function globeCentre(page) {
   const b = await page.locator('#cv').boundingBox();
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
 }
+// Show one panel mode (paint, data, draw, style, legend, export) without toggling it closed.
+const mode = (page, m) => page.evaluate((x) => window.ecumene.mode(x), m);
 // Map code round trip: returns the code string from the Get code button.
 async function getCode(page) {
+  await mode(page, 'export');
   await page.click('#gc');
   await expect(page.locator('#mc')).toHaveValue(/^GM1\./);
   return page.locator('#mc').inputValue();
 }
 async function useCode(page, code) {
+  await mode(page, 'export');
   await page.fill('#mc', code);
   await page.click('#uc');
   await expect(status(page)).toContainText(/loaded/i);
@@ -30,4 +34,4 @@ async function useCode(page, code) {
 async function regionRows(page) {
   return page.locator('#rgl .rg-row').count();
 }
-module.exports = { openApp, status, globeCentre, getCode, useCode, regionRows };
+module.exports = { openApp, status, globeCentre, getCode, useCode, regionRows, mode };

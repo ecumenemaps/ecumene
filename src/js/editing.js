@@ -24,6 +24,7 @@ export function select(i) {
   app.sel = i;
   if (i < 0) setCursor(false);
   emit('objects');
+  if (i >= 0) emit('selected');
   redraw();
 }
 /** Start drawing a new object of type t; pressing the same tool again cancels. */

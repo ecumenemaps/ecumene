@@ -13,6 +13,7 @@ import { initStylePanel } from './ui-style.js';
 import { initLegendPanel } from './ui-legend.js';
 import { initObjectsPanel } from './ui-objects.js';
 import { initFilePanel } from './ui-file.js';
+import { initModes, setMode } from './ui-modes.js';
 import { setExportCanvas, buildSVG } from './export.js';
 import { getState, setState, encode, decode, restoreAutosave, startAutosave } from './persist.js';
 import { $ } from './util.js';
@@ -72,6 +73,7 @@ async function main() {
     $('st').textContent = err;
     return;
   }
+  initModes();
   setRenderer(frame);
   setExportCanvas(cv);
   new ResizeObserver(fit).observe(stage);
@@ -103,7 +105,7 @@ async function main() {
     (e) => console.warn('Lakes and rivers did not load:', e),
   );
   // small scripting API, also used by the tests
-  window.ecumene = { version: VERSION, getState, setState, encode, decode, svg: buildSVG };
+  window.ecumene = { version: VERSION, getState, setState, encode, decode, svg: buildSVG, mode: setMode };
 }
 main().catch((e) => {
   $('load').hidden = true;

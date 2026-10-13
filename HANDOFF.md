@@ -24,6 +24,7 @@ Context for anyone (or any session) picking this up. See README for build and te
 | `ui-*.js` | Panels: paint (palette, search, lists, data), style, legend, objects, file |
 | `export.js` | PNG export; SVG export (vector layers in named groups, one path per country with `data-name`, metadata in `<desc>`); source note text |
 | `projections.js` | Export projections and fitting: globe as shown or square, whole-world flat maps centred on the globe's meridian, regional maps fitted to points sampled from the visible globe (conic standard parallels at 1/6 and 5/6 of the latitude span) |
+| `ui-modes.js` | Panel modes (Paint, Data, Draw, Style, Legend, Export): rail on desktop, bottom tabs and a resizable sheet on phones; keys 1–6; remembers the last mode; selecting an object switches to Draw. `window.ecumene.mode(m)` for tests |
 | `svgctx.js` | Canvas-2D-compatible recorder that writes SVG, so overlay drawing and d3 `geoPath` are shared by screen and SVG output |
 
 Conventions: modules share state only through `app`; UI panels re-render on events rather than being called directly; anything pure goes in a module without DOM access so it can be unit tested.

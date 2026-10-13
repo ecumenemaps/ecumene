@@ -1,11 +1,42 @@
 const { test, expect } = require('@playwright/test');
-const { openApp, status, globeCentre, getCode, useCode, regionRows } = require('./helpers');
+const { openApp, status, globeCentre, getCode, useCode, regionRows, mode } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
 test('loads with no errors and lists countries', async ({ page }) => {
   const errors = await openApp(page);
   expect(await page.locator('#names option').count()).toBeGreaterThan(240);
+  expect(errors).toEqual([]);
+});
+
+test('panel modes: tabs, keys, collapse, memory and phone layout', async ({ page }) => {
+  const errors = await openApp(page);
+  const visible = (m) => page.locator(`#panel .mode[data-mode=${m}]`);
+  await page.click('#rail [data-mode=style]');
+  await expect(visible('style')).toBeVisible();
+  await expect(visible('paint')).toBeHidden();
+  await page.locator('#cv').click({ position: { x: 5, y: 5 } }); // focus the page, off the globe
+  await page.keyboard.press('6');
+  await expect(visible('export')).toBeVisible();
+  // a second click on the open tab hides the panel and widens the map
+  const w0 = (await page.locator('#stage').boundingBox()).width;
+  await page.click('#rail [data-mode=export]');
+  await expect(page.locator('#panel')).toBeHidden();
+  expect((await page.locator('#stage').boundingBox()).width).toBeGreaterThan(w0 + 200);
+  await page.click('#rail [data-mode=draw]');
+  await expect(visible('draw')).toBeVisible();
+  // the mode is remembered across reloads
+  await page.reload();
+  await page.waitForFunction(() => document.getElementById('load').hidden, null, { timeout: 120000 });
+  await expect(visible('draw')).toBeVisible();
+  // phone: tab bar at the bottom, panel as a sheet between globe and tabs
+  await page.setViewportSize({ width: 390, height: 800 });
+  const rail = await page.locator('#rail').boundingBox(),
+    panel = await page.locator('#panel').boundingBox(),
+    stage = await page.locator('#stage').boundingBox();
+  expect(rail.y + rail.height).toBeGreaterThan(780);
+  expect(panel.y).toBeGreaterThan(stage.y + 200);
+  expect(rail.width).toBeGreaterThan(380);
   expect(errors).toEqual([]);
 });
 
@@ -23,6 +54,7 @@ test('click paints a country; undo and redo', async ({ page }) => {
 
 test('paste a list and paint a group', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'paint');
   await page.fill('#bl', 'France, Italy, Kenya, Atlantis, USA');
   await page.click('#blp');
   await expect(status(page)).toHaveText('Painted 4 countries. Not found: Atlantis.');
@@ -34,7 +66,7 @@ test('paste a list and paint a group', async ({ page }) => {
 
 test('colour by data builds classed legend', async ({ page }) => {
   const errors = await openApp(page);
-  await page.click('details:has(#dd) summary');
+  await mode(page, 'data');
   await page.fill('#dd', 'France, 68\nGermany, 83\nSpain, 47\nItaly, 59\nBrazil, 12\nIndia, 30\nChina, 90\nKenya, 5\nAtlantis, 3');
   await page.click('#dgo');
   await expect(status(page)).toContainText('8 countries colored in 5 classes');
@@ -45,17 +77,20 @@ test('colour by data builds classed legend', async ({ page }) => {
 
 test('legend editor: reorder, remove, title survive a map code', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'paint');
   await page.fill('#bl', 'France');
   await page.click('#blp');
   await page.locator('#pal .sw').nth(3).click();
   await page.fill('#bl', 'Peru');
   await page.click('#blp');
+  await mode(page, 'legend');
   await page.locator('#lgd .lg input[type=text]').nth(0).fill('First');
   await page.locator('#lgd .lg input[type=text]').nth(1).fill('Second');
   await page.locator('#lgd .lg').nth(1).locator('button').nth(0).click(); // move up
   await expect(page.locator('#lgd .lg input[type=text]').first()).toHaveValue('Second');
   await page.fill('#lt', 'My legend');
   const code = await getCode(page);
+  await mode(page, 'legend');
   await page.locator('#lgd .lg').nth(0).locator('button').nth(2).click(); // remove
   await expect(page.locator('#lgd .lg')).toHaveCount(1);
   await useCode(page, code);
@@ -68,6 +103,7 @@ test('legend editor: reorder, remove, title survive a map code', async ({ page }
 test('draw, edit and undo a region', async ({ page }) => {
   const errors = await openApp(page);
   const c = await globeCentre(page);
+  await mode(page, 'draw');
   await page.click('#rgtools button[data-t=region]');
   for (const [dx, dy] of [
     [-120, -80],
@@ -95,6 +131,7 @@ test('arrows, text and markers', async ({ page }) => {
   test.setTimeout(480000);
   const errors = await openApp(page);
   const c = await globeCentre(page);
+  await mode(page, 'draw');
   await page.click('#rgtools button[data-t=arrow]');
   for (const [dx, dy] of [
     [200, -120],
@@ -121,8 +158,10 @@ test('arrows, text and markers', async ({ page }) => {
 
 test('exact outline from painted countries keeps all parts', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'paint');
   await page.fill('#bl', 'Japan');
   await page.click('#blp');
+  await mode(page, 'draw');
   await page.click('#rgc');
   await expect(status(page)).toContainText('Exact outline made from 1 country');
   await expect(page.locator('#rgl .src')).toContainText('1 country: Japan');
@@ -132,6 +171,7 @@ test('exact outline from painted countries keeps all parts', async ({ page }) =>
 test('subdivision outlines: groups, list, map click, restore', async ({ page, browser }) => {
   test.setTimeout(600000);
   const errors = await openApp(page);
+  await mode(page, 'draw');
   const pick = async (how) => {
     await page.click('#a1o');
     await page.fill('#a1c', 'United Kingdom');
@@ -173,9 +213,11 @@ test('subdivision outlines: groups, list, map click, restore', async ({ page, br
 
 test('style and font survive a map code', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'style');
   await page.selectOption('#pre', 'dark');
   await page.selectOption('#sfont', 'notoserif');
   const code = await getCode(page);
+  await mode(page, 'style');
   await page.selectOption('#pre', 'light');
   await page.selectOption('#sfont', 'sys');
   await useCode(page, code);
@@ -224,8 +266,10 @@ test('falls back to base64 data when .bin files are not served', async ({ page }
 
 test('SVG export is a valid vector map with a source note', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'paint');
   await page.fill('#bl', 'Brazil');
   await page.click('#blp');
+  await mode(page, 'export');
   const dl = page.waitForEvent('download', { timeout: 120000 });
   await page.click('#exs');
   const d = await dl;
@@ -282,6 +326,7 @@ test('flat projections export with the right shape and a described projection', 
 
 test('Wikipedia preset sets the locator-map conventions and the preview opens', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'style');
   await page.selectOption('#pre', 'wikipedia');
   const st = await page.evaluate(() => window.ecumene.getState());
   expect(st.s).toMatchObject({ land: '#b9b9b9', water: '#ffffff', border: '#ffffff', rim: '#aaaaaa' });
@@ -291,6 +336,7 @@ test('Wikipedia preset sets the locator-map conventions and the preview opens', 
   await expect(page.locator('#xw')).toHaveValue('550');
   await expect(page.locator('#snote')).not.toBeChecked();
   await expect(page.locator('#cc')).toHaveValue('#346733');
+  await mode(page, 'export');
   await page.click('#xprev');
   await expect(page.locator('#xdlg')).toBeVisible({ timeout: 60000 });
   await expect(page.locator('#xinfo')).toContainText('550 × 550');
@@ -303,6 +349,7 @@ test('Wikipedia preset sets the locator-map conventions and the preview opens', 
 
 test('PNG export downloads an image', async ({ page }) => {
   const errors = await openApp(page);
+  await mode(page, 'paint');
   await page.fill('#bl', 'Brazil');
   await page.click('#blp');
   const dl = page.waitForEvent('download', { timeout: 200000 });

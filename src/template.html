@@ -14,7 +14,24 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 html,body{height:100%;margin:0}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{display:flex;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-#panel{width:300px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:16px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+#rail{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:var(--panel);border-right:1px solid var(--line);z-index:3}
+#rail button{width:58px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:var(--mute);font:600 11px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer}
+#rail button:hover{background:var(--bg);color:var(--ink)}
+#rail button.on{background:var(--bg);color:var(--ink);box-shadow:inset 3px 0 0 #2a7fb8}
+#rail svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#panel{width:320px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:0 16px 16px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+body.collapsed #panel{display:none}
+#ph{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 0 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+button.b.sm{padding:5px 10px;font-size:13px}
+.mode{display:none;flex-direction:column;gap:20px}
+.mode.on{display:flex}
+#grab{display:none}
+#rgtools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#rgtools button{padding:8px 4px}
+#rgf{grid-column:1/-1}
+#rgtools button[hidden]{display:none}
+#st{position:sticky;bottom:-16px;margin:auto -16px -16px;padding:6px 16px 10px;background:var(--panel)}
+#st:empty{display:none}
 #stage{position:relative;flex:1;min-width:0;min-height:0}
 canvas{position:absolute;inset:0;cursor:grab;touch-action:none}
 canvas:active{cursor:grabbing}
@@ -77,16 +94,41 @@ summary{font-size:13px;font-weight:600;color:var(--mute);cursor:pointer;margin-b
 .rg input{width:100%}
 button.b:disabled{opacity:.45;cursor:default}
 textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
-@media (max-width:720px){body{flex-direction:column}#panel{order:2;width:auto;max-height:46%;border-right:0;border-top:1px solid var(--line);gap:14px}}
+@media (max-width:720px){
+body{flex-direction:column;height:100dvh}
+#stage{order:1}
+#panel{order:2;width:auto;height:44dvh;border-right:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -4px 16px rgba(0,0,0,.12);gap:14px;padding-top:0}
+body[data-sheet=full] #panel{height:calc(100dvh - 120px)}
+body.collapsed #panel{display:none}
+#grab{display:block;position:sticky;top:0;z-index:3;width:calc(100% + 32px);margin:0 -16px;height:22px;border:0;background:var(--panel);cursor:ns-resize;touch-action:none}
+#grab i{display:block;width:40px;height:4px;border-radius:2px;background:var(--line);margin:9px auto 0}
+#ph{top:22px;padding:2px 0 8px}
+#ph h1{font-size:16px}
+#rail{order:3;width:auto;flex-direction:row;justify-content:space-around;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));border-right:0;border-top:1px solid var(--line)}
+#rail button{width:auto;flex:1;max-width:72px;height:50px}
+#rail button.on{box-shadow:inset 0 3px 0 #2a7fb8}
+#zb{bottom:10px;right:10px}
+button.b,select,input[type=text],input[type=search]{min-height:40px}
+}
 </style>
 </head>
 <body>
+<nav id="rail" aria-label="Modes">
+<button type="button" data-mode="paint" aria-label="Paint" title="Paint (1)" aria-controls="panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8l-8.5 8.5-3.6.8.8-3.6z"/><path d="M8.1 14.9c-2.3 0-3.6 1.6-3.6 3.4 0 1.2-.7 2-1.7 2.2 1 .9 2.5 1.2 3.9 1.2 2.4 0 4.3-1.9 4.3-4.2"/></svg><span>Paint</span></button>
+<button type="button" data-mode="data" aria-label="Data" title="Data (2)" aria-controls="panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Data</span></button>
+<button type="button" data-mode="draw" aria-label="Draw" title="Draw (3)" aria-controls="panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 9 6l9 4-4 9z"/><circle cx="5" cy="19" r="1.6"/><circle cx="9" cy="6" r="1.6"/><circle cx="18" cy="10" r="1.6"/><circle cx="14" cy="19" r="1.6"/></svg><span>Draw</span></button>
+<button type="button" data-mode="style" aria-label="Style" title="Style (4)" aria-controls="panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Style</span></button>
+<button type="button" data-mode="legend" aria-label="Legend" title="Legend (5)" aria-controls="panel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="5" rx="1"/><rect x="3" y="14" width="5" height="5" rx="1"/><path d="M11 6.5h10M11 16.5h10"/></svg><span>Legend</span></button>
+<button type="button" data-mode="export" aria-label="Export" title="Export (6)" aria-controls="panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg><span>Export</span></button>
+</nav>
 <aside id="panel">
-<h1>Globe map</h1>
+<button type="button" id="grab" aria-label="Resize panel"><i></i></button>
+<header id="ph"><h1>Globe map</h1><div class="row"><button class="b sm" id="un" disabled aria-label="Undo" title="Undo (Ctrl+Z)">Undo</button><button class="b sm" id="re" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)">Redo</button></div></header>
+<div class="mode" data-mode="paint">
 <section>
 <h2>Paint color</h2>
 <div id="pal"></div>
-<p class="hint">Drag to rotate. Scroll or pinch to zoom. Click a country to paint it. Click it again to clear it. Hold Ctrl (Cmd on Mac) and move over countries to paint many at once.</p>
+<p class="hint">Drag to rotate. Scroll or pinch to zoom. Click a country to paint it, click again to clear it. Hold Ctrl (Cmd on Mac) and move over countries to paint many at once.</p>
 <label class="sw2" style="margin-top:8px"><input id="pm" type="checkbox"> Paint while dragging (for touch)</label>
 </section>
 <section>
@@ -95,28 +137,39 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <datalist id="names"></datalist>
 </section>
 <section>
-<details open><summary>Fill from a list</summary>
+<h2>Fill from a list</h2>
 <textarea id="bl" rows="3" placeholder="France, Italy, Kenya (commas or new lines)" spellcheck="false" aria-label="Countries to paint"></textarea>
 <div class="row" style="margin-top:8px"><button class="b" id="blp">Paint list</button></div>
-<select id="grp" aria-label="Country group" style="margin-top:8px"></select>
-<div class="row" style="margin-top:8px"><button class="b" id="grpp">Paint group</button></div>
-<p class="hint" id="grpn"></p>
-</details>
 </section>
 <section>
-<details><summary>Color by data</summary>
-<textarea id="dd" rows="5" placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
+<h2>Fill a group</h2>
+<select id="grp" aria-label="Country group"></select>
+<div class="row" style="margin-top:8px"><button class="b" id="grpp">Paint group</button></div>
+<p class="hint" id="grpn"></p>
+</section>
+<section>
+<button class="b" id="clr">Clear all colors</button>
+</section>
+</div>
+<div class="mode" data-mode="data">
+<section>
+<h2>Color by data</h2>
+<textarea id="dd" rows="8" placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
 <div class="cg" style="margin-top:8px"><select id="dpal" aria-label="Color scale"></select><select id="dn" aria-label="Number of classes"></select></div>
 <select id="dm" aria-label="Class method"><option value="equal">Equal intervals</option><option value="quantile">Quantiles (equal counts)</option></select>
 <div class="row" style="margin-top:8px"><button class="b" id="dgo">Color the map</button></div>
-<p class="hint">Only the listed countries are colored. Each class becomes a legend entry you can rename.</p>
-</details>
+<p class="hint">Only the listed countries are colored. Each class becomes a legend entry you can rename in Legend.</p>
+</section>
+</div>
+<div class="mode" data-mode="draw">
+<section>
+<h2>Add to the map</h2>
+<div class="row" id="rgtools"><button class="b" data-t="region">Region</button><button class="b" data-t="arrow">Arrow</button><button class="b" data-t="text">Text</button><button class="b" data-t="marker">Marker</button><button class="b" id="rgf" hidden>Finish</button></div>
 </section>
 <section>
-<h2>Regions and annotations</h2>
-<div class="row" id="rgtools"><button class="b" data-t="region">Region</button><button class="b" data-t="arrow">Arrow</button><button class="b" data-t="text">Text</button><button class="b" data-t="marker">Marker</button><button class="b" id="rgf" hidden>Finish</button></div>
-<button class="b" id="rgc" style="margin-top:8px;width:100%">Exact outline of countries painted in this color</button>
-<button class="b" id="a1o" style="margin-top:8px;width:100%">Exact outline from subdivisions…</button>
+<h2>Exact outlines</h2>
+<button class="b" id="rgc" style="width:100%">Outline the countries painted in this color</button>
+<button class="b" id="a1o" style="margin-top:8px;width:100%">Outline from subdivisions…</button>
 <div id="a1p" class="a1p" hidden>
 <input id="a1c" type="search" list="a1names" placeholder="Country, e.g. United Kingdom" autocomplete="off" aria-label="Country">
 <datalist id="a1names"></datalist>
@@ -126,7 +179,16 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <p class="hint" id="a1s"></p>
 <div class="row"><button class="b" id="a1ok" disabled>Create outline</button><button class="b" id="a1all">All</button><button class="b" id="a1none">None</button><button class="b" id="a1x">Cancel</button></div>
 </div>
-<div id="rgl" style="margin-top:8px"></div>
+</section>
+<section>
+<h2>On this map</h2>
+<div id="rgl"></div>
+</section>
+</div>
+<div class="mode" data-mode="style">
+<section>
+<h2>Preset</h2>
+<select id="pre" aria-label="Style preset"><option value="light">Light, print friendly</option><option value="dark">Dark</option><option value="classic">Classic, flat colours</option><option value="wikipedia">Wikipedia locator map</option></select>
 </section>
 <section>
 <h2>Map layers</h2>
@@ -140,20 +202,20 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 </div>
 </section>
 <section>
-<details open><summary>Style</summary>
+<h2>Colors and lines</h2>
 <label class="rg" style="margin-top:0">Label font<select id="sfont" aria-label="Label font"></select></label>
-<select id="pre" aria-label="Style preset" style="margin-top:10px"><option value="light">Light, print friendly</option><option value="dark">Dark</option><option value="classic">Classic, flat colours</option><option value="wikipedia">Wikipedia locator map</option></select>
 <div class="cg" id="cg"></div>
 <label class="rg">Border width<input id="sbw" type="range" min="0.5" max="3" step="0.1" value="1.1"></label>
 <label class="rg">Globe shading<input id="ssh" type="range" min="0" max="100" value="40"></label>
-<label class="rg">Hover darkness<input id="shd" type="range" min="5" max="40" value="16"></label>
-</details>
 </section>
 <section>
 <h2>Hover</h2>
 <select id="hs" aria-label="Hover style"><option value="dark">Darken country</option><option value="outline">Outline</option><option value="both">Darken and outline</option><option value="none">None</option></select>
+<label class="rg">Hover darkness<input id="shd" type="range" min="5" max="40" value="16"></label>
 <label class="sw2" style="margin-top:8px"><input id="tg" type="checkbox" checked> Show name tag</label>
 </section>
+</div>
+<div class="mode" data-mode="legend">
 <section>
 <h2>Legend</h2>
 <input id="lt" type="text" placeholder="Legend title (optional)" aria-label="Legend title" style="margin-bottom:8px">
@@ -161,25 +223,10 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <div class="row" style="margin-top:8px"><select id="lp" aria-label="Legend position" style="width:auto;flex:1"><option value="bl">Bottom left</option><option value="br">Bottom right</option><option value="tl">Top left</option><option value="tr">Top right</option></select>
 <label class="sw2"><input id="ls" type="checkbox" checked> In image</label></div>
 </section>
-<section>
-<h2>Save and share</h2>
-<div class="row"><button class="b" id="sf">Save map file</button><button class="b" id="lf">Load map file</button></div>
-<input id="fi" type="file" accept=".json,application/json" hidden>
-<textarea id="mc" rows="3" placeholder="Map code" spellcheck="false" aria-label="Map code"></textarea>
-<div class="row" style="margin-top:8px"><button class="b" id="gc">Get code</button><button class="b" id="uc">Use code</button></div>
-</section>
-<section>
-<div class="row">
-<button class="b" id="un" disabled>Undo</button>
-<button class="b" id="re" disabled>Redo</button>
 </div>
-<div class="row" style="margin-top:8px">
-<button class="b" id="clr">Clear all colors</button>
-</div>
-<div id="st" aria-live="polite"></div>
-</section>
+<div class="mode" data-mode="export">
 <section>
-<h2>Export</h2>
+<h2>Image</h2>
 <label class="rg" style="margin-top:0">Projection<select id="xproj" aria-label="Export projection"></select></label>
 <label class="rg">Area<select id="xarea" aria-label="Export area"><option value="screen">What is on screen</option><option value="world">Whole world</option></select></label>
 <label class="rg">Width in pixels<input id="xw" type="number" min="200" max="8000" step="10" placeholder="Automatic" aria-label="Export width in pixels"></label>
@@ -192,6 +239,15 @@ textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line)
 <label class="sw2" style="margin-top:8px"><input id="x2" type="checkbox"> PNG at 2x</label>
 <label class="sw2" style="margin-top:8px" title="Data source, projection, version and date, printed small along the bottom"><input id="snote" type="checkbox" checked> Source note in image</label>
 </section>
+<section>
+<h2>Save and share</h2>
+<div class="row"><button class="b" id="sf">Save map file</button><button class="b" id="lf">Load map file</button></div>
+<input id="fi" type="file" accept=".json,application/json" hidden>
+<textarea id="mc" rows="3" placeholder="Map code" spellcheck="false" aria-label="Map code"></textarea>
+<div class="row" style="margin-top:8px"><button class="b" id="gc">Get code</button><button class="b" id="uc">Use code</button></div>
+</section>
+</div>
+<div id="st" aria-live="polite"></div>
 </aside>
 <main id="stage">
 <canvas id="cv" aria-label="Interactive globe"></canvas><canvas id="ov"></canvas>
