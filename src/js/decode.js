@@ -42,10 +42,10 @@ export function decodeTris(buf) {
   return { ll, ids, idx };
 }
 
-/** Lakes (triangles + outlines) and rivers (polylines in three zoom tiers). */
+/** Lakes (triangles + outlines, major lakes first) and rivers (polylines in three zoom tiers). */
 export function decodePhys(buf) {
-  const [nLV, nLI, nRP, nRG, nVP, nVL, t0, t1] = new Uint32Array(buf, 0, 8);
-  let off = 32;
+  const [nLV, nLI, nRP, nRG, nVP, nVL, t0, t1, majIdx, majRings] = new Uint32Array(buf, 0, 10);
+  let off = 40;
   const take = (n) => {
     const a = new Int32Array(buf, off, n);
     off += 4 * n;
@@ -61,6 +61,8 @@ export function decodePhys(buf) {
     lakeLL: undelta(lq, nLV),
     lakeIdx: prefix(li, nLI),
     lakeLines: { pts: undelta(rq, nRP), lens: rl },
+    // Major lakes come first: their triangles are lakeIdx[0, majIdx), their outlines rings [0, majRings).
+    lakeMajor: { idx: majIdx, rings: majRings },
     rivers: {
       pts: undelta(vq, nVP),
       lens: vl,

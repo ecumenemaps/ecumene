@@ -34,6 +34,10 @@ test('lakes and rivers decode with consistent counts', async () => {
   assert.strictEqual(t0[1], t1[0]);
   assert.strictEqual(t1[1], t2[0]);
   assert.strictEqual(t2[1], p.rivers.lens.length);
+  // Major lakes are a non-empty prefix of the lake triangles and outlines.
+  assert.ok(p.lakeMajor.idx > 0 && p.lakeMajor.idx < p.lakeIdx.length);
+  assert.strictEqual(p.lakeMajor.idx % 3, 0);
+  assert.ok(p.lakeMajor.rings > 0 && p.lakeMajor.rings < p.lakeLines.lens.length);
 });
 
 const square = [

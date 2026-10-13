@@ -1,5 +1,5 @@
 // Saving and loading: the map state object, map codes (GM1.<deflate+base64url>), files and autosave.
-import { app, emit, redraw, STYLE_COLOR_KEYS } from './store.js';
+import { app, emit, redraw, STYLE_COLOR_KEYS, LAKE_MODES } from './store.js';
 import { geo } from './data.js';
 import { setFill, legendColours } from './paint.js';
 import { newObj, TYPES } from './objects.js';
@@ -109,7 +109,13 @@ export function setState(o) {
   if (Number.isFinite(s.shade)) S.shade = clamp(s.shade, 0, 1);
   S.font = FONTS[s.font] ? s.font : 'sys';
   loadFont();
-  if (o.L) for (const k in app.layers) if (typeof o.L[k] === 'boolean') app.layers[k] = o.L[k];
+  if (o.L) {
+    for (const k in app.layers) if (k !== 'lakes' && typeof o.L[k] === 'boolean') app.layers[k] = o.L[k];
+    // Older maps stored lakes as on/off; "on" meant every lake.
+    const lk = o.L.lakes;
+    if (LAKE_MODES.includes(lk)) app.layers.lakes = lk;
+    else if (typeof lk === 'boolean') app.layers.lakes = lk ? 'all' : 'none';
+  }
   if (o.h) {
     const H = app.hoverStyle;
     H.dark = !!o.h.dark;

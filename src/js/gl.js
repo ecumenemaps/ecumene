@@ -59,7 +59,7 @@ const uF = {},
   uL = {},
   uP = {};
 const pal = new Uint8Array(256 * 4);
-let palTex, BL, HL, LO, GRL, RV;
+let palTex, BL, HL, LO, LOM, GRL, RV;
 const TV = { vao: null, n: 0 },
   LK = { vao: null, n: 0 };
 const RIVER_MIN_ZOOM = [0, 2, 4],
@@ -172,6 +172,7 @@ export function initGL(canvas) {
   BL = lineSet();
   HL = lineSet();
   LO = lineSet();
+  LOM = lineSet();
   GRL = lineSet();
   RV = [lineSet(), lineSet(), lineSet()];
   TV.vao = gl.createVertexArray();
@@ -213,6 +214,8 @@ export function uploadTris(t) {
 export function uploadPhys(p) {
   meshVAO(LK, p.lakeLL, p.lakeIdx, null);
   setLines(LO, packedSegs(p.lakeLines.pts, p.lakeLines.lens, 0, p.lakeLines.lens.length));
+  setLines(LOM, packedSegs(p.lakeLines.pts, p.lakeLines.lens, 0, p.lakeMajor.rings));
+  LK.nMajor = p.lakeMajor.idx;
   p.rivers.tiers.forEach(([a, b], i) => setLines(RV[i], packedSegs(p.rivers.pts, p.rivers.lens, a, b)));
 }
 export const setBorders = (arr) => setLines(BL, arr);
@@ -269,11 +272,12 @@ export function render(R) {
   gl.uniform4f(uP.uFlat, 0, 0, 0, 0);
   gl.bindVertexArray(TV.vao);
   gl.drawElements(gl.TRIANGLES, TV.n, gl.UNSIGNED_INT, 0);
-  if (Ly.lakes && LK.n) {
+  const lakeN = Ly.lakes === 'all' ? LK.n : Ly.lakes === 'major' ? LK.nMajor : 0;
+  if (lakeN) {
     gl.uniform4f(uP.uFlat, ...rgb01(S.water), 1);
     gl.vertexAttribI4ui(gl.getAttribLocation(pFill, 'aId'), 0, 0, 0, 1);
     gl.bindVertexArray(LK.vao);
-    gl.drawElements(gl.TRIANGLES, LK.n, gl.UNSIGNED_INT, 0);
+    gl.drawElements(gl.TRIANGLES, lakeN, gl.UNSIGNED_INT, 0);
   }
   gl.bindVertexArray(null);
   gl.useProgram(pLine);
@@ -291,7 +295,7 @@ export function render(R) {
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, set.n);
   };
   if (Ly.grat) lines(GRL, 1, S.grat, 0.3);
-  if (Ly.lakes) lines(LO, 0.9, S.river, 0.9);
+  if (lakeN) lines(Ly.lakes === 'all' ? LO : LOM, 0.9, S.river, 0.9);
   if (Ly.rivers)
     RV.forEach((r, i) => {
       if (app.zoom >= RIVER_MIN_ZOOM[i]) lines(r, RIVER_WIDTH[i], S.river, 0.95);

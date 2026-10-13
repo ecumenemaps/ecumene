@@ -8,7 +8,7 @@ Paint countries on an accurate, draggable 3D globe. Open source, and built so th
 - WebGL2 orthographic globe: drag, rotate, zoom (up to 40x)
 - Click or Ctrl-hold-drag to fill countries; per-country colours
 - Exact vector fills and exact point-in-polygon picking (small countries and islands stay clickable)
-- Toggles: borders, rivers, lakes, graticule, country names
+- Toggles: borders, rivers, graticule, country names; lakes as major (Natural Earth scalerank 0–1, 29 lakes), all, or none
 - Hover darkens the country and shows a cursor-following name tag
 - Fill from a pasted list of countries (aliases like USA, UK, Ivory Coast understood)
 - One-click groups: EU, Eurozone, NATO, G7, G20, ASEAN, UN P5, and the continents

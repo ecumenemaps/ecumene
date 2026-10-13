@@ -192,6 +192,20 @@ test('scripting API round-trips state; lakes and rivers load after first frame',
     return window.ecumene.getState();
   });
   expect(st.f).toEqual([{ c: '#123456', n: ['Chile', 'Peru'], l: 'Andes' }]);
+  // Lakes default to the major set; old saves stored true/false.
+  expect(st.L.lakes).toBe('major');
+  const lk = await page.evaluate(() => {
+    const out = [];
+    for (const v of [true, false, 'all', 'bogus']) {
+      const s = window.ecumene.getState();
+      s.L.lakes = v;
+      window.ecumene.setState(s);
+      out.push(window.ecumene.getState().L.lakes);
+    }
+    return out;
+  });
+  expect(lk).toEqual(['all', 'none', 'all', 'all']);
+  await expect(page.locator('select[data-k=lakes]')).toHaveValue('all');
   await expect(page.locator('#lgd .lg input[type=text]')).toHaveValue('Andes');
   expect(await page.evaluate(() => window.ecumene.version)).toMatch(/^\d+\.\d+\.\d+$/);
   expect(errors).toEqual([]);

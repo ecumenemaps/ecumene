@@ -64,10 +64,12 @@ export function initStylePanel({ onHoverChange, refreshTip }) {
     H.tip = e.target.checked;
     refreshTip();
   };
+  // Checkboxes hold booleans; the lakes <select> holds a mode string.
+  const layerVal = (i) => (i.type === 'checkbox' ? i.checked : i.value);
   document.querySelectorAll('[data-k]').forEach((i) => {
-    app.layers[i.dataset.k] = i.checked;
+    app.layers[i.dataset.k] = layerVal(i);
     i.onchange = () => {
-      app.layers[i.dataset.k] = i.checked;
+      app.layers[i.dataset.k] = layerVal(i);
       redraw();
     };
   });
@@ -76,7 +78,10 @@ export function initStylePanel({ onHoverChange, refreshTip }) {
     $('sfont').value = S.font;
     $('sbw').value = S.bw;
     $('ssh').value = Math.round(S.shade * 100);
-    document.querySelectorAll('[data-k]').forEach((i) => (i.checked = !!app.layers[i.dataset.k]));
+    document.querySelectorAll('[data-k]').forEach((i) => {
+      if (i.type === 'checkbox') i.checked = !!app.layers[i.dataset.k];
+      else i.value = app.layers[i.dataset.k];
+    });
     $('hs').value = H.dark && H.outline ? 'both' : H.dark ? 'dark' : H.outline ? 'outline' : 'none';
     $('tg').checked = H.tip;
     $('shd').value = Math.round(H.amt * 100);

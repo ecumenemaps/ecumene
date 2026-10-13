@@ -37,6 +37,8 @@ export const PRESETS = {
     bw: 1,
   },
 };
+/** Lake layer options: none, Natural Earth's major lakes (scalerank 0-1), or all 10m lakes. */
+export const LAKE_MODES = ['none', 'major', 'all'];
 export const STYLE_COLOR_KEYS = ['water', 'land', 'border', 'bg', 'river', 'grat', 'label'];
 
 export const app = {
@@ -60,7 +62,7 @@ export const app = {
   legend: { title: '', pos: 'bl', show: true, order: [] },
   // style and layers
   style: Object.assign({}, PRESETS.light, { font: 'sys' }),
-  layers: { borders: true, lakes: true, rivers: false, grat: false, names: false, regions: true },
+  layers: { borders: true, lakes: 'major', rivers: false, grat: false, names: false, regions: true },
   hoverStyle: { dark: true, outline: false, tip: true, amt: 0.16 },
   // regions, arrows, text, markers and exact outlines (see regions.js)
   objects: [],

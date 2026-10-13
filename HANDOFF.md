@@ -36,7 +36,7 @@ Conventions: modules share state only through `app`; UI panels re-render on even
 
 ## Data
 - Countries: Natural Earth 10m via `world-atlas`, served as `data/countries.json`.
-- `tris.bin` and `phys.bin`: deflate-raw, 1e-5 degree quantised, delta-coded (formats in `decode.js`).
+- `tris.bin` and `phys.bin`: deflate-raw, 1e-5 degree quantised, delta-coded (formats in `decode.js`). `phys.bin` stores the 29 major lakes (scalerank 0–1) first so they can be drawn alone.
 - Subdivisions: Natural Earth 10m admin-1, one TopoJSON per country in `admin1/`, fetched on demand.
 - Exact outlines (`t:'shape'`) are saved by reference (`{k:'c',names}` or `{k:'a1',c,ids}`), never by coordinates, and rebuilt with `topojson.merge`.
 
