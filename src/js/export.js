@@ -10,6 +10,7 @@ import { exportView } from './projections.js';
 import { unitsOf, splitKey, loadPainted } from './units.js';
 import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
+import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
 let canvas = null;
 export const setExportCanvas = (cv) => (canvas = cv);
@@ -22,8 +23,9 @@ export function sourceLine(label) {
   return 'Data: Natural Earth (public domain) · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
 }
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-/** Fuller description embedded in SVG metadata. */
-export function sourceDetails(label) {
+const LAKE_SETS = { none: 'the IJsselmeer', major: 'the IJsselmeer and the major lakes', all: 'every lake' };
+/** Fuller description embedded in SVG metadata; cuts says which lakes were cut out of the shapes (see cutShapes). */
+export function sourceDetails(label, cuts) {
   const L = [
     'Made with Ecumene ' + VERSION + ' (https://ecumenemaps.github.io/ecumene/) on ' + today() + '.',
     'Projection: ' + label + '.',
@@ -34,6 +36,10 @@ export function sourceDetails(label) {
     L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
   if (app.units.size || app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
     L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
+  if (cuts) {
+    L.push('Country and subdivision shapes have ' + LAKE_SETS[cuts.set] + ' cut out, so they stop at the shore.');
+    if (cuts.failed.size) L.push('Not cut, so their shapes still cover the water: ' + [...cuts.failed].join(', ') + '.');
+  } else if (cuts === null) L.push('Country and subdivision shapes include their lakes; the lakes are drawn over them.');
   L.push('Borders show Natural Earth\u2019s de facto conventions; disputed areas are not marked.');
   return L.join(' ');
 }
@@ -161,18 +167,76 @@ function graticule() {
   return { type: 'MultiLineString', coordinates: L };
 }
 
+// ---- lakes cut out of the country and subdivision shapes
+// The clipper is a separate file (dist/app/clip.js) loaded on the first export, so the editor's first load stays small.
+let clipLoad = null;
+function loadClip() {
+  if (!clipLoad)
+    clipLoad = new Promise((ok, no) => {
+      if (window.polygonClipping) return ok(window.polygonClipping);
+      const s = document.createElement('script');
+      s.src = 'clip.js';
+      s.onload = () => (window.polygonClipping ? ok(window.polygonClipping) : no(new Error('clip.js loaded without the clipper')));
+      s.onerror = () => no(new Error('could not load clip.js'));
+      document.head.appendChild(s);
+    }).catch((e) => {
+      console.warn('Lakes are not cut out of exported shapes:', e.message);
+      clipLoad = null;
+      return null;
+    });
+  return clipLoad;
+}
+// per Lakes setting: the prepared lakes and the shapes already cut (by country feature, and by unit key)
+const cutCache = new Map();
+/**
+ * Cut the lakes the map shows (the always-water ones, plus the major or all lakes as the Lakes setting says) out of
+ * every country and every painted subdivision. Returns {set, countries: [geometry by feature], units: Map key ->
+ * geometry, failed: Set of names left uncut}, or null when the clipper or the lake polygons are not available.
+ * The same cut runs over all the data in tests/unit/cut.test.mjs, so failures are not expected here.
+ */
+async function cutShapes() {
+  const p = geo.phys;
+  if (!p || !p.lakePolys) return null;
+  const pc = await loadClip();
+  if (!pc) return null;
+  const set = app.layers.lakes,
+    to = set === 'all' ? p.lakeLines.lens.length : set === 'major' ? p.lakeMajor.rings : p.lakeSea.rings;
+  if (!cutCache.has(set)) cutCache.set(set, { lakes: prepareLakes(lakePolygons(p, to)), countries: new Map(), units: new Map() });
+  const C = cutCache.get(set),
+    failed = new Set();
+  const countries = countryFeats().map((f, i) => {
+    if (!C.countries.has(i)) C.countries.set(i, cutLakes(f.geometry, C.lakes, pc));
+    const r = C.countries.get(i);
+    if (r.failed) failed.add(f.properties.name);
+    return r.geometry;
+  });
+  const units = new Map();
+  app.units.forEach((col, k) => {
+    const [n, code] = splitKey(k),
+      U = unitsOf(n),
+      f = U && U.byCode.get(code);
+    if (!f) return;
+    if (!C.units.has(k)) C.units.set(k, cutLakes(f.geometry, C.lakes, pc));
+    const r = C.units.get(k);
+    if (r.failed) failed.add(f.properties.n + ' (' + n + ')');
+    units.set(k, r.geometry);
+  });
+  return { set, countries, units, failed };
+}
+
 /** Build the SVG document for the current view. Returns a string. */
 export async function buildSVG(opts = { proj: 'ortho', area: 'screen' }) {
   try {
     await document.fonts.ready;
   } catch (_) {}
   await loadPainted();
+  const cuts = await cutShapes();
   const v = exportView(opts);
   // everything below is synchronous, so the swapped-in projection never leaks into screen drawing
-  return withProjection(v.p, v.kind !== 'globe', () => drawSVG(v));
+  return withProjection(v.p, v.kind !== 'globe', () => drawSVG(v, cuts));
 }
 
-function drawSVG(v) {
+function drawSVG(v, cuts) {
   const { W, H, p: pj, label } = v,
     S = app.style,
     Ly = app.layers;
@@ -192,13 +256,13 @@ function drawSVG(v) {
   sphere();
   c.fill();
   c.end();
-  // countries, one element per name so they are easy to select in an editor
+  // countries, one element per name so they are easy to select in an editor; with the lakes cut out when available
   const byName = new Map();
-  for (const f of countryFeats()) {
+  countryFeats().forEach((f, i) => {
     const n = f.properties.name;
     if (!byName.has(n)) byName.set(n, []);
-    byName.get(n).push(f);
-  }
+    byName.get(n).push(cuts ? cuts.countries[i] : f);
+  });
   c.group('countries');
   for (const [n, fs] of byName) {
     const col = app.fills.get(n);
@@ -221,7 +285,7 @@ function drawSVG(v) {
         f = U && U.byCode.get(code);
       if (!f) return;
       c.beginPath();
-      path(f);
+      path((cuts && cuts.units.get(k)) || f);
       c.fillStyle = c.strokeStyle = col;
       c.tag({ id: 'unit-' + slug(code), 'data-name': f.properties.n, 'data-country': n });
       c.fillStroke();
@@ -359,7 +423,7 @@ function drawSVG(v) {
     c.end();
   }
   const title = app.legend.title.trim() || 'Map made with Ecumene';
-  const head = '<title>' + esc(title) + '</title>\n<desc>' + esc(sourceDetails(label)) + '</desc>\n' + defs;
+  const head = '<title>' + esc(title) + '</title>\n<desc>' + esc(sourceDetails(label, cuts)) + '</desc>\n' + defs;
   return c.toString(W, H, head);
 }
 export async function exportSVG(opts) {

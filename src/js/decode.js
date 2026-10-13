@@ -45,11 +45,14 @@ export function decodeTris(buf) {
 /** Lakes (triangles + outlines: always-water first, then major lakes, then the rest) and rivers (polylines in three zoom tiers). */
 export function decodePhys(buf) {
   const [nLV, nLI, nRP, nRG, nVP, nVL, t0, t1, majIdx, majRings] = new Uint32Array(buf, 0, 10);
-  // Files built before the always-water lakes have a 10-number header and no always-water prefix.
+  // Files built before the always-water lakes have a 10-number header and no always-water prefix; files built
+  // before the rings-per-polygon list have a 12-number header and no list.
   const body = 4 * (2 * nLV + nLI + 2 * nRP + nRG + 2 * nVP + nVL),
-    old = buf.byteLength === 40 + body;
+    old = buf.byteLength === 40 + body,
+    noPolys = old || buf.byteLength === 48 + body;
   const [seaIdx, seaRings] = old ? [0, 0] : new Uint32Array(buf, 40, 2);
-  let off = old ? 40 : 48;
+  const nPL = noPolys ? 0 : new Uint32Array(buf, 48, 1)[0];
+  let off = old ? 40 : noPolys ? 48 : 52;
   const take = (n) => {
     const a = new Int32Array(buf, off, n);
     off += 4 * n;
@@ -60,7 +63,8 @@ export function decodePhys(buf) {
     rq = take(2 * nRP),
     rl = take(nRG),
     vq = take(2 * nVP),
-    vl = take(nVL);
+    vl = take(nVL),
+    pl = noPolys ? null : take(nPL);
   return {
     lakeLL: undelta(lq, nLV),
     lakeIdx: prefix(li, nLI),
@@ -69,6 +73,8 @@ export function decodePhys(buf) {
     lakeMajor: { idx: majIdx, rings: majRings },
     // Within that, the always-water lakes (drawn at every Lakes setting) are lakeIdx[0, seaIdx), rings [0, seaRings).
     lakeSea: { idx: seaIdx, rings: seaRings },
+    // Rings per lake polygon, in ring order: its shore, then its islands. Null in older files.
+    lakePolys: pl,
     rivers: {
       pts: undelta(vq, nVP),
       lens: vl,

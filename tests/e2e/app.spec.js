@@ -297,6 +297,72 @@ test('the IJsselmeer is water at every Lakes setting: clicks there paint nothing
   expect(errors).toEqual([]);
 });
 
+test('SVG export cuts the lakes the map shows out of country and subdivision shapes', async ({ page }) => {
+  const errors = await openApp(page);
+  const set = (s) =>
+    page.evaluate((s) => {
+      const st = window.ecumene.getState();
+      Object.assign(st, s.st);
+      st.L.lakes = s.lakes;
+      window.ecumene.setState(st);
+    }, s);
+  // whether a point (lon, lat) is inside an element's fill in the exported SVG (screen export: SVG pixels are canvas pixels)
+  const inFill = (svg, sel, g) =>
+    page.evaluate(
+      ([svg, sel, g]) => {
+        let box = document.getElementById('svg-check');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'svg-check';
+          box.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden';
+          document.body.append(box);
+        }
+        box.innerHTML = svg.replace(/^<\?xml[^>]*>/, '');
+        const [x, y] = window.ecumene.px(g);
+        return box.querySelector(sel).isPointInFill(new DOMPoint(x, y));
+      },
+      [svg, sel, g],
+    );
+  // Lakes = None: the IJsselmeer is still cut out of the Netherlands and its painted province
+  await set({ st: { r: [-5.4, -52.6], z: 30, f: [{ c: '#123456', n: ['Netherlands'], l: '' }], u: [] }, lakes: 'none' });
+  await expect.poll(async () => (await page.evaluate(() => window.ecumene.svg())).includes('<g id="inland-sea">')).toBe(true);
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const box = await page.locator('#cv').boundingBox(),
+    fl = await page.evaluate((g) => window.ecumene.px(g), [5.6, 52.5]);
+  await page.mouse.move(box.x + fl[0], box.y + fl[1]);
+  await page.mouse.move(box.x + fl[0] + 1, box.y + fl[1] + 1);
+  await page.mouse.click(box.x + fl[0] + 1, box.y + fl[1] + 1);
+  await expect.poll(async () => (await page.evaluate(() => window.ecumene.getState())).u.length).toBe(1);
+  let svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('have the IJsselmeer cut out');
+  expect(await inFill(svg, '#country-Netherlands', [5.35, 52.75])).toBe(false);
+  expect(await inFill(svg, '#country-Netherlands', [5.25, 52.5])).toBe(false);
+  expect(await inFill(svg, '#country-Netherlands', [5.6, 52.5])).toBe(true);
+  expect(await inFill(svg, '#subdivisions path', [5.6, 52.5])).toBe(true);
+  expect(await inFill(svg, '#subdivisions path', [5.25, 52.5])).toBe(false);
+  // Lakes = Major: Lake Victoria is not part of Uganda
+  await set({ st: { r: [-33, 0], z: 12, f: [{ c: '#123456', n: ['Uganda'], l: '' }], u: [] }, lakes: 'major' });
+  svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('the IJsselmeer and the major lakes cut out');
+  expect(await inFill(svg, '#country-Uganda', [33, -0.5])).toBe(false);
+  expect(await inFill(svg, '#country-Uganda', [32.6, 0.3])).toBe(true);
+  // Lakes = All: Georgian Bay is water (it was a second copy over Lake Huron, which an even-odd fill showed as land)
+  await set({ st: { r: [81.5, -45], z: 9, f: [], u: [] }, lakes: 'all' });
+  svg = await page.evaluate(() => window.ecumene.svg());
+  expect(await inFill(svg, '#lakes path', [-80.6, 45.3])).toBe(true);
+  expect(await inFill(svg, '#country-Canada', [-80.6, 45.3])).toBe(false);
+  expect(await inFill(svg, '#country-Canada', [-82.0, 45.8])).toBe(true); // Manitoulin Island
+  // a whole-world flat map with every lake cut stays quick
+  const ms = await page.evaluate(async () => {
+    const t = performance.now();
+    await window.ecumene.svg({ proj: 'equalearth', area: 'world', width: 1600 });
+    return performance.now() - t;
+  });
+  expect(ms).toBeLessThan(20000);
+  expect(errors).toEqual([]);
+});
+
 test('areas the subdivision data leaves out paint as "Rest of" the country', async ({ page }) => {
   const errors = await openApp(page);
   await page.evaluate(() => {

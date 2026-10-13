@@ -85,16 +85,21 @@ test('the IJsselmeer is always water', async () => {
   geo.sea = [];
 });
 
-test('lakes built before the always-water prefix still decode', async () => {
-  const b = new Uint8Array(await bin('data/phys.bin'));
-  const old = new Uint8Array(b.length - 8);
-  old.set(b.subarray(0, 40));
-  old.set(b.subarray(48), 40);
-  const p = decodePhys(old.buffer),
-    q = decodePhys(b.buffer);
-  assert.deepStrictEqual(p.lakeSea, { idx: 0, rings: 0 });
-  assert.deepStrictEqual(p.lakeMajor, q.lakeMajor);
-  assert.deepStrictEqual(p.rivers.lens, q.rivers.lens);
+test('lakes built before the always-water prefix or the rings-per-polygon list still decode', async () => {
+  const b = new Uint8Array(await bin('data/phys.bin')),
+    q = decodePhys(b.buffer),
+    tail = 4 * q.lakePolys.length;
+  // the current file without its last header number and the list at the end, and also without the always-water counts
+  for (const head of [48, 40]) {
+    const old = new Uint8Array(b.length - (52 - head) - tail);
+    old.set(b.subarray(0, head));
+    old.set(b.subarray(52, b.length - tail), head);
+    const p = decodePhys(old.buffer);
+    assert.strictEqual(p.lakePolys, null);
+    assert.deepStrictEqual(p.lakeSea, head === 48 ? q.lakeSea : { idx: 0, rings: 0 });
+    assert.deepStrictEqual(p.lakeMajor, q.lakeMajor);
+    assert.deepStrictEqual(p.rivers.lens, q.rivers.lens);
+  }
 });
 
 const square = [
