@@ -29,7 +29,9 @@ export function sourceDetails(label) {
     'Projection: ' + label + '.',
     'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain. French Guiana, Guadeloupe, Martinique, Mayotte, Réunion and the Caribbean Netherlands are shown apart from France and the Netherlands.',
   ];
-  if (app.layers.lakes !== 'none' || app.layers.rivers) L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
+  // the always-water lakes (the IJsselmeer) are drawn whatever the Lakes setting
+  if (app.layers.lakes !== 'none' || app.layers.rivers || (geo.phys && geo.phys.lakeSea.rings))
+    L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
   if (app.units.size || app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
     L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
   L.push('Borders show Natural Earth\u2019s de facto conventions; disputed areas are not marked.');
@@ -103,12 +105,17 @@ function countryFeats() {
   return fixedFeats;
 }
 
-/** Lake rings come without hole information; orient each one as a small polygon and fill even-odd. */
+/**
+ * Lake rings come without hole information; orient each one as a small polygon and fill even-odd.
+ * Mode 'sea' gives the always-water lakes; 'major' and 'all' give the other lakes the Lakes setting shows.
+ */
 function lakeRings(p, mode) {
-  const n = mode === 'all' ? p.lakeLines.lens.length : p.lakeMajor.rings,
+  const from = mode === 'sea' ? 0 : p.lakeSea.rings,
+    to = mode === 'sea' ? p.lakeSea.rings : mode === 'all' ? p.lakeLines.lens.length : p.lakeMajor.rings,
     out = [];
   let o = 0;
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < from; i++) o += p.lakeLines.lens[i];
+  for (let i = from; i < to; i++) {
     const len = p.lakeLines.lens[i],
       ring = [];
     for (let k = 0; k < len; k++) ring.push([p.lakeLines.pts[2 * (o + k)], p.lakeLines.pts[2 * (o + k) + 1]]);
@@ -223,6 +230,15 @@ function drawSVG(v) {
     c.end();
   }
   const p = geo.phys;
+  // always-water lakes (the IJsselmeer), filled at every Lakes setting; their shore is drawn with the borders
+  if (p && p.lakeSea.rings) {
+    c.group('inland-sea');
+    c.beginPath();
+    for (const f of lakeRings(p, 'sea')) path(f);
+    c.fillStyle = S.water;
+    c.fill('evenodd');
+    c.end();
+  }
   if (p && Ly.lakes !== 'none') {
     c.group('lakes');
     c.beginPath();
@@ -275,6 +291,7 @@ function drawSVG(v) {
     c.group('borders');
     c.beginPath();
     path(mesh(geo.topo, geo.topo.objects.countries, notSame));
+    if (p) for (const f of lakeRings(p, 'sea')) path(f);
     c.strokeStyle = S.border;
     c.globalAlpha = 0.95;
     c.lineWidth = S.bw;

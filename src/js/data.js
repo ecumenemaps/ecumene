@@ -33,6 +33,7 @@ export const geo = {
   polys: [], // unwrapped polygons with bounding boxes, for exact picking
   a1index: {}, // country name -> subdivision file info
   phys: null, // decoded lakes and rivers, once loaded
+  sea: [], // always-water lake rings [{bb, r}], for picking
 };
 
 async function fetchOk(url) {
@@ -162,8 +163,36 @@ function inRing(r, x, y) {
   }
   return c;
 }
+/** Keep the decoded lakes and rivers, and the always-water rings (with bounding boxes) for picking. */
+export function setPhys(p) {
+  geo.phys = p;
+  geo.sea = [];
+  let o = 0;
+  for (let i = 0; i < p.lakeSea.rings; i++) {
+    const len = p.lakeLines.lens[i],
+      r = [];
+    for (let k = 0; k < len; k++) r.push([p.lakeLines.pts[2 * (o + k)], p.lakeLines.pts[2 * (o + k) + 1]]);
+    o += len;
+    const xs = r.map((q) => q[0]),
+      ys = r.map((q) => q[1]);
+    geo.sea.push({ bb: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], r });
+  }
+}
+/**
+ * Whether a lon/lat is in an always-water lake (the IJsselmeer), which the countries layer fills as land.
+ * The rings carry no hole information, so a point inside an odd number of them is water (islands are even).
+ */
+export function inSea(x, y) {
+  let c = false;
+  for (const s of geo.sea) {
+    const b = s.bb;
+    if (x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3] && inRing(s.r, x, y)) c = !c;
+  }
+  return c;
+}
 /** Country id at a lon/lat (exact point-in-polygon), 0 for sea. */
 export function idAtLL(x, y) {
+  if (inSea(x, y)) return 0;
   for (const p of geo.polys) {
     const b = p.bb;
     if (y < b[1] || y > b[3]) continue;
