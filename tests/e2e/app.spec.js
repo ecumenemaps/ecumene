@@ -183,6 +183,93 @@ test('overseas parts paint on their own; maps saved before the split keep their 
   expect(errors).toEqual([]);
 });
 
+test('subdivisions load under the pointer and paint by unit or constituent part', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    Object.assign(s, { r: [4, -55], z: 5, f: [], u: [] });
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'paint');
+  await page.check('#sub');
+  await page.selectOption('#subd', 'g');
+  const box = await page.locator('#cv').boundingBox(),
+    at = async (lon, lat) => {
+      const p = await page.evaluate((g) => window.ecumene.px(g), [lon, lat]);
+      return [box.x + p[0], box.y + p[1]];
+    };
+  const units = () => page.evaluate(() => window.ecumene.getState().u.map((g) => [g.c, Object.values(g.k).flat().length]));
+  // resting on Scotland loads the UK and names what a click paints
+  const sc = await at(-4.2, 56.8);
+  await page.mouse.move(sc[0], sc[1]);
+  await page.mouse.move(sc[0] + 2, sc[1] + 1);
+  await expect(page.locator('#tip')).toHaveText('Scotland');
+  await page.mouse.click(sc[0] + 2, sc[1] + 1);
+  await expect.poll(units).toEqual([['#e4572e', 32]]);
+  await expect(page.locator('#lgd .lg small')).toHaveText(['32']);
+  // finest units: one county in another colour
+  await page.selectOption('#subd', 'u');
+  await page.click('#pal .sw >> nth=5');
+  const yk = await at(-1.1, 54.0);
+  await page.mouse.move(yk[0], yk[1]);
+  await expect(page.locator('#tip')).toHaveText('York · Yorkshire and the Humber');
+  await page.mouse.click(yk[0], yk[1]);
+  await expect.poll(units).toEqual([
+    ['#e4572e', 32],
+    ['#3d8bd9', 1],
+  ]);
+  // a click on a country that has not loaded yet (no resting pointer, as on touch) loads it and then paints
+  const ie = await at(-8.0, 53.3);
+  await page.mouse.click(ie[0], ie[1]);
+  await expect.poll(async () => (await page.evaluate(() => window.ecumene.getState().u)).some((g) => g.k.Ireland)).toBe(true);
+  expect((await page.evaluate(() => window.ecumene.getState())).f).toEqual([]);
+  await page.click('#un');
+  await expect.poll(units).toEqual([
+    ['#e4572e', 32],
+    ['#3d8bd9', 1],
+  ]);
+  // painted units survive a map code and export as named SVG paths
+  const code = await getCode(page);
+  await page.evaluate(() => window.ecumene.setState(Object.assign(window.ecumene.getState(), { u: [] })));
+  await useCode(page, code);
+  await expect.poll(units).toEqual([
+    ['#e4572e', 32],
+    ['#3d8bd9', 1],
+  ]);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('<g id="subdivisions">');
+  expect(svg.split('data-country="United Kingdom"').length - 1).toBe(33);
+  expect(svg).toMatch(/<path id="unit-GBR-2120" data-name="York" data-country="United Kingdom"/);
+  // painting the whole country again (Subdivisions off) turns it back into one colour
+  await mode(page, 'paint');
+  await page.uncheck('#sub');
+  const en = await at(-1.5, 52.5);
+  await page.mouse.click(en[0], en[1]);
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.u).toEqual([]);
+  expect(st.f).toEqual([{ c: '#3d8bd9', n: ['United Kingdom'], l: '' }]);
+  expect(errors).toEqual([]);
+});
+
+test('areas the subdivision data leaves out paint as "Rest of" the country', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    Object.assign(s, { r: [-20, -60.2], z: 40, f: [], u: [] });
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const box = await page.locator('#cv').boundingBox(),
+    p = await page.evaluate(() => window.ecumene.px([19.99, 60.23])); // Finström, in the north of Åland's main island
+  await page.mouse.move(box.x + p[0], box.y + p[1]);
+  await page.mouse.move(box.x + p[0] + 1, box.y + p[1]);
+  await expect(page.locator('#tip')).toHaveText('Rest of Åland');
+  await page.mouse.click(box.x + p[0] + 1, box.y + p[1]);
+  await expect.poll(() => page.evaluate(() => window.ecumene.getState().u)).toEqual([{ c: '#e4572e', k: { Åland: ['ALD+0'] }, l: '' }]);
+  expect(errors).toEqual([]);
+});
+
 test('paste a list and paint a group', async ({ page }) => {
   const errors = await openApp(page);
   await mode(page, 'paint');

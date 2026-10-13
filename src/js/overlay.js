@@ -228,6 +228,20 @@ export function drawObjectLabels(c) {
   }
 }
 
+/** Outline of the subdivisions a click would paint (the fills themselves are drawn by the globe, gl.js). */
+export function drawUnitHover(c) {
+  const sh = app.subHov;
+  if (!sh) return;
+  setProj();
+  const path = geoPath(proj, c);
+  c.beginPath();
+  for (const f of sh.feats) path(f);
+  c.lineJoin = 'round';
+  c.lineWidth = 2;
+  c.strokeStyle = INK;
+  c.stroke();
+}
+
 /** Fill and edge of a tiny-country marker: the country's colour when painted, otherwise land with a border-coloured edge. */
 export function markerPaint(m) {
   const col = app.fills.get(m.n);

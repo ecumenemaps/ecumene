@@ -3,8 +3,9 @@ import { mesh } from 'topojson-client';
 import { app, setRenderer, redraw, emit, VERSION } from './store.js';
 import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, segs, render } from './gl.js';
 import { geo, loadBase, nameOf } from './data.js';
-import { Rb, tinyMarkers } from './view.js';
-import { drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
+import { Rb, tinyMarkers, setProj, proj } from './view.js';
+import { loadUnits } from './units.js';
+import { drawUnitHover, drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
 import { configureEditing } from './editing.js';
 import { configurePicker, closePicker, initPicker } from './picker.js';
 import { initInput, setCursor, refreshTip } from './input.js';
@@ -30,6 +31,7 @@ function frame() {
   oc.setTransform(1, 0, 0, 1, 0, 0);
   oc.clearRect(0, 0, ov.width, ov.height);
   oc.setTransform(app.dpr, 0, 0, app.dpr, 0, 0);
+  drawUnitHover(oc);
   drawTinyMarkers(oc, true);
   drawObjects(oc, true);
   if (app.layers.names) drawCountryNames(oc);
@@ -159,6 +161,10 @@ async function main() {
     legendRect: () => app.legendRect,
     // small-country markers on screen, in canvas pixels
     markers: () => tinyMarkers().map((m) => ({ n: m.n, x: m.p[0], y: m.p[1] })),
+    // canvas pixel of a [lon, lat] in the current view
+    px: (g) => (setProj(), proj(g)),
+    // load a country's subdivisions (as resting the pointer on it does); resolves when they can be painted
+    loadUnits: (c) => loadUnits(c).then(() => true),
   };
 }
 main().catch((e) => {

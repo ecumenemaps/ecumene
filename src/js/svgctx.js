@@ -212,6 +212,10 @@ export class SvgContext {
   stroke() {
     this.pathEl(' fill="none"' + this.strokeAttrs());
   }
+  /** Fill and stroke as one element (SVG only; a canvas needs fill() then stroke()). */
+  fillStroke() {
+    this.pathEl(this.fillAttrs() + this.strokeAttrs());
+  }
   fillRect(x, y, w, h) {
     const d = this.d,
       l = this.last,

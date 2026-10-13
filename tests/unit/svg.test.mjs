@@ -72,3 +72,16 @@ test('tagged attributes go on the next element only', () => {
   const s = c.toString(1, 1);
   assert.strictEqual(s.split('data-name="France"').length, 2);
 });
+
+test('fillStroke writes one element with both fill and stroke', () => {
+  const c = new SvgContext();
+  c.beginPath();
+  c.rect(0, 0, 4, 4);
+  c.fillStyle = c.strokeStyle = '#3d8bd9';
+  c.lineWidth = 0.8;
+  c.tag({ id: 'unit-GBR-2120', 'data-name': 'York' });
+  c.fillStroke();
+  const s = c.toString(4, 4);
+  assert.strictEqual(s.split('<path').length, 2);
+  assert.match(s, /<path id="unit-GBR-2120" data-name="York" d="[^"]+" fill="#3d8bd9" stroke="#3d8bd9" stroke-width="0.8"/);
+});

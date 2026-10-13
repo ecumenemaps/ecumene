@@ -27,6 +27,7 @@
     "@fontsource-variable/source-serif-4": "^5.3.1",
     "@playwright/test": "^1.56.0",
     "esbuild": "^0.24.2",
+    "polygon-clipping": "^0.15.7",
     "prettier": "^3.3.3"
   }
 }

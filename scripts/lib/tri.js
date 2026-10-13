@@ -36,3 +36,5 @@ async function triangulate(feats,earcut,STEP,tick,idOf){
  }
  return {ll:new Float32Array(LL),id:new Uint16Array(ID),idx:new Uint32Array(IDX),PL};
 }
+// scripts/build_tris.js evaluates this file; the editor imports it to triangulate subdivisions as they load
+if(typeof module!=='undefined')module.exports={triangulate};

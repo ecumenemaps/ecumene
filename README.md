@@ -15,6 +15,7 @@ Paint countries on an accurate, draggable 3D globe. Open source, and built so th
 - Colour by data: paste `country, value` rows, pick a scale, classes and method; the legend fills itself
 - Custom regions: draw polygons on the globe (true great-circle edges), edit points, set fill, opacity, outline and dashes, and name them; names are drawn on the map, in the hover tag and in the legend
 - Annotations: curved or great-circle arrows (heads at one or both ends, dashes, legend entry), free text labels (size, rotation, italic) and point markers (dot, square, triangle, star) with labels
+- Paint states, provinces and counties: turn on Subdivisions, point at a country and click; paint one unit, a whole region, or a constituent part such as Scotland at once
 - Exact outlines: snap a region to real borders, either the countries painted in one colour or any set of subdivisions (states, provinces, counties; e.g. Scotland, Wales, Cornwall, Greater London), picked from a list, by group, or by clicking the map
 - Label font: one setting for every label on the map and in the legend
 - Legend editor: rename, recolour, reorder, remove, title and position

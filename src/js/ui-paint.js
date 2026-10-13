@@ -16,6 +16,8 @@ import { geo } from './data.js';
 import { setFill, paintMany } from './paint.js';
 import { commit } from './history.js';
 import { animate, centreOn } from './view.js';
+import { DETAIL, clearUnits } from './units.js';
+import { refreshSub } from './input.js';
 import { $, el, note } from './util.js';
 import Ecu from '../groups.js';
 
@@ -84,7 +86,7 @@ function initSearch() {
     note('');
     animate(centreOn(geoCentroid(geo.feats[i])));
     const nm = geo.feats[i].properties.name;
-    if (app.fills.get(nm) !== app.active) {
+    if (clearUnits(nm) || app.fills.get(nm) !== app.active) {
       setFill(nm, app.active);
       emit('legend');
       commit();
@@ -163,9 +165,33 @@ function initData(resolve) {
   };
 }
 
+function initSubdivisions() {
+  const box = $('sub'),
+    det = $('subd');
+  det.replaceChildren(...Object.entries(DETAIL).map(([v, t]) => el('option', { value: v, textContent: t })));
+  const sync = () => {
+    box.checked = app.sub.on;
+    det.value = app.sub.detail;
+    det.disabled = !app.sub.on;
+  };
+  box.onchange = () => {
+    app.sub.on = box.checked;
+    sync();
+    refreshSub();
+    redraw();
+  };
+  det.onchange = () => {
+    app.sub.detail = det.value;
+    app.subHov = null;
+    refreshSub();
+  };
+  sync();
+}
+
 export function initPaintPanel() {
   const resolve = Ecu.matcher(geo.names);
   initPalette();
+  initSubdivisions();
   initSearch();
   initLists(resolve);
   initData(resolve);

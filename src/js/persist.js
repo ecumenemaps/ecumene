@@ -7,6 +7,11 @@ import { commit } from './history.js';
 import { FONTS, loadFont } from './fonts.js';
 import { hexOk, clamp } from './util.js';
 import { OVERSEAS } from '../overseas.js';
+import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
+
+// Natural Earth adm1_code, such as GBR-2083 (a few read like RUS+99?), or ALD+0 for the "Rest of" unit the build
+// adds where no subdivision covers part of a country (an overseas part's file adds digits: NLD535+0)
+const UNIT_CODE = /^[A-Z]{3}[0-9]{0,3}[-+][0-9?]{1,6}$/;
 
 const AUTOSAVE_KEY = 'globeMap1';
 // Map data version. 'ne10m' maps were saved before French Guiana, Réunion, the Caribbean Netherlands and the
@@ -17,14 +22,21 @@ const splitParts = (names) => OVERSEAS.filter((p) => names.includes(p.parent) &&
 
 /** Plain, JSON-serialisable description of the whole map. */
 export function getState() {
-  const groups = {};
+  const groups = {},
+    units = {}; // colour -> country -> codes
   app.fills.forEach((c, n) => (groups[c] = groups[c] || []).push(n));
-  const used = new Set(app.fills.values()),
+  app.units.forEach((c, k) => {
+    const [n, code] = splitKey(k),
+      g = (units[c] = units[c] || {});
+    (g[n] = g[n] || []).push(code);
+  });
+  const used = new Set([...app.fills.values(), ...app.units.values()]),
     L = app.legend;
   return {
     v: 1,
     d: DATA,
     f: Object.entries(groups).map(([c, n]) => ({ c, n, l: app.labels[c] || '' })),
+    u: Object.entries(units).map(([c, k]) => ({ c, k, l: app.labels[c] || '' })),
     s: Object.assign({}, app.style),
     L: Object.assign({}, app.layers),
     h: Object.assign({}, app.hoverStyle),
@@ -108,6 +120,26 @@ export function setState(o) {
       else skipped++;
     }
   }
+  app.units.clear();
+  if (Array.isArray(o.u))
+    for (const g of o.u) {
+      if (!g || !hexOk(g.c) || !g.k || typeof g.k !== 'object') continue;
+      const c = g.c.toLowerCase();
+      if (g.l && !app.labels[c]) app.labels[c] = String(g.l).slice(0, 60);
+      for (const n of Object.keys(g.k)) {
+        if (!hasUnits(n) || !Array.isArray(g.k[n])) {
+          skipped++;
+          continue;
+        }
+        for (const code of g.k[n]) if (typeof code === 'string' && UNIT_CODE.test(code)) setUnit(n, code, c);
+      }
+    }
+  // their outlines arrive after the first frame
+  if (app.units.size)
+    loadPainted().then(() => {
+      emit('legend');
+      redraw();
+    });
   const s = o.s || {},
     S = app.style;
   STYLE_COLOR_KEYS.forEach((k) => {

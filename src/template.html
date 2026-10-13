@@ -136,6 +136,12 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <label class="sw2" style="margin-top:8px"><input id="pm" type="checkbox"> Paint while dragging (for touch)</label>
 </section>
 <section>
+<h2>Subdivisions</h2>
+<label class="sw2"><input id="sub" type="checkbox"> Paint states and provinces</label>
+<select id="subd" aria-label="Subdivision detail" style="margin-top:8px" disabled></select>
+<p class="hint">Point at a country to load its subdivisions, then click to paint them. Regions and constituent parts (such as Scotland) paint all their units at once where the country has them. Painting a whole country again clears its subdivisions.</p>
+</section>
+<section>
 <h2>Find a country</h2>
 <input id="q" type="search" list="names" placeholder="Type a name, press Enter to paint" autocomplete="off">
 <datalist id="names"></datalist>
