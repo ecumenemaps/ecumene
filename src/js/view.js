@@ -2,7 +2,7 @@
 import { geoOrthographic, geoDistance } from 'd3-geo';
 import { app, redraw } from './store.js';
 import { D, clamp } from './util.js';
-import { idAtLL } from './data.js';
+import { geo, idAtLL } from './data.js';
 
 const globe = geoOrthographic().clipAngle(90);
 /**
@@ -54,8 +54,41 @@ export const onFront = (g) => {
   return geoDistance(g, [-r[0], -r[1]]) < Math.PI / 2 - 1e-3;
 };
 
-/** Country id under a canvas pixel (0 = sea or off-globe). */
+// Countries smaller than TINY_PX across on screen are drawn as a dot of radius MARK_R, clickable within MARK_HIT.
+const TINY_PX = 5;
+export const MARK_R = 3.5;
+const MARK_HIT = 7;
+/** Countries too small to see at the current view, with their screen points: [{n, id, a, c, p}]. */
+export function tinyMarkers() {
+  if (!app.layers.tiny) return [];
+  setProj();
+  const R = pxPerRad(),
+    out = [];
+  for (const t of geo.tiny) {
+    if (Math.sqrt(t.a) * R >= TINY_PX || !onFront(t.c)) continue;
+    const p = proj(t.c);
+    if (p && p.every(Number.isFinite)) out.push({ ...t, p });
+  }
+  return out;
+}
+/** Id of the nearest marker within reach of a canvas pixel, or 0. */
+function markerAt(px, py) {
+  let best = 0,
+    bd = MARK_HIT * MARK_HIT;
+  for (const m of tinyMarkers()) {
+    const d = (m.p[0] - px) ** 2 + (m.p[1] - py) ** 2;
+    if (d <= bd) {
+      bd = d;
+      best = m.id;
+    }
+  }
+  return best;
+}
+
+/** Country id under a canvas pixel (0 = sea or off-globe). Markers of tiny countries come first. */
 export function idAtPx(px, py) {
+  const mk = markerAt(px, py);
+  if (mk) return mk;
   const R = Rb(),
     x = (px - app.W / 2) / R,
     y = -(py - app.H / 2) / R,

@@ -2,7 +2,8 @@
 const test = require('node:test'),
   assert = require('node:assert');
 const tj = require('topojson-client'),
-  world = require('world-atlas/countries-10m.json'),
+  { OVERSEAS, splitOverseas } = require('../../src/overseas.js'),
+  world = splitOverseas(require('world-atlas/countries-10m.json'), tj.feature),
   Ecu = require('../../src/groups.js');
 const A = { Baikonur: 'Kazakhstan', 'USNB Guantanamo Bay': 'Cuba' };
 const names = [
@@ -37,7 +38,32 @@ test('group sizes', () => {
     'ASEAN (11)': 11,
     'UN Security Council permanent members': 5,
   };
-  for (const k in exp) assert.strictEqual(Ecu.GROUPS[k].length, exp[k], k);
+  // the counts are member states; overseas parts that belong (France's regions in the EU) come on top
+  const parts = new Set(OVERSEAS.map((p) => p.name));
+  for (const k in exp) assert.strictEqual(Ecu.GROUPS[k].filter((n) => !parts.has(n)).length, exp[k], k);
+});
+test('overseas parts sit in their own continent and only in groups they belong to', () => {
+  const where = (n) => Object.keys(Ecu.CONTINENTS).find((c) => Ecu.CONTINENTS[c].includes(n));
+  assert.strictEqual(where('French Guiana'), 'South America');
+  for (const n of ['Guadeloupe', 'Martinique', 'Caribbean Netherlands']) assert.strictEqual(where(n), 'North America', n);
+  for (const n of ['Réunion', 'Mayotte']) assert.strictEqual(where(n), 'Africa', n);
+  const eu = Ecu.GROUPS['European Union (27)'];
+  assert.ok(eu.includes('French Guiana') && eu.includes('Réunion'));
+  assert.ok(!eu.includes('Caribbean Netherlands'), 'the Caribbean Netherlands is not in the EU');
+  assert.ok(!Ecu.GROUPS['NATO (32)'].includes('French Guiana'), 'outside the North Atlantic Treaty area');
+  assert.strictEqual(r('French Guyana'), 'French Guiana');
+  assert.strictEqual(r('Reunion'), 'Réunion');
+  assert.strictEqual(r('Bonaire'), 'Caribbean Netherlands');
+});
+test('the overseas split moves whole polygons and keeps every other country in place', () => {
+  const before = require('world-atlas/countries-10m.json').objects.countries.geometries,
+    after = world.objects.countries.geometries;
+  assert.strictEqual(after.length, before.length + OVERSEAS.length);
+  before.forEach((g, i) => assert.strictEqual(after[i].properties.name, g.properties.name, 'index ' + i));
+  const n = (name, gs) => gs.find((g) => g.properties.name === name).arcs.length;
+  let moved = 0;
+  for (const p of OVERSEAS) moved += after.find((g) => g.properties.name === p.name).type === 'Polygon' ? 1 : n(p.name, after);
+  assert.strictEqual(n('France', before) + n('Netherlands', before), n('France', after) + n('Netherlands', after) + moved);
 });
 test('aliases resolve', () => {
   const cases = {

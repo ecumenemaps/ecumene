@@ -94,7 +94,7 @@ test('home page: no third-party requests, continue button, and its links open th
   await page.waitForFunction(() => window.ecumene && document.getElementById('load').hidden, null, { timeout: 120000 });
   await expect(page.locator('#st')).toContainText('Example opened');
   const st = await page.evaluate(() => window.ecumene.getState());
-  expect(st.f[0].n.length).toBe(27);
+  expect(st.f[0].n.length).toBe(32); // 27 member states plus France's five overseas regions
   expect(st.s.land).toBe('#b9b9b9');
   await expect(page.locator('#xw')).toHaveValue('550');
   expect(new URL(page.url()).search).toBe('');
@@ -119,6 +119,67 @@ test('click paints a country; undo and redo', async ({ page }) => {
   await expect(page.locator('#lgd .lg')).toHaveCount(0);
   await page.click('#re');
   await expect(page.locator('#lgd .lg')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test('small countries get markers that paint, export and hide when zoomed in', async ({ page }) => {
+  const errors = await openApp(page);
+  // centre on Italy at the starting zoom
+  const at = (r, z, tiny = true) =>
+    page.evaluate(
+      ([r, z, tiny]) => {
+        const s = window.ecumene.getState();
+        Object.assign(s, { r, z, f: [] });
+        s.L.tiny = tiny;
+        window.ecumene.setState(s);
+        return window.ecumene.markers();
+      },
+      [r, z, tiny],
+    );
+  let marks = await at([-12, -42], 1);
+  const names = marks.map((m) => m.n);
+  for (const n of ['Vatican', 'Monaco', 'San Marino', 'Malta']) expect(names).toContain(n);
+  expect(names).not.toContain('Italy');
+  const v = marks.find((m) => m.n === 'Vatican'),
+    box = await page.locator('#cv').boundingBox();
+  await page.mouse.click(box.x + v.x, box.y + v.y);
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.f.flatMap((g) => g.n)).toEqual(['Vatican']);
+  await expect(page.locator('#lgd .lg')).toHaveCount(1);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toMatch(new RegExp('<circle id="marker-Vatican" data-name="Vatican"[^>]*fill="' + st.f[0].c + '"'));
+  expect(svg).toContain('data-name="Monaco"');
+  // zoomed in, Malta (316 km²) is big enough to click but the Vatican (no area at all) keeps its marker
+  marks = (await at([-12, -42], 30)).map((m) => m.n);
+  expect(marks).toContain('Vatican');
+  expect(marks).not.toContain('Malta');
+  // the layer can be turned off
+  expect(await at([-12, -42], 1, false)).toEqual([]);
+  await expect(page.locator('input[data-k=tiny]')).not.toBeChecked();
+  expect(errors).toEqual([]);
+});
+
+test('overseas parts paint on their own; maps saved before the split keep their look', async ({ page }) => {
+  const errors = await openApp(page);
+  const PARTS = ['French Guiana', 'Guadeloupe', 'Martinique', 'Mayotte', 'Réunion', 'Caribbean Netherlands'];
+  const load = (s) =>
+    page.evaluate((s) => {
+      window.ecumene.setState(Object.assign(window.ecumene.getState(), s));
+      return window.ecumene.getState();
+    }, s);
+  // centred on French Guiana, a click paints it and not France
+  await load({ f: [], r: [53.2, -3.9], z: 4 });
+  const c = await globeCentre(page);
+  await page.mouse.click(c.x, c.y);
+  let st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.d).toBe('ne10m-2');
+  expect(st.f.flatMap((g) => g.n)).toEqual(['French Guiana']);
+  // painting France and the Netherlands now leaves their overseas parts alone
+  st = await load({ d: 'ne10m-2', f: [{ c: '#123456', n: ['France', 'Netherlands'], l: '' }] });
+  expect(st.f[0].n.sort()).toEqual(['France', 'Netherlands']);
+  // an older map painted them with their parent, so loading one adds the parts in the same colour
+  st = await load({ d: 'ne10m', f: [{ c: '#123456', n: ['France', 'Netherlands'], l: '' }] });
+  expect(st.f[0].n.sort()).toEqual(['France', 'Netherlands', ...PARTS].sort());
   expect(errors).toEqual([]);
 });
 

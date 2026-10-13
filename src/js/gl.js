@@ -35,7 +35,7 @@ void main(){
 const FS_LINE = `#version 300 es
 precision highp float;in float vD;in float vF;uniform vec4 uCol;uniform float uW;out vec4 o;
 void main(){float hw=uW*.5;float al=1.-smoothstep(hw-.5,hw+.5,abs(vD));o=vec4(uCol.rgb,uCol.a*al*vF);}`;
-// Fill colour per country comes from a 256x1 palette texture (alpha 0 = unpainted -> land colour).
+// Fill colour per country comes from a PAL_N x 1 palette texture (alpha 0 = unpainted -> land colour).
 // uFlat overrides the colour (used for lakes).
 const VS_FILL = `#version 300 es
 precision highp float;precision highp int;precision highp sampler2D;
@@ -58,7 +58,9 @@ let gl, cv, pFull, pLine, pFill;
 const uF = {},
   uL = {},
   uP = {};
-const pal = new Uint8Array(256 * 4);
+// palette entries: country ids are 16-bit in the mesh; WebGL2 guarantees textures at least 2048 wide
+export const PAL_N = 1024;
+const pal = new Uint8Array(PAL_N * 4);
 let palTex, BL, HL, LO, LOM, GRL, RV;
 const TV = { vao: null, n: 0 },
   LK = { vao: null, n: 0 };
@@ -166,7 +168,7 @@ export function initGL(canvas) {
     [gl.TEXTURE_MAG_FILTER, gl.NEAREST],
   ])
     gl.texParameteri(gl.TEXTURE_2D, k, v);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pal);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, PAL_N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pal);
   gl.useProgram(pFill);
   gl.uniform1i(uP.uPal, 1);
   BL = lineSet();
@@ -204,7 +206,7 @@ function meshVAO(target, ll, idx, ids) {
     gl.bufferData(gl.ARRAY_BUFFER, ids, gl.STATIC_DRAW);
     l = gl.getAttribLocation(pFill, 'aId');
     gl.enableVertexAttribArray(l);
-    gl.vertexAttribIPointer(l, 1, gl.UNSIGNED_BYTE, 0, 0);
+    gl.vertexAttribIPointer(l, 1, gl.UNSIGNED_SHORT, 0, 0);
   }
   b = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b);
@@ -232,7 +234,7 @@ export function setCountryColor(id, hex) {
     pal.set([c[0] * 255, c[1] * 255, c[2] * 255, 255], id * 4);
   } else pal[id * 4 + 3] = 0;
   gl.activeTexture(gl.TEXTURE1);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 1, gl.RGBA, gl.UNSIGNED_BYTE, pal);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PAL_N, 1, gl.RGBA, gl.UNSIGNED_BYTE, pal);
 }
 
 /** Draw the globe for the current view in app (rot, zoom, dpr, style, layers, hover). */

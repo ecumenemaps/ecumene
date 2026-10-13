@@ -21,7 +21,7 @@ jobs:
             data/src
             data/*.bin
             data/admin1
-          key: data-${{ hashFiles('scripts/fetch_data.js', 'scripts/build_*.js', 'scripts/lib/**', 'package-lock.json') }}
+          key: data-${{ hashFiles('scripts/fetch_data.js', 'scripts/build_*.js', 'scripts/lib/**', 'src/overseas.js', 'package-lock.json') }}
       - name: Fetch and build data
         run: |
           [ -f data/src/ne_10m_admin_1_states_provinces.geojson ] || npm run fetch

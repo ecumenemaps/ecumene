@@ -5,9 +5,9 @@ import { mesh } from 'topojson-client';
 import { app, redraw, VERSION } from './store.js';
 import { render, RIVER_MIN_ZOOM, RIVER_WIDTH } from './gl.js';
 import { geo } from './data.js';
-import { Rb, withProjection } from './view.js';
+import { Rb, withProjection, tinyMarkers, MARK_R } from './view.js';
 import { exportView } from './projections.js';
-import { drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
+import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
 
 let canvas = null;
@@ -26,7 +26,7 @@ export function sourceDetails(label) {
   const L = [
     'Made with Ecumene ' + VERSION + ' (https://ecumenemaps.github.io/ecumene/) on ' + today() + '.',
     'Projection: ' + label + '.',
-    'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain.',
+    'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain. French Guiana, Guadeloupe, Martinique, Mayotte, Réunion and the Caribbean Netherlands are shown apart from France and the Netherlands.',
   ];
   if (app.layers.lakes !== 'none' || app.layers.rivers) L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
   if (app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
@@ -36,6 +36,7 @@ export function sourceDetails(label) {
 }
 
 function drawTopLayers(c, W, H, label) {
+  drawTinyMarkers(c, false);
   drawObjects(c, false);
   if (app.layers.names) drawCountryNames(c);
   drawObjectLabels(c);
@@ -287,6 +288,17 @@ function drawSVG(v) {
   c.lineWidth = 1.5;
   c.stroke();
   c.end();
+  // countries too small to see, one circle each, named like the country paths
+  const marks = tinyMarkers();
+  if (marks.length) {
+    c.group('small-countries');
+    for (const m of marks) {
+      const k = markerPaint(m),
+        at = { id: 'marker-' + slug(m.n), 'data-name': m.n, cx: m.p[0].toFixed(1), cy: m.p[1].toFixed(1), r: MARK_R, fill: k.fill, stroke: k.edge, 'stroke-width': 1 };
+      c.raw('<circle' + Object.entries(at).map(([a, v]) => ' ' + a + '="' + esc(v) + '"').join('') + '/>');
+    }
+    c.end();
+  }
   c.group('regions-and-notes');
   drawObjects(c, false);
   c.end();
