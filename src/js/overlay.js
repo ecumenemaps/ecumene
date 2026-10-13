@@ -259,6 +259,25 @@ export function drawCountryNames(c) {
   }
 }
 
+/** Small source line along the bottom edge, on the side away from the legend. */
+export function drawSourceNote(c, w, h, text) {
+  const left = app.legend.show && app.legend.pos === 'br';
+  c.font = font('400', 10);
+  c.textAlign = left ? 'left' : 'right';
+  c.textBaseline = 'bottom';
+  const x = left ? 10 : w - 10,
+    y = h - 6,
+    bg = app.style.bg;
+  c.lineJoin = 'round';
+  c.lineWidth = 3;
+  c.strokeStyle = bg;
+  c.globalAlpha = 0.85;
+  c.strokeText(text, x, y);
+  c.globalAlpha = 1;
+  c.fillStyle = lum(bg) > 0.5 ? '#5b6672' : '#aab4bf';
+  c.fillText(text, x, y);
+}
+
 /** Legend box with named colours, named regions and named arrows. */
 export function drawLegend(c, w, h) {
   const L = app.legend;

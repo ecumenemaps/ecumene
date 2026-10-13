@@ -222,6 +222,37 @@ test('falls back to base64 data when .bin files are not served', async ({ page }
   expect(pageErrors).toEqual([]);
 });
 
+test('SVG export is a valid vector map with a source note', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.fill('#bl', 'Brazil');
+  await page.click('#blp');
+  const dl = page.waitForEvent('download', { timeout: 120000 });
+  await page.click('#exs');
+  const d = await dl;
+  expect(d.suggestedFilename()).toBe('globe-map.svg');
+  const svg = require('fs').readFileSync(await d.path(), 'utf8');
+  const info = await page.evaluate((text) => {
+    const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+    const brazil = doc.getElementById('country-Brazil');
+    return {
+      parseError: !!doc.querySelector('parsererror'),
+      groups: [...doc.querySelectorAll('svg > g')].map((g) => g.id),
+      brazilFill: brazil && brazil.getAttribute('fill'),
+      note: doc.getElementById('source-note') ? doc.getElementById('source-note').textContent : '',
+    };
+  }, svg);
+  expect(info.parseError).toBe(false);
+  expect(info.groups).toEqual(expect.arrayContaining(['ocean', 'countries', 'borders', 'legend', 'source-note']));
+  expect(info.brazilFill).toBe(await page.evaluate(() => window.ecumene.getState().f[0].c));
+  expect(info.note).toContain('Natural Earth');
+  expect(svg).toContain('<desc>Made with Ecumene');
+  expect(svg.length).toBeLessThan(6e6);
+  // turning the note off removes it
+  await page.uncheck('#snote');
+  expect(await page.evaluate(async () => (await window.ecumene.svg()).includes('id="source-note"'))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('PNG export downloads an image', async ({ page }) => {
   const errors = await openApp(page);
   await page.fill('#bl', 'Brazil');

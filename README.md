@@ -18,7 +18,7 @@ Paint countries on an accurate, draggable 3D globe. Open source, and built so th
 - Exact outlines: snap a region to real borders, either the countries painted in one colour or any set of subdivisions (states, provinces, counties; e.g. Scotland, Wales, Cornwall, Greater London), picked from a list, by group, or by clicking the map
 - Label font: one setting for every label on the map and in the legend
 - Legend editor: rename, recolour, reorder, remove, title and position
-- Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG export (works standalone and in the artifact)
+- Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG and SVG export with a source note (data source, projection, version, date)
 
 ## Build and run
 Requires Node 20+.

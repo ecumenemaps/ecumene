@@ -1,6 +1,6 @@
 // Ecumene: entry point. Sets up rendering, loads data, wires the panels and input.
 import { mesh } from 'topojson-client';
-import { app, setRenderer, redraw, emit } from './store.js';
+import { app, setRenderer, redraw, emit, VERSION } from './store.js';
 import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, segs, render } from './gl.js';
 import { geo, loadBase, nameOf } from './data.js';
 import { Rb } from './view.js';
@@ -13,11 +13,10 @@ import { initStylePanel } from './ui-style.js';
 import { initLegendPanel } from './ui-legend.js';
 import { initObjectsPanel } from './ui-objects.js';
 import { initFilePanel } from './ui-file.js';
-import { setExportCanvas } from './export.js';
+import { setExportCanvas, buildSVG } from './export.js';
 import { getState, setState, encode, decode, restoreAutosave, startAutosave } from './persist.js';
 import { $ } from './util.js';
 
-const VERSION = '0.2.0';
 const cv = $('cv'),
   ov = $('ov'),
   oc = ov.getContext('2d'),
@@ -97,13 +96,14 @@ async function main() {
   redraw();
   phys.then(
     (p) => {
+      geo.phys = p;
       uploadPhys(p);
       redraw();
     },
     (e) => console.warn('Lakes and rivers did not load:', e),
   );
   // small scripting API, also used by the tests
-  window.ecumene = { version: VERSION, getState, setState, encode, decode };
+  window.ecumene = { version: VERSION, getState, setState, encode, decode, svg: buildSVG };
 }
 main().catch((e) => {
   $('load').hidden = true;

@@ -14,6 +14,7 @@ export const geo = {
   labelPts: [], // [{n, a, c}] largest part's area and centroid, for country name labels
   polys: [], // unwrapped polygons with bounding boxes, for exact picking
   a1index: {}, // country name -> subdivision file info
+  phys: null, // decoded lakes and rivers, once loaded
 };
 
 async function fetchOk(url) {

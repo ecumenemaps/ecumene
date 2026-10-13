@@ -62,7 +62,7 @@ const pal = new Uint8Array(256 * 4);
 let palTex, BL, HL, LO, LOM, GRL, RV;
 const TV = { vao: null, n: 0 },
   LK = { vao: null, n: 0 };
-const RIVER_MIN_ZOOM = [0, 2, 4],
+export const RIVER_MIN_ZOOM = [0, 2, 4],
   RIVER_WIDTH = [1.5, 1.1, 0.8];
 
 function program(vs, fs, uniforms, out) {

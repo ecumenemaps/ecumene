@@ -15,14 +15,15 @@ Context for anyone (or any session) picking this up. See README for build and te
 | `objects.js` | Map objects model (regions, exact outlines, arrows, text, markers), outline geometry cache, hit tests |
 | `editing.js` | Drawing mode, selection, creating exact outlines, reorder and delete |
 | `picker.js` | Subdivision picker (groups, list, map clicks) |
-| `overlay.js` | 2D canvas drawing for objects, names, legend, editing handles; reused by PNG export |
+| `overlay.js` | 2D canvas drawing for objects, names, legend, editing handles; reused by PNG and SVG export |
 | `paint.js` | Country fills, recolour, legend colour order |
 | `history.js` | Undo and redo (snapshots of fills and objects) |
 | `persist.js` | `getState`/`setState` (validated), map codes `GM1.`, downloads, autosave |
 | `fonts.js` | Label fonts; web fonts load only when chosen |
 | `input.js` | Pointer, wheel, keyboard, hover tag |
 | `ui-*.js` | Panels: paint (palette, search, lists, data), style, legend, objects, file |
-| `export.js` | PNG export |
+| `export.js` | PNG export; SVG export (vector layers in named groups, one path per country with `data-name`, metadata in `<desc>`); source note text |
+| `svgctx.js` | Canvas-2D-compatible recorder that writes SVG, so overlay drawing and d3 `geoPath` are shared by screen and SVG output |
 
 Conventions: modules share state only through `app`; UI panels re-render on events rather than being called directly; anything pure goes in a module without DOM access so it can be unit tested.
 

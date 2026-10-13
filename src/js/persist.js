@@ -41,7 +41,7 @@ export function getState() {
       ms: r.ms,
       ref: r.ref,
     })),
-    lg: { t: L.title, p: L.pos, s: L.show, o: L.order.filter((c) => used.has(c)) },
+    lg: { t: L.title, p: L.pos, s: L.show, n: L.note, o: L.order.filter((c) => used.has(c)) },
     r: [+app.rot[0].toFixed(2), +app.rot[1].toFixed(2)],
     z: +app.zoom.toFixed(2),
   };
@@ -136,6 +136,7 @@ export function setState(o) {
   L.title = typeof lg.t === 'string' ? lg.t.slice(0, 80) : '';
   L.pos = ['tl', 'tr', 'bl', 'br'].includes(lg.p) ? lg.p : 'bl';
   L.show = lg.s !== false;
+  L.note = lg.n !== false;
   L.order = Array.isArray(lg.o) ? lg.o.filter(hexOk) : [];
   legendColours();
   if (Array.isArray(o.r) && o.r.length === 2 && o.r.every(Number.isFinite)) app.rot = [o.r[0], clamp(o.r[1], -90, 90)];

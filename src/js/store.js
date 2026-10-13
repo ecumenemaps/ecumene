@@ -1,5 +1,8 @@
 // The single shared state object. Modules read and write fields on `app` directly;
 // UI refreshes are requested through the tiny event bus at the bottom.
+
+/** App version, shown in exports and the scripting API. */
+export const VERSION = '0.2.0';
 export const HOME = [-5, -30];
 
 export const PRESETS = {
@@ -59,7 +62,7 @@ export const app = {
   // country fills: name -> hex, and legend labels per colour
   fills: new Map(),
   labels: {},
-  legend: { title: '', pos: 'bl', show: true, order: [] },
+  legend: { title: '', pos: 'bl', show: true, note: true, order: [] },
   // style and layers
   style: Object.assign({}, PRESETS.light, { font: 'sys' }),
   layers: { borders: true, lakes: 'major', rivers: false, grat: false, names: false, regions: true },

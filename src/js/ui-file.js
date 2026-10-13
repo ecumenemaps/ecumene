@@ -3,7 +3,7 @@ import { app, on } from './store.js';
 import { getState, setState, encode, decode, saveBlob } from './persist.js';
 import { undo, redo, canUndo, canRedo } from './history.js';
 import { clearFills } from './paint.js';
-import { exportPNG } from './export.js';
+import { exportPNG, exportSVG } from './export.js';
 import { $, note } from './util.js';
 
 const loaded = (skipped) => note(skipped ? 'Loaded. ' + skipped + ' name(s) were not found and were skipped.' : 'Map loaded.');
@@ -83,4 +83,16 @@ export function initFilePanel() {
       if (!err || err.code !== 'declined') note('Could not save the image.', 1);
     }
   };
+  $('exs').onclick = async () => {
+    if (!app.ready) return;
+    try {
+      note('Building SVG…');
+      await saveBlob('globe-map.svg', await exportSVG());
+      note('');
+    } catch (err) {
+      if (!err || err.code !== 'declined') note('Could not save the SVG: ' + (err && err.message), 1);
+    }
+  };
+  $('snote').onchange = (e) => (app.legend.note = e.target.checked);
+  on('style', () => ($('snote').checked = app.legend.note));
 }
