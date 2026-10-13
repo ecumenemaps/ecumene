@@ -110,7 +110,7 @@ export function initFilePanel() {
   // clearing needs a second click within 3 s
   let armed = 0;
   $('clr').onclick = (e) => {
-    if (!app.fills.size) return;
+    if (!app.fills.size && !app.units.size) return;
     if (!armed) {
       armed = setTimeout(() => {
         armed = 0;

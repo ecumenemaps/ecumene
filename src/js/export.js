@@ -7,6 +7,7 @@ import { render, RIVER_MIN_ZOOM, RIVER_WIDTH } from './gl.js';
 import { geo } from './data.js';
 import { Rb, withProjection, tinyMarkers, MARK_R } from './view.js';
 import { exportView } from './projections.js';
+import { unitsOf, splitKey, loadPainted } from './units.js';
 import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
 
@@ -29,7 +30,7 @@ export function sourceDetails(label) {
     'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain. French Guiana, Guadeloupe, Martinique, Mayotte, Réunion and the Caribbean Netherlands are shown apart from France and the Netherlands.',
   ];
   if (app.layers.lakes !== 'none' || app.layers.rivers) L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
-  if (app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
+  if (app.units.size || app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
     L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
   L.push('Borders show Natural Earth\u2019s de facto conventions; disputed areas are not marked.');
   return L.join(' ');
@@ -51,6 +52,7 @@ export async function exportPNG(scale, opts) {
   try {
     await document.fonts.ready;
   } catch (_) {}
+  await loadPainted();
   const cv = canvas,
     od = app.dpr,
     hv = app.hover;
@@ -157,6 +159,7 @@ export async function buildSVG(opts = { proj: 'ortho', area: 'screen' }) {
   try {
     await document.fonts.ready;
   } catch (_) {}
+  await loadPainted();
   const v = exportView(opts);
   // everything below is synchronous, so the swapped-in projection never leaks into screen drawing
   return withProjection(v.p, v.kind !== 'globe', () => drawSVG(v));
@@ -199,6 +202,26 @@ function drawSVG(v) {
     c.fill();
   }
   c.end();
+  // painted subdivisions, one element per unit, stroked in its own colour so neighbours meet without seams;
+  // the borders group below covers the country's coast and borders
+  if (app.units.size) {
+    c.group('subdivisions');
+    c.lineWidth = 0.8;
+    c.lineJoin = 'round';
+    app.units.forEach((col, k) => {
+      const [n, code] = splitKey(k),
+        U = unitsOf(n),
+        f = U && U.byCode.get(code);
+      if (!f) return;
+      c.beginPath();
+      path(f);
+      c.fillStyle = c.strokeStyle = col;
+      c.tag({ id: 'unit-' + slug(code), 'data-name': f.properties.n, 'data-country': n });
+      c.fillStroke();
+    });
+    c.lineJoin = 'miter';
+    c.end();
+  }
   const p = geo.phys;
   if (p && Ly.lakes !== 'none') {
     c.group('lakes');

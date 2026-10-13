@@ -4,7 +4,8 @@
 const fs=require('fs'),path=require('path'),ts=require('topojson-server'),tj=require('topojson-client');
 const R=p=>path.join(__dirname,'..',p);
 const src=JSON.parse(fs.readFileSync(R('data/src/ne_10m_admin_1_states_provinces.geojson')));
-const world=require('world-atlas/countries-10m.json');
+const {OVERSEAS,splitOverseas}=require('../src/overseas.js');
+const world=splitOverseas(require('world-atlas/countries-10m.json'),tj.feature);
 const ALIAS={'Baikonur':'Kazakhstan','USNB Guantanamo Bay':'Cuba'};
 const mapNames=new Set(tj.feature(world,world.objects.countries).features.filter(f=>f.properties&&f.properties.name).map(f=>ALIAS[f.properties.name]||f.properties.name));
 const Ecu=require('../src/groups.js'),resolve=Ecu.matcher([...mapNames]);
@@ -19,10 +20,27 @@ for(const f of src.features){const p=f.properties;if(!f.geometry)continue;
 fs.mkdirSync(R('data/admin1'),{recursive:true});
 const index={};let total=0;
 const clean=v=>typeof v==='string'&&v.trim()&&v!=='null'?v.trim():'';
-for(const [name,{a3,feats}] of byCountry){
+// Units become features with an id (their position in the country's Natural Earth list, which saved exact outlines
+// refer to) and c, Natural Earth's adm1_code, unique and stable, which painted units are saved by.
+const units=new Map();
+for(const [name,{a3,feats}] of byCountry)units.set(name,{a3,list:feats.map((f,i)=>{const p=f.properties;
+ return {type:'Feature',id:i,geometry:f.geometry,properties:{n:clean(p.name_en)||clean(p.name)||('Unit '+(i+1)),c:p.adm1_code,ty:clean(p.type_en),r:clean(p.region),g:clean(p.geonunit)!==clean(p.admin)?clean(p.geonunit):''}};})});
+// Overseas parts split from their parent on the map (src/overseas.js) take their units with them; the parent's
+// remaining units keep their ids, so outlines saved before the split still find them.
+const firstPt=g=>{let c=g.coordinates;while(Array.isArray(c[0]))c=c[0];return c;};
+for(const o of OVERSEAS){const P=units.get(o.parent);if(!P)continue;
+ const mine=P.list.filter(f=>{const [x,y]=firstPt(f.geometry);return o.boxes.some(b=>x>=b[0]&&x<=b[2]&&y>=b[1]&&y<=b[3]);});
+ if(!mine.length)continue;
+ P.list=P.list.filter(f=>!mine.includes(f));
+ // Natural Earth may already list some of the part's units under its own name (Bonaire is "Caribbean Netherlands")
+ const E=units.get(o.name)||{list:[]};
+ units.set(o.name,{a3:P.a3+o.id,list:E.list.concat(mine).map((f,i)=>Object.assign({},f,{id:i}))});}
+const files=new Map();
+for(const [name,{a3}] of units){const f=a3.replace(/[^A-Z0-9]/g,'');if(files.has(f))throw new Error('admin1 file '+f+' would hold both '+files.get(f)+' and '+name);files.set(f,name);}
+for(const [name,{a3,list}] of units){
+ const feats=list;
  if(feats.length<2)continue; // a single unit adds nothing over the country itself
- const fc={type:'FeatureCollection',features:feats.map((f,i)=>{const p=f.properties;
-  return {type:'Feature',id:i,geometry:f.geometry,properties:{n:clean(p.name_en)||clean(p.name)||('Unit '+(i+1)),ty:clean(p.type_en),r:clean(p.region),g:clean(p.geonunit)!==clean(p.admin)?clean(p.geonunit):''}};})};
+ const fc={type:'FeatureCollection',features:list};
  const topo=ts.topology({u:fc},1e5);
  const file=a3.replace(/[^A-Z0-9]/g,'')+'.json',out=JSON.stringify(topo);
  fs.writeFileSync(R('data/admin1/'+file),out);total+=out.length;

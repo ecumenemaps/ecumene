@@ -1,10 +1,10 @@
-// Undo/redo: snapshots of country fills and map objects (up to 200).
+// Undo/redo: snapshots of country fills, painted subdivisions and map objects (up to 200).
 import { app, emit, redraw } from './store.js';
 import { setFill } from './paint.js';
 
 const LIMIT = 200;
-const snap = () => ({ f: new Map(app.fills), o: JSON.stringify(app.objects) });
-let hist = [{ f: new Map(), o: '[]' }],
+const snap = () => ({ f: new Map(app.fills), u: new Map(app.units), o: JSON.stringify(app.objects) });
+let hist = [{ f: new Map(), u: new Map(), o: '[]' }],
   hix = 0,
   timer = 0;
 
@@ -35,6 +35,8 @@ function restore(s) {
   s.f.forEach((c, n) => {
     if (app.fills.get(n) !== c) setFill(n, c);
   });
+  app.units.clear();
+  s.u.forEach((c, k) => app.units.set(k, c));
   emit('objects');
   emit('legend');
   emit('history');

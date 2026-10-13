@@ -35,24 +35,26 @@ void main(){
 const FS_LINE = `#version 300 es
 precision highp float;in float vD;in float vF;uniform vec4 uCol;uniform float uW;out vec4 o;
 void main(){float hw=uW*.5;float al=1.-smoothstep(hw-.5,hw+.5,abs(vD));o=vec4(uCol.rgb,uCol.a*al*vF);}`;
-// Fill colour per country comes from a PAL_N x 1 palette texture (alpha 0 = unpainted -> land colour).
-// uFlat overrides the colour (used for lakes).
+// Fill colour per country comes from a palette texture, entry id at (id % 1024, id / 1024) (alpha 0 = unpainted ->
+// land colour). The subdivision pass uses its own palette and uSkip=1, so unpainted units are not drawn at all and
+// the country's fill shows through. uFlat overrides the colour (used for lakes).
 const VS_FILL = `#version 300 es
 precision highp float;precision highp int;precision highp sampler2D;
-in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal;uniform int uHover;uniform float uDark;uniform vec4 uFlat;
-flat out vec3 vCol;out float vZ;
+in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal;uniform int uHover;uniform float uDark;uniform vec4 uFlat;uniform int uSkip;
+flat out vec3 vCol;flat out float vA;out float vZ;
 void main(){
  float lo=aLL.x*0.017453292,la=aLL.y*0.017453292;float c=cos(la);vec3 P=vec3(c*cos(lo),c*sin(lo),sin(la));
  vec3 v=vec3(dot(P,uE),dot(P,uN),dot(P,uC));
- vec3 cc=uFlat.rgb;
- if(uFlat.a<.5){vec4 pc=texelFetch(uPal,ivec2(int(aId),0),0);cc=pc.a>.5?pc.rgb:uLand;
-  if(int(aId)==uHover){float lu=dot(cc,vec3(.299,.587,.114));cc=lu>.45?cc*(1.-uDark):mix(cc,vec3(1.),uDark);}}
+ vec3 cc=uFlat.rgb;vA=1.;
+ if(uFlat.a<.5){int id=int(aId);vec4 pc=texelFetch(uPal,ivec2(id&1023,id>>10),0);cc=pc.a>.5?pc.rgb:uLand;
+  if(uSkip==1&&pc.a<.5)vA=0.;
+  if(id==uHover){float lu=dot(cc,vec3(.299,.587,.114));cc=lu>.45?cc*(1.-uDark):mix(cc,vec3(1.),uDark);}}
  vCol=cc;vZ=v.z;
  gl_Position=vec4(((uRes*.5+v.xy*uR)/uRes)*2.-1.,0.,1.);
 }`;
 const FS_FILL = `#version 300 es
-precision highp float;flat in vec3 vCol;in float vZ;out vec4 o;
-void main(){if(vZ<0.)discard;o=vec4(vCol,1.);}`;
+precision highp float;flat in vec3 vCol;flat in float vA;in float vZ;out vec4 o;
+void main(){if(vZ<0.||vA<.5)discard;o=vec4(vCol,1.);}`;
 
 let gl, cv, pFull, pLine, pFill;
 const uF = {},
@@ -61,9 +63,16 @@ const uF = {},
 // palette entries: country ids are 16-bit in the mesh; WebGL2 guarantees textures at least 2048 wide
 export const PAL_N = 1024;
 const pal = new Uint8Array(PAL_N * 4);
-let palTex, BL, HL, LO, LOM, GRL, RV;
+// subdivision palette: 1024 x UPAL_ROWS entries, one per loaded unit (units.js assigns the ids)
+export const UPAL_ROWS = 8;
+const upal = new Uint8Array(1024 * UPAL_ROWS * 4);
+let palTex, upalTex, BL, HL, LO, LOM, GRL, RV;
 const TV = { vao: null, n: 0 },
-  LK = { vao: null, n: 0 };
+  LK = { vao: null, n: 0 },
+  UV = { vao: null, n: 0, bufs: null };
+let unitPaint = null;
+/** Set the function that fills the subdivision palette (RGBA bytes per unit id) before each frame. */
+export const setUnitPainter = (fn) => (unitPaint = fn);
 export const RIVER_MIN_ZOOM = [0, 2, 4],
   RIVER_WIDTH = [1.5, 1.1, 0.8];
 
@@ -152,23 +161,28 @@ export function initGL(canvas) {
   try {
     pFull = program(VS_FULL, FS_FULL, ['uRes', 'uR', 'uShade', 'uBg', 'uOcean', 'uBorder', 'uMode'], uF);
     pLine = program(VS_LINE, FS_LINE, ['uRes', 'uR', 'uW', 'uC', 'uE', 'uN', 'uCol'], uL);
-    pFill = program(VS_FILL, FS_FILL, ['uRes', 'uR', 'uC', 'uE', 'uN', 'uLand', 'uPal', 'uHover', 'uDark', 'uFlat'], uP);
+    pFill = program(VS_FILL, FS_FILL, ['uRes', 'uR', 'uC', 'uE', 'uN', 'uLand', 'uPal', 'uHover', 'uDark', 'uFlat', 'uSkip'], uP);
   } catch (e) {
     return 'Shader error: ' + e.message;
   }
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  palTex = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, palTex);
-  for (const [k, v] of [
-    [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE],
-    [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE],
-    [gl.TEXTURE_MIN_FILTER, gl.NEAREST],
-    [gl.TEXTURE_MAG_FILTER, gl.NEAREST],
-  ])
-    gl.texParameteri(gl.TEXTURE_2D, k, v);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, PAL_N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pal);
+  const palette = (w, h, data) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    for (const [k, v] of [
+      [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE],
+      [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE],
+      [gl.TEXTURE_MIN_FILTER, gl.NEAREST],
+      [gl.TEXTURE_MAG_FILTER, gl.NEAREST],
+    ])
+      gl.texParameteri(gl.TEXTURE_2D, k, v);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    return t;
+  };
+  upalTex = palette(1024, UPAL_ROWS, upal);
+  palTex = palette(PAL_N, 1, pal); // left bound on TEXTURE1
   gl.useProgram(pFill);
   gl.uniform1i(uP.uPal, 1);
   BL = lineSet();
@@ -179,6 +193,7 @@ export function initGL(canvas) {
   RV = [lineSet(), lineSet(), lineSet()];
   TV.vao = gl.createVertexArray();
   LK.vao = gl.createVertexArray();
+  UV.vao = gl.createVertexArray();
   // graticule: 10 degree meridians and parallels, finely segmented so they curve correctly.
   // Meridians stop at 80 degrees (except every 90th) so they do not clot at the poles.
   const g = [],
@@ -216,6 +231,29 @@ function meshVAO(target, ll, idx, ids) {
 }
 export function uploadTris(t) {
   meshVAO(TV, t.ll, t.idx, t.ids);
+}
+/** Replace the subdivision fill mesh (all loaded countries' units; ids index the subdivision palette). */
+export function uploadUnitMesh(ll, idx, ids) {
+  gl.bindVertexArray(UV.vao);
+  if (!UV.bufs) {
+    UV.bufs = [gl.createBuffer(), gl.createBuffer(), gl.createBuffer()];
+    gl.bindBuffer(gl.ARRAY_BUFFER, UV.bufs[0]);
+    let l = gl.getAttribLocation(pFill, 'aLL');
+    gl.enableVertexAttribArray(l);
+    gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, UV.bufs[1]);
+    l = gl.getAttribLocation(pFill, 'aId');
+    gl.enableVertexAttribArray(l);
+    gl.vertexAttribIPointer(l, 1, gl.UNSIGNED_SHORT, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, UV.bufs[2]);
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, UV.bufs[0]);
+  gl.bufferData(gl.ARRAY_BUFFER, ll, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, UV.bufs[1]);
+  gl.bufferData(gl.ARRAY_BUFFER, ids, gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  UV.n = idx.length;
 }
 export function uploadPhys(p) {
   meshVAO(LK, p.lakeLL, p.lakeIdx, null);
@@ -273,11 +311,24 @@ export function render(R) {
   gl.uniform3f(uP.uE, ...E);
   gl.uniform3f(uP.uN, ...N);
   gl.uniform3f(uP.uLand, ...rgb01(S.land));
-  gl.uniform1i(uP.uHover, app.hover);
+  // over subdivisions the hovered units are outlined on the overlay instead of shading the whole country
+  gl.uniform1i(uP.uHover, app.subHov ? 0 : app.hover);
   gl.uniform1f(uP.uDark, HS.dark ? HS.amt : 0);
   gl.uniform4f(uP.uFlat, 0, 0, 0, 0);
   gl.bindVertexArray(TV.vao);
   gl.drawElements(gl.TRIANGLES, TV.n, gl.UNSIGNED_INT, 0);
+  // painted subdivisions over their countries; unpainted units are skipped
+  if (UV.n && unitPaint && unitPaint(upal)) {
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, upalTex);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1024, UPAL_ROWS, gl.RGBA, gl.UNSIGNED_BYTE, upal);
+    gl.uniform1i(uP.uSkip, 1);
+    gl.uniform1i(uP.uHover, 0);
+    gl.bindVertexArray(UV.vao);
+    gl.drawElements(gl.TRIANGLES, UV.n, gl.UNSIGNED_INT, 0);
+    gl.uniform1i(uP.uSkip, 0);
+    gl.bindTexture(gl.TEXTURE_2D, palTex);
+  }
   const lakeN = Ly.lakes === 'all' ? LK.n : Ly.lakes === 'major' ? LK.nMajor : 0;
   if (lakeN) {
     gl.uniform4f(uP.uFlat, ...rgb01(S.water), 1);

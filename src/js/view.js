@@ -72,7 +72,7 @@ export function tinyMarkers() {
   return out;
 }
 /** Id of the nearest marker within reach of a canvas pixel, or 0. */
-function markerAt(px, py) {
+export function markerAt(px, py) {
   let best = 0,
     bd = MARK_HIT * MARK_HIT;
   for (const m of tinyMarkers()) {

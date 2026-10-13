@@ -1,13 +1,12 @@
 // Panel: legend editor (country colours: rename, recolour, reorder, remove; title and position).
 import { app, on, redraw } from './store.js';
-import { setFill, recolor, legendColours } from './paint.js';
+import { recolor, removeColour, colourCounts, legendColours } from './paint.js';
 import { commit } from './history.js';
 import { $, el } from './util.js';
 
 function render() {
   const box = $('lgd'),
-    counts = {};
-  app.fills.forEach((c) => (counts[c] = (counts[c] || 0) + 1));
+    counts = colourCounts();
   const cols = legendColours();
   box.textContent = '';
   if (!cols.length) {
@@ -43,7 +42,7 @@ function render() {
       render();
     };
     const remove = () => {
-      [...app.fills.keys()].filter((k) => app.fills.get(k) === col).forEach((k) => setFill(k, null));
+      removeColour(col);
       render();
       redraw();
       commit();
@@ -57,7 +56,7 @@ function render() {
         el('small', { textContent: counts[col] }),
         btn('↑', 'Move up', move(-1), i === 0),
         btn('↓', 'Move down', move(1), i === cols.length - 1),
-        btn('×', 'Remove this color from all countries', remove),
+        btn('×', 'Remove this color from all countries and subdivisions', remove),
       ),
     );
   });

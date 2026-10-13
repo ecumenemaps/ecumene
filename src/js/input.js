@@ -2,8 +2,9 @@
 import { geoInterpolate } from 'd3-geo';
 import { app, redraw } from './store.js';
 import { nameOf } from './data.js';
-import { Rb, geoAt, idAtPx, setZoom, animate } from './view.js';
+import { Rb, geoAt, idAtPx, markerAt, setZoom, animate } from './view.js';
 import { setFill, toggleFill } from './paint.js';
+import { LOAD_DELAY, hasUnits, unitsOf, loadUnits, unitAtLL, targetsOf, targetLabel, paintUnits, clearUnits, clickUnits } from './units.js';
 import { commit, commitSoon, undo, redo } from './history.js';
 import { objectAt, handleAt, minPts } from './objects.js';
 import { addPoint, finishDraw, cancelDraw, select } from './editing.js';
@@ -31,11 +32,12 @@ function placeTip() {
   if (y + h > app.H - 4) y = app.my - h - 10;
   tip.style.transform = 'translate(' + Math.max(2, x) + 'px,' + Math.max(2, y) + 'px)';
 }
-/** Update the name tag: subdivision (when picking), else named region, else country. */
+/** Update the name tag: subdivision (when picking), else named region, else what a click paints, else country. */
 export function refreshTip() {
   const pk = app.pick,
     o = app.objects[app.hoverObj];
-  const name = (pk && pk.hov ? pk.hov.properties.n : o ? o.label.trim() : '') || (app.hover ? nameOf(app.hover) : '');
+  const name =
+    (pk && pk.hov ? pk.hov.properties.n : o ? o.label.trim() : '') || (app.subHov ? app.subHov.label : '') || (app.hover ? nameOf(app.hover) : '');
   $('sr').textContent = name;
   if (app.hoverStyle.tip && name) {
     tip.textContent = name;
@@ -46,9 +48,73 @@ export function refreshTip() {
 function setHover(id) {
   if (id === app.hover) return;
   app.hover = id;
+  app.subHov = null; // recomputed by refreshSub for the new country
   refreshTip();
   onHoverChanged();
   redraw();
+}
+
+// Subdivisions: a country's units load once the pointer has rested on it for LOAD_DELAY ms.
+let loadTimer = 0,
+  loadFor = '';
+const subMode = () => app.sub.on && !app.pick && !app.drawing && app.sel < 0;
+function scheduleLoad(n) {
+  if (loadFor === n) return;
+  clearTimeout(loadTimer);
+  loadFor = n;
+  if (!n) return;
+  loadTimer = setTimeout(
+    () =>
+      loadUnits(n).then(
+        () => {
+          if (loadFor !== n) return;
+          loadFor = '';
+          refreshSub();
+        },
+        () => {
+          loadFor = '';
+          note('Could not load the subdivisions of ' + n + '. Open the page through a web server (see README).', 1);
+        },
+      ),
+    LOAD_DELAY,
+  );
+}
+/** Work out which units a click would paint at the pointer (app.subHov), loading the country's units if needed. */
+export function refreshSub() {
+  let h = null,
+    want = '';
+  if (subMode() && app.hover) {
+    const n = nameOf(app.hover);
+    if (hasUnits(n)) {
+      if (unitsOf(n)) {
+        const f = unitAtLL(n, geoAt(app.mx, app.my));
+        if (f) h = { country: n, feats: targetsOf(n, f), label: targetLabel(n, f) };
+      } else want = n;
+    }
+  }
+  scheduleLoad(want);
+  const o = app.subHov;
+  if (!h && !o) return;
+  if (h && o && h.country === o.country && h.feats[0] === o.feats[0] && h.feats.length === o.feats.length) return;
+  app.subHov = h;
+  refreshTip();
+  redraw();
+}
+/** A click on a country: paint its units in Subdivisions mode, else the whole country. */
+function paintClick(id) {
+  const n = nameOf(id);
+  // a tiny country's marker paints the whole country; its units are too small to aim at
+  if (!app.sub.on || !hasUnits(n) || markerAt(app.mx, app.my) === id) return toggleFill(n);
+  const g = geoAt(app.mx, app.my),
+    wait = !unitsOf(n);
+  if (wait) note('Loading the subdivisions of ' + n + '…');
+  clickUnits(n, g).then(
+    () => {
+      if (wait) note('');
+      refreshSub();
+    },
+    () => note('Could not load the subdivisions of ' + n + '. Open the page through a web server (see README).', 1),
+  );
 }
 
 // Ctrl/Cmd-drag (or the touch toggle) paints every country the pointer crosses, interpolating fast moves.
@@ -58,13 +124,24 @@ function paintAt(x, y) {
     n = Math.max(1, Math.min(40, Math.ceil(Math.hypot(x - a[0], y - a[1]) / 3)));
   let changed = false;
   for (let s = 1; s <= n; s++) {
-    const id = idAtPx(a[0] + ((x - a[0]) * s) / n, a[1] + ((y - a[1]) * s) / n);
-    if (id) {
-      const nm = nameOf(id);
-      if (app.fills.get(nm) !== app.active) {
-        setFill(nm, app.active);
-        changed = true;
+    const px = a[0] + ((x - a[0]) * s) / n,
+      py = a[1] + ((y - a[1]) * s) / n,
+      id = idAtPx(px, py);
+    if (!id) continue;
+    const nm = nameOf(id);
+    if (app.sub.on && hasUnits(nm) && markerAt(px, py) !== id) {
+      // units paint once loaded; a stroke across a country not yet loaded starts the load
+      if (!unitsOf(nm)) loadUnits(nm).catch(() => {});
+      else {
+        const f = unitAtLL(nm, geoAt(px, py));
+        if (f && paintUnits(nm, targetsOf(nm, f), true)) changed = true;
       }
+      continue;
+    }
+    if (clearUnits(nm)) changed = true;
+    if (app.fills.get(nm) !== app.active) {
+      setFill(nm, app.active);
+      changed = true;
     }
   }
   last = [x, y];
@@ -75,6 +152,7 @@ function paintAt(x, y) {
     app.hover = id;
     onHoverChanged();
   }
+  refreshSub();
   refreshTip();
   if (changed) {
     emit('legend');
@@ -205,6 +283,7 @@ export function initInput(canvas, opts) {
           refreshTip();
         }
         setHover(idAtPx(app.mx, app.my));
+        refreshSub();
         placeTip();
       }
       return;
@@ -289,12 +368,13 @@ export function initInput(canvas, opts) {
         return;
       }
       const id = idAtPx(app.mx, app.my);
-      if (id) toggleFill(nameOf(id));
+      if (id) paintClick(id);
     }
     if (app.drawing || app.sel >= 0 || app.pick) return;
     if (one && e.type === 'pointerup') {
       track(e);
       setHover(idAtPx(app.mx, app.my));
+      refreshSub();
       placeTip();
       if (e.pointerType !== 'mouse') {
         clearTimeout(touchTimer);
@@ -318,6 +398,7 @@ export function initInput(canvas, opts) {
       track(e);
       setZoom(app.zoom * Math.exp(-e.deltaY * 0.0015));
       setHover(idAtPx(app.mx, app.my));
+      refreshSub();
       placeTip();
     },
     { passive: false },
