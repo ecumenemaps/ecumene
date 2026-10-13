@@ -4,15 +4,39 @@ import { app, redraw } from './store.js';
 import { D, clamp } from './util.js';
 import { idAtLL } from './data.js';
 
-export const proj = geoOrthographic().clipAngle(90);
+const globe = geoOrthographic().clipAngle(90);
+/**
+ * The projection the 2D drawing code uses. Normally the on-screen globe; exports can swap in
+ * another one for the duration of a synchronous draw with withProjection().
+ */
+export let proj = globe;
+let override = null; // {flat, scale} while an export projection is active
 /** Globe radius in CSS pixels. */
 export const Rb = () => (Math.min(app.W, app.H) / 2) * 0.94 * app.zoom;
 /** Point d3's projection at the current view (call before using proj). */
 export const setProj = () =>
-  proj
-    .translate([app.W / 2, app.H / 2])
-    .scale(Rb())
-    .rotate([app.rot[0], app.rot[1], 0]);
+  override
+    ? proj
+    : proj
+        .translate([app.W / 2, app.H / 2])
+        .scale(Rb())
+        .rotate([app.rot[0], app.rot[1], 0]);
+/** Pixels per radian near the centre: globe radius on screen, projection scale otherwise. */
+export const pxPerRad = () => (override ? override.scale : Rb());
+/** True while drawing through a flat (non-azimuthal) projection. */
+export const isFlat = () => !!(override && override.flat);
+/** Run fn with p as the drawing projection. flat: whole-world flat maps skip hemisphere tests. */
+export function withProjection(p, flat, fn) {
+  const prev = proj;
+  proj = p;
+  override = { flat, scale: p.scale() };
+  try {
+    return fn();
+  } finally {
+    proj = prev;
+    override = null;
+  }
+}
 /** lon/lat under a canvas pixel, or null off the globe. */
 export function geoAt(x, y) {
   setProj();
@@ -24,7 +48,11 @@ export function geoAt(x, y) {
   return g && g.every(Number.isFinite) ? g : null;
 }
 /** Is a lon/lat on the visible hemisphere? */
-export const onFront = (g) => geoDistance(g, [-app.rot[0], -app.rot[1]]) < Math.PI / 2 - 1e-3;
+export const onFront = (g) => {
+  if (override && override.flat) return true;
+  const r = proj.rotate();
+  return geoDistance(g, [-r[0], -r[1]]) < Math.PI / 2 - 1e-3;
+};
 
 /** Country id under a canvas pixel (0 = sea or off-globe). */
 export function idAtPx(px, py) {

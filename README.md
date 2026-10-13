@@ -19,6 +19,8 @@ Paint countries on an accurate, draggable 3D globe. Open source, and built so th
 - Label font: one setting for every label on the map and in the legend
 - Legend editor: rename, recolour, reorder, remove, title and position
 - Style panel (water, land, border colours; presets), undo/redo, save/share map codes, PNG and SVG export with a source note (data source, projection, version, date)
+- Export projections: the globe as shown or as a square, world maps (Equal Earth, Robinson, Winkel tripel, Natural Earth, Mercator) and regional maps fitted to the screen (Lambert conformal conic, Albers, Lambert azimuthal equal-area), with a preview
+- Wikipedia locator-map preset following WikiProject Maps' orthographic conventions (550 × 550 px, grey land, white borders and water, subject #346733, related areas #c6debd)
 
 ## Build and run
 Requires Node 20+.
@@ -52,6 +54,7 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 | Countries (10m) | Natural Earth via `world-atlas` | Public domain |
 | Lakes, rivers (10m) | Natural Earth | Public domain |
 | States and provinces (admin-1, 10m) | Natural Earth | Public domain |
+| Robinson and Winkel tripel projections | `d3-geo-projection` | ISC |
 
 Natural Earth depicts de facto boundaries and is not authoritative for disputed areas. Any future data (geoBoundaries CC BY 4.0, GADM and Eurostat non-commercial, CShapes CC BY-NC-SA, historical-basemaps GPL-3.0, OpenHistoricalMap CC0) must be checked against this project's licence before use.
 

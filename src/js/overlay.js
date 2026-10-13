@@ -3,7 +3,7 @@
 import { geoPath, geoDistance, geoInterpolate } from 'd3-geo';
 import { app } from './store.js';
 import { geo } from './data.js';
-import { proj, setProj, Rb, geoAt, onFront } from './view.js';
+import { proj, setProj, pxPerRad, isFlat, geoAt, onFront } from './view.js';
 import { arrowLine } from './shapes.js';
 import { isRegion, isArea, areaGeo, areaAnchor } from './objects.js';
 import { legendColours } from './paint.js';
@@ -231,8 +231,10 @@ export function drawObjectLabels(c) {
 /** Country names, largest first, skipping any that would overlap or not fit. */
 export function drawCountryNames(c) {
   setProj();
-  const R = Rb(),
-    cen = [-app.rot[0], -app.rot[1]],
+  const R = pxPerRad(),
+    rr = proj.rotate(),
+    cen = [-rr[0], -rr[1]],
+    flat = isFlat(),
     placed = [],
     S = app.style,
     haloCol = halo(S.label);
@@ -242,11 +244,11 @@ export function drawCountryNames(c) {
   c.lineJoin = 'round';
   c.lineWidth = 3;
   for (const l of geo.labelPts) {
-    if (geoDistance(l.c, cen) > 1.15) continue;
+    if (!flat && geoDistance(l.c, cen) > 1.15) continue;
     const w = c.measureText(l.n).width;
     if (Math.sqrt(l.a) * R < w * 0.8) continue;
     const p = proj(l.c);
-    if (!p) continue;
+    if (!p || !p.every(Number.isFinite)) continue;
     const box = [p[0] - w / 2 - 2, p[1] - 8, p[0] + w / 2 + 2, p[1] + 8];
     if (placed.some((q) => box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1])) continue;
     placed.push(box);

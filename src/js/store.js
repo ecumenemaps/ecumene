@@ -11,6 +11,7 @@ export const PRESETS = {
     water: '#cfe6f5',
     land: '#f1efe9',
     border: '#8a97a3',
+    rim: '#8a97a3',
     river: '#4f93c4',
     grat: '#5f6b78',
     label: '#1b2430',
@@ -22,6 +23,7 @@ export const PRESETS = {
     water: '#17364d',
     land: '#2c343d',
     border: '#66737f',
+    rim: '#66737f',
     river: '#5aa7d8',
     grat: '#e6ebf0',
     label: '#e6ebf0',
@@ -33,16 +35,33 @@ export const PRESETS = {
     water: '#c9e4f9',
     land: '#eeeeee',
     border: '#9a9a9a',
+    rim: '#9a9a9a',
     river: '#2f6db5',
     grat: '#8a8a8a',
     label: '#1c5f9b',
     shade: 0,
     bw: 1,
   },
+  // Wikipedia orthographic locator-map conventions (WikiProject Maps): grey land, white borders and
+  // water, grey globe edge. Paint the subject #346733 and related areas #c6debd.
+  wikipedia: {
+    bg: '#ffffff',
+    water: '#ffffff',
+    land: '#b9b9b9',
+    border: '#ffffff',
+    rim: '#aaaaaa',
+    river: '#ffffff',
+    grat: '#8c8c8c', // the convention's 0.3 px black at 30% opacity, matched in weight for 1 px lines
+    label: '#000000',
+    shade: 0.5,
+    bw: 0.5,
+  },
 };
+/** Colours used with the Wikipedia preset. */
+export const WIKI = { subject: '#346733', related: '#c6debd' };
 /** Lake layer options: none, Natural Earth's major lakes (scalerank 0-1), or all 10m lakes. */
 export const LAKE_MODES = ['none', 'major', 'all'];
-export const STYLE_COLOR_KEYS = ['water', 'land', 'border', 'bg', 'river', 'grat', 'label'];
+export const STYLE_COLOR_KEYS = ['water', 'land', 'border', 'rim', 'bg', 'river', 'grat', 'label'];
 
 export const app = {
   // view
@@ -63,6 +82,8 @@ export const app = {
   fills: new Map(),
   labels: {},
   legend: { title: '', pos: 'bl', show: true, note: true, order: [] },
+  // export settings (projection key from projections.js, 'screen' or 'world', width in px or 0 = automatic)
+  exportOpts: { proj: 'ortho', area: 'screen', width: 0 },
   // style and layers
   style: Object.assign({}, PRESETS.light, { font: 'sys' }),
   layers: { borders: true, lakes: 'major', rivers: false, grat: false, names: false, regions: true },

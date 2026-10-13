@@ -253,6 +253,54 @@ test('SVG export is a valid vector map with a source note', async ({ page }) => 
   expect(errors).toEqual([]);
 });
 
+test('flat projections export with the right shape and a described projection', async ({ page }) => {
+  const errors = await openApp(page);
+  const r = await page.evaluate(async () => {
+    const out = {};
+    for (const proj of ['equalearth', 'robinson', 'winkel3', 'mercator']) {
+      const svg = await window.ecumene.svg({ proj, area: 'world', width: 1000 });
+      const m = /width="(\d+)" height="(\d+)"/.exec(svg);
+      out[proj] = { w: +m[1], h: +m[2], desc: /<desc>([^<]*)<\/desc>/.exec(svg)[1] };
+    }
+    const s = window.ecumene.getState();
+    s.r = [-15, -50];
+    s.z = 3;
+    window.ecumene.setState(s);
+    const lcc = await window.ecumene.svg({ proj: 'lcc', area: 'screen', width: 800 });
+    out.lcc = { desc: /<desc>([^<]*)<\/desc>/.exec(lcc)[1], shade: lcc.includes('id="shading"') };
+    return out;
+  });
+  expect(r.equalearth.w).toBe(1000);
+  expect(r.equalearth.h / r.equalearth.w).toBeGreaterThan(0.45);
+  expect(r.equalearth.h / r.equalearth.w).toBeLessThan(0.55);
+  expect(r.robinson.desc).toContain('Projection: Robinson, central meridian');
+  expect(r.mercator.h).toBeGreaterThan(r.equalearth.h);
+  expect(r.lcc.desc).toMatch(/Lambert conformal conic, standard parallels [\d.]+°N and [\d.]+°N/);
+  expect(r.lcc.shade).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('Wikipedia preset sets the locator-map conventions and the preview opens', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.selectOption('#pre', 'wikipedia');
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.s).toMatchObject({ land: '#b9b9b9', water: '#ffffff', border: '#ffffff', rim: '#aaaaaa' });
+  expect(st.L.grat).toBe(true);
+  await expect(page.locator('#xproj')).toHaveValue('ortho');
+  await expect(page.locator('#xarea')).toHaveValue('world');
+  await expect(page.locator('#xw')).toHaveValue('550');
+  await expect(page.locator('#snote')).not.toBeChecked();
+  await expect(page.locator('#cc')).toHaveValue('#346733');
+  await page.click('#xprev');
+  await expect(page.locator('#xdlg')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator('#xinfo')).toContainText('550 × 550');
+  await page.click('#xclose');
+  // regional projections can only fit the screen area
+  await page.selectOption('#xproj', 'lcc');
+  await expect(page.locator('#xarea')).toHaveValue('screen');
+  expect(errors).toEqual([]);
+});
+
 test('PNG export downloads an image', async ({ page }) => {
   const errors = await openApp(page);
   await page.fill('#bl', 'Brazil');

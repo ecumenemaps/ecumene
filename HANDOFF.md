@@ -23,6 +23,7 @@ Context for anyone (or any session) picking this up. See README for build and te
 | `input.js` | Pointer, wheel, keyboard, hover tag |
 | `ui-*.js` | Panels: paint (palette, search, lists, data), style, legend, objects, file |
 | `export.js` | PNG export; SVG export (vector layers in named groups, one path per country with `data-name`, metadata in `<desc>`); source note text |
+| `projections.js` | Export projections and fitting: globe as shown or square, whole-world flat maps centred on the globe's meridian, regional maps fitted to points sampled from the visible globe (conic standard parallels at 1/6 and 5/6 of the latitude span) |
 | `svgctx.js` | Canvas-2D-compatible recorder that writes SVG, so overlay drawing and d3 `geoPath` are shared by screen and SVG output |
 
 Conventions: modules share state only through `app`; UI panels re-render on events rather than being called directly; anything pure goes in a module without DOM access so it can be unit tested.
@@ -47,7 +48,9 @@ Conventions: modules share state only through `app`; UI panels re-render on even
 - Untested on real phones and touch screens.
 
 ## Roadmap
-SVG export with provenance and a Wikipedia locator-map preset; interface redesign around modes (Paint, Regions, Annotate, Data, Style, Export) with phone support; disputed-area styles and worldviews; tiny-country markers; context-loss handling; multi-part freehand regions; finer subdivisions; flat projections; historical borders.
+Tracked as GitHub issues with Now / Next / Later milestones. Done: SVG export with provenance (#1), Wikipedia preset (#2), flat projections (#3). Still open from the original list: interface redesign around modes (Paint, Regions, Annotate, Data, Style, Export) with phone support; disputed-area styles and worldviews; tiny-country markers; context-loss handling; multi-part freehand regions; finer subdivisions; historical borders.
+
+Exports swap the drawing projection with `view.withProjection()` for one synchronous draw, so overlay.js draws regions, labels and the legend through any d3 projection. The Wikipedia conventions page's colour table is missing its green values (template fault); #346733 and #c6debd come from the published orthographic maps.
 
 ## Naming and licensing
 Working name Ecumene (org `ecumenemaps`). Still to check: trademarks (UK IPO, EUIPO, USPTO, classes 9 and 42) and registrar prices for `ecumene.app` / `ecumenemaps.com`.

@@ -1,12 +1,13 @@
 // Panel: layers, hover behaviour and map style.
-import { app, on, redraw, PRESETS } from './store.js';
+import { app, on, emit, redraw, PRESETS, WIKI } from './store.js';
 import { FONTS, loadFont } from './fonts.js';
-import { $, el } from './util.js';
+import { $, el, note } from './util.js';
 
 const COLOR_INPUTS = [
   ['water', 'Water'],
   ['land', 'Land'],
   ['border', 'Borders'],
+  ['rim', 'Globe edge'],
   ['bg', 'Background'],
   ['river', 'Rivers'],
   ['grat', 'Graticule'],
@@ -37,6 +38,17 @@ export function initStylePanel({ onHoverChange, refreshTip }) {
   };
   $('pre').onchange = (e) => {
     Object.assign(S, PRESETS[e.target.value]);
+    if (e.target.value === 'wikipedia') {
+      // the conventions: 550 x 550 px orthographic globe centred on the subject, faint grid, no names
+      Object.assign(app.layers, { grat: true, names: false, rivers: false, lakes: 'major' });
+      Object.assign(app.exportOpts, { proj: 'ortho', area: 'world', width: 550 });
+      app.active = WIKI.subject;
+      app.legend.note = false; // Commons keeps sources on the file page; the SVG still carries them in <desc>
+      emit('palette');
+      emit('export');
+      emit('legendopts');
+      note('Wikipedia style: paint the subject in dark green and related areas (such as the rest of the EU) in ' + WIKI.related + '. Centre the globe on the subject before exporting.');
+    }
     sync();
     redraw();
   };

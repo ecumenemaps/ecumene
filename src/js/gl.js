@@ -177,10 +177,14 @@ export function initGL(canvas) {
   RV = [lineSet(), lineSet(), lineSet()];
   TV.vao = gl.createVertexArray();
   LK.vao = gl.createVertexArray();
-  // graticule: 10 degree meridians and parallels, finely segmented so they curve correctly
+  // graticule: 10 degree meridians and parallels, finely segmented so they curve correctly.
+  // Meridians stop at 80 degrees (except every 90th) so they do not clot at the poles.
   const g = [],
     add = (o1, a1, o2, a2) => g.push(...V(o1, a1), ...V(o2, a2));
-  for (let lo = -180; lo < 180; lo += 10) for (let la = -90; la < 90; la += 2) add(lo, la, lo, la + 2);
+  for (let lo = -180; lo < 180; lo += 10) {
+    const top = lo % 90 ? 80 : 90;
+    for (let la = -top; la < top; la += 2) add(lo, la, lo, Math.min(top, la + 2));
+  }
   for (let la = -80; la <= 80; la += 10) for (let lo = -180; lo < 180; lo += 2) add(lo, la, lo + 2, la);
   setLines(GRL, new Float32Array(g));
   return '';
@@ -255,7 +259,7 @@ export function render(R) {
     gl.uniform1f(uF.uShade, S.shade);
     gl.uniform3f(uF.uBg, ...rgb01(S.bg));
     gl.uniform3f(uF.uOcean, ...rgb01(S.water));
-    gl.uniform3f(uF.uBorder, ...rgb01(S.border));
+    gl.uniform3f(uF.uBorder, ...rgb01(S.rim || S.border));
     gl.uniform1i(uF.uMode, mode);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };

@@ -11,7 +11,7 @@ import {
 } from 'd3-scale-chromatic';
 import { color } from 'd3-color';
 import { geoCentroid } from 'd3-geo';
-import { app, emit, redraw } from './store.js';
+import { app, on, emit, redraw } from './store.js';
 import { geo } from './data.js';
 import { setFill, paintMany } from './paint.js';
 import { commit } from './history.js';
@@ -56,6 +56,10 @@ function initPalette() {
   };
   box.append(custom);
   mark();
+  on('palette', () => {
+    custom.value = app.active;
+    mark();
+  });
 }
 
 function initSearch() {

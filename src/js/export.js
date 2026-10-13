@@ -5,7 +5,8 @@ import { mesh } from 'topojson-client';
 import { app, redraw, VERSION } from './store.js';
 import { render, RIVER_MIN_ZOOM, RIVER_WIDTH } from './gl.js';
 import { geo } from './data.js';
-import { proj, setProj, Rb } from './view.js';
+import { Rb, withProjection } from './view.js';
+import { exportView } from './projections.js';
 import { drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
 
@@ -13,38 +14,39 @@ let canvas = null;
 export const setExportCanvas = (cv) => (canvas = cv);
 
 // ---- provenance
-const fmtLL = (v, pos, neg) => Math.abs(Math.round(v * 10) / 10) + '°' + (v >= 0 ? pos : neg);
-const centre = () => fmtLL((((-app.rot[0] + 540) % 360) + 360) % 360 - 180, 'E', 'W') + ' ' + fmtLL(-app.rot[1], 'N', 'S');
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** One line printed on the map. */
-export function sourceLine() {
-  return 'Data: Natural Earth (public domain) · Orthographic, centred ' + centre() + ' · Ecumene ' + VERSION + ' · ' + today();
+export function sourceLine(label) {
+  return 'Data: Natural Earth (public domain) · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
 }
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 /** Fuller description embedded in SVG metadata. */
-export function sourceDetails() {
+export function sourceDetails(label) {
   const L = [
     'Made with Ecumene ' + VERSION + ' (https://ecumenemaps.github.io/ecumene/) on ' + today() + '.',
-    'Projection: orthographic, centred on ' + centre() + '.',
+    'Projection: ' + label + '.',
     'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain.',
   ];
   if (app.layers.lakes !== 'none' || app.layers.rivers) L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
   if (app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
     L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
-  L.push('Borders show Natural Earth’s de facto conventions; disputed areas are not marked.');
+  L.push('Borders show Natural Earth\u2019s de facto conventions; disputed areas are not marked.');
   return L.join(' ');
 }
 
-function drawTopLayers(c) {
+function drawTopLayers(c, W, H, label) {
   drawObjects(c, false);
   if (app.layers.names) drawCountryNames(c);
   drawObjectLabels(c);
-  drawLegend(c, app.W, app.H);
-  if (app.legend.note) drawSourceNote(c, app.W, app.H, sourceLine());
+  drawLegend(c, W, H);
+  if (app.legend.note) drawSourceNote(c, W, H, sourceLine(label));
 }
 
 // ---- PNG
-export async function exportPNG(scale) {
+export async function exportPNG(scale, opts) {
+  // anything other than the globe as shown is drawn as SVG and rasterised
+  if (opts && !(opts.proj === 'ortho' && opts.area === 'screen')) return rasterise(await buildSVG(opts), scale);
   try {
     await document.fonts.ready;
   } catch (_) {}
@@ -62,7 +64,7 @@ export async function exportPNG(scale) {
   const c = o.getContext('2d');
   c.drawImage(cv, 0, 0);
   c.setTransform(app.dpr, 0, 0, app.dpr, 0, 0);
-  drawTopLayers(c);
+  drawTopLayers(c, app.W, app.H, exportView({ proj: 'ortho', area: 'screen' }).label);
   app.hover = hv;
   app.dpr = od;
   cv.width = Math.round(app.W * app.dpr);
@@ -115,10 +117,10 @@ function lakeRings(p, mode) {
   }
   return out;
 }
-function riverLines(p) {
+function riverLines(p, zoom) {
   const lines = [];
   p.rivers.tiers.forEach(([a, b], t) => {
-    if (app.zoom < RIVER_MIN_ZOOM[t]) return;
+    if (zoom < RIVER_MIN_ZOOM[t]) return;
     const L = [];
     let o = 0;
     for (let i = 0; i < a; i++) o += p.rivers.lens[i];
@@ -136,8 +138,9 @@ function riverLines(p) {
 function graticule() {
   const L = [];
   for (let lo = -180; lo < 180; lo += 10) {
-    const ln = [];
-    for (let la = -90; la <= 90; la += 2) ln.push([lo, la]);
+    const ln = [],
+      top = lo % 90 ? 80 : 90;
+    for (let la = -top; la <= top; la += 2) ln.push([lo, la]);
     L.push(ln);
   }
   for (let la = -80; la <= 80; la += 10) {
@@ -149,20 +152,21 @@ function graticule() {
 }
 
 /** Build the SVG document for the current view. Returns a string. */
-export async function buildSVG() {
+export async function buildSVG(opts = { proj: 'ortho', area: 'screen' }) {
   try {
     await document.fonts.ready;
   } catch (_) {}
-  const W = Math.round(app.W),
-    H = Math.round(app.H),
+  const v = exportView(opts);
+  // everything below is synchronous, so the swapped-in projection never leaks into screen drawing
+  return withProjection(v.p, v.kind !== 'globe', () => drawSVG(v));
+}
+
+function drawSVG(v) {
+  const { W, H, p: pj, label } = v,
     S = app.style,
-    Ly = app.layers,
-    R = Rb(),
-    cx = app.W / 2,
-    cy = app.H / 2;
+    Ly = app.layers;
   const c = new SvgContext(document.createElement('canvas').getContext('2d'));
-  setProj();
-  const path = geoPath(proj, c);
+  const path = geoPath(pj, c);
   const sphere = () => {
     c.beginPath();
     path({ type: 'Sphere' });
@@ -229,7 +233,8 @@ export async function buildSVG() {
     c.group('rivers');
     c.lineCap = 'round';
     c.lineJoin = 'round';
-    for (const { t, geom } of riverLines(p)) {
+    const zoom = v.p.scale() / ((Math.min(app.W, app.H) / 2) * 0.94);
+    for (const { t, geom } of riverLines(p, zoom)) {
       c.beginPath();
       path(geom);
       c.strokeStyle = S.river;
@@ -257,7 +262,8 @@ export async function buildSVG() {
   }
   // shading: the same highlight and limb darkening as the globe, as radial gradients
   let defs = '';
-  if (S.shade > 0) {
+  if (S.shade > 0 && v.globe) {
+    const { cx, cy, R } = v.globe;
     const hx = cx - 0.35 * R,
       hy = cy - 0.4 * R;
     defs =
@@ -277,7 +283,7 @@ export async function buildSVG() {
   }
   c.group('rim');
   sphere();
-  c.strokeStyle = S.border;
+  c.strokeStyle = S.rim;
   c.lineWidth = 1.5;
   c.stroke();
   c.end();
@@ -293,17 +299,39 @@ export async function buildSVG() {
   drawObjectLabels(c);
   c.end();
   c.group('legend');
-  drawLegend(c, app.W, app.H);
+  drawLegend(c, W, H);
   c.end();
   if (app.legend.note) {
     c.group('source-note');
-    drawSourceNote(c, app.W, app.H, sourceLine());
+    drawSourceNote(c, W, H, sourceLine(label));
     c.end();
   }
   const title = app.legend.title.trim() || 'Map made with Ecumene';
-  const head = '<title>' + esc(title) + '</title>\n<desc>' + esc(sourceDetails()) + '</desc>\n' + defs;
+  const head = '<title>' + esc(title) + '</title>\n<desc>' + esc(sourceDetails(label)) + '</desc>\n' + defs;
   return c.toString(W, H, head);
 }
-export async function exportSVG() {
-  return new Blob([await buildSVG()], { type: 'image/svg+xml' });
+export async function exportSVG(opts) {
+  return new Blob([await buildSVG(opts)], { type: 'image/svg+xml' });
+}
+
+/** Draw an SVG string onto a canvas at the given scale and return a PNG blob. */
+async function rasterise(svg, scale) {
+  const m = /width="(\d+)" height="(\d+)"/.exec(svg),
+    W = +m[1],
+    H = +m[2];
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  try {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    await img.decode();
+    const o = document.createElement('canvas');
+    o.width = Math.round(W * scale);
+    o.height = Math.round(H * scale);
+    const c = o.getContext('2d');
+    c.drawImage(img, 0, 0, o.width, o.height);
+    return await new Promise((r) => o.toBlob(r, 'image/png'));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

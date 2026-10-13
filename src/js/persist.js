@@ -105,6 +105,7 @@ export function setState(o) {
   STYLE_COLOR_KEYS.forEach((k) => {
     if (hexOk(s[k])) S[k] = s[k].toLowerCase();
   });
+  if (!hexOk(s.rim)) S.rim = S.border; // maps saved before the globe edge had its own colour
   if (Number.isFinite(s.bw)) S.bw = clamp(s.bw, 0.5, 3);
   if (Number.isFinite(s.shade)) S.shade = clamp(s.shade, 0, 1);
   S.font = FONTS[s.font] ? s.font : 'sys';
