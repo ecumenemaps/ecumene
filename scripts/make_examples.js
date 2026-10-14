@@ -88,10 +88,10 @@ const EXAMPLES = {
     await view(page, [3.2, -54.4], 8.2);
     return { mode: 'draw', export: { proj: 'lcc', area: 'screen', width: 800 } };
   },
-  // Electoral votes per state (2020 apportionment, checked against the Census table): a statistic, five classes.
+  // Electoral votes per state (2020 apportionment, checked against the Census table): a statistic, three classes by natural breaks.
   async electoral(page) {
     // three equal classes give whole-number edges (3 to 20, 20 to 37, 37 to 54)
-    await statistic(page, 'ev', null, 'Purples', 'equal', 3);
+    await statistic(page, 'ev', null, 'Purples', 'jenks', 3);
     await view(page, [98, -38.5], 2.35);
     return { mode: 'data', export: { proj: 'lcc', area: 'screen', width: 800 } };
   },
@@ -219,7 +219,7 @@ const EXAMPLES = {
 
 const Ecu = require('../src/groups.js');
 /** Color by a statistic in the Data panel: choose it, pick the year ('auto' = the default) and the scale. */
-async function statistic(page, value, year, scale, method = 'equal', classes = 5) {
+async function statistic(page, value, year, scale, method = 'jenks', classes = 5) {
   await mode(page, 'data');
   await page.selectOption('#dst', value);
   if (year) {

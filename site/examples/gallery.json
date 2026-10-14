@@ -38,8 +38,8 @@
   {
     "name": "electoral",
     "title": "Electoral votes per state, 2024 and 2028",
-    "desc": "Lambert conformal conic. Each state's electoral votes from the 2020 Census apportionment, in three classes.",
-    "how": "Data: Statistic, Electoral votes per state.",
+    "desc": "Lambert conformal conic. Each state's electoral votes from the 2020 Census apportionment, in three classes by natural breaks, so states with similar counts share a color.",
+    "how": "Data: Statistic, Electoral votes per state; 3 classes.",
     "source": "U.S. Census Bureau, 2020 apportionment (public domain), checked against the Census table.",
     "alt": "Map of the United States with the states shaded by their number of electoral votes, California and Texas darkest"
   },
