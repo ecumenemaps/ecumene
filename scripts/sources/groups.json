@@ -1,0 +1,63 @@
+[
+  {
+    "id": "groups-eu",
+    "kind": "reference",
+    "order": 70,
+    "title": "Country groups: European Union and Eurozone",
+    "source": "[European Union, EU countries](https://european-union.europa.eu/principles-countries-history/eu-countries_en); [European Central Bank, euro area countries](https://www.ecb.europa.eu/euro/intro/html/index.en.html), checked 14 Oct 2026",
+    "licence": { "name": "Membership is a fact; no licence claimed" },
+    "terms": "EU site content is CC BY 4.0 (europa.eu legal notice); the ECB page's terms were not checked"
+  },
+  {
+    "id": "groups-nato",
+    "kind": "reference",
+    "order": 71,
+    "title": "Country groups: NATO",
+    "source": "[NATO, member countries](https://www.nato.int/en/about-us/organization/nato-member-countries), checked 14 Oct 2026",
+    "licence": { "name": "Membership is a fact; no licence claimed" },
+    "terms": "not found, NATO's copyright pages did not load"
+  },
+  {
+    "id": "groups-un",
+    "kind": "reference",
+    "order": 72,
+    "title": "Country groups: UN Security Council permanent members",
+    "source": "[United Nations, UN Charter Chapter V, Article 23](https://www.un.org/en/about-us/un-charter/chapter-5), checked 14 Oct 2026",
+    "licence": { "name": "The five names are a fact; no licence claimed" },
+    "terms": "UN terms of use allow personal use only and no redistribution, so nothing is copied from the page"
+  },
+  {
+    "id": "groups-g7-g20",
+    "kind": "reference",
+    "order": 73,
+    "title": "Country groups: G7 and G20",
+    "source": "[Government of Canada, Canada and the G7](https://www.international.gc.ca/world-monde/international_relations-relations_internationales/g7/index.aspx?lang=eng); [Canada and the G20](https://www.international.gc.ca/world-monde/international_relations-relations_internationales/g20/index.aspx?lang=eng), checked 14 Oct 2026; g20.org (2026 presidency) compared, see the group note",
+    "licence": { "name": "Membership is a fact; no licence claimed" },
+    "terms": "Canada.ca restricts commercial reproduction and requires permission, so nothing is copied from the pages"
+  },
+  {
+    "id": "groups-asean",
+    "kind": "reference",
+    "order": 74,
+    "title": "Country groups: ASEAN",
+    "source": "[Government of Japan, Ministry of Foreign Affairs, ASEAN](https://www.mofa.go.jp/region/asia-paci/asean/index.html), checked 14 Oct 2026 (asean.org cannot be read by a script)",
+    "licence": { "name": "Membership is a fact; no licence claimed" },
+    "terms": "not checked, the page is marked Copyright MOFA"
+  },
+  {
+    "id": "groups-wikidata",
+    "kind": "reference",
+    "order": 75,
+    "title": "Country groups: second opinion for EU, NATO, G7 and G20",
+    "source": "[Wikidata](https://www.wikidata.org/), membership statements, compared by scripts/check_groups.js",
+    "licence": { "name": "CC0" }
+  },
+  {
+    "id": "groups-continents",
+    "kind": "reference",
+    "order": 76,
+    "title": "Country groups: continents",
+    "source": "Hand-kept lists in src/groups.js, compared with Natural Earth's CONTINENT field; the cases where they differ are listed in HANDOFF.md",
+    "licence": { "name": "Natural Earth: public domain" }
+  }
+]
