@@ -54,7 +54,8 @@ function mirrorName(d) {
 function readmeTable() {
   const rows = loadSources().map((e) => {
     const src = e.kind === 'layer' ? '[' + e.publisher + '](' + e.url + '), ' + e.edition.split(';')[0] : e.source,
-      lic = e.licence.url ? '[' + e.licence.name + '](' + e.licence.url + ')' : e.licence.name;
+      // terms: the terms of a page that was only read to check facts we hold (no licence is claimed for the facts)
+      lic = (e.licence.url ? '[' + e.licence.name + '](' + e.licence.url + ')' : e.licence.name) + (e.terms ? ' (terms of the pages checked: ' + e.terms + ')' : '');
     return '| ' + e.title + ' | ' + src + ' | ' + lic + ' |';
   });
   return ['| Data | Source | Licence |', '|---|---|---|', ...rows].join('\n');
