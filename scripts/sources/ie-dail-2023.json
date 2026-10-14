@@ -25,6 +25,7 @@
     "code": "@slug",
     "name": "ENG_NAME_VALUE",
     "dissolve": true,
-    "strip": " \\(\\d+\\)$"
+    "strip": " \\(\\d+\\)$",
+    "seats": " \\((\\d+)\\)$"
   }
 }

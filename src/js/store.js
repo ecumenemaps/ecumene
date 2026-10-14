@@ -97,6 +97,10 @@ export const app = {
   // pos: corner; xy: dragged position as fractions of the frame (null = use the corner); scale: size
   legend: { title: '', pos: 'bl', xy: null, scale: 1, show: true, note: true, order: [] },
   legendRect: null, // where the legend was last drawn on screen
+  // seat counter (seatbar.js): shown, pos 'tc' or 'bc' (top or bottom centre), xy dragged position as for the legend,
+  // scale, el the election shown when the map has several (seats.js ids; '' = the first)
+  seatbar: { show: true, pos: 'tc', xy: null, scale: 1, el: '' },
+  seatRect: null, // where the seat counter was last drawn on screen
   fictional: false, // the map shows an invented scenario: exports say so (source line and SVG description)
 
   // export settings (projection key from projections.js, 'screen' or 'world', width in px or 0 = automatic)

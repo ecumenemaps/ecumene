@@ -260,6 +260,10 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <div class="row" style="margin-top:8px"><select id="lp" aria-label="Legend position" style="width:auto;flex:1"><option value="bl">Bottom left</option><option value="br">Bottom right</option><option value="tl">Top left</option><option value="tr">Top right</option><option value="xy" hidden>Where you dragged it</option></select>
 <label class="sw2"><input id="ls" type="checkbox" checked> Show legend</label></div>
 <label class="rg">Legend size<input id="lk" type="range" min="60" max="200" step="5" value="100" aria-label="Legend size"></label>
+<label class="sw2" style="margin-top:14px" title="A bar counting seats per color, for election maps"><input id="sbs" type="checkbox" checked> Seat counter</label>
+<select id="sbe" aria-label="Election counted" hidden style="margin-top:6px"></select>
+<label class="rg" id="sbkw">Seat counter size<input id="sbk" type="range" min="60" max="200" step="5" value="100" aria-label="Seat counter size"></label>
+<p id="sbi" class="hint" style="margin-top:4px"></p>
 <p id="cvdw" class="hint" hidden></p>
 <p class="hint">Drag the legend on the map to place it anywhere. Exports put it in the same place.</p>
 </section>
