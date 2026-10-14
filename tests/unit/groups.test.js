@@ -122,14 +122,39 @@ test('number formatting', () => {
 test('every membership group names its source and when it was checked', () => {
   const { loadSources } = require('../../scripts/lib/sources.js');
   const ids = loadSources().map((s) => s.id);
-  for (const k of ['European Union (27)', 'Eurozone (21)', 'NATO (32)', 'G7', 'G20 (19 countries)', 'ASEAN (11)', 'UN Security Council permanent members']) {
+  for (const k of [
+    'European Union (27)',
+    'Eurozone (21)',
+    'NATO (32)',
+    'G7',
+    'G20 (19 countries)',
+    'ASEAN (11)',
+    'UN Security Council permanent members',
+    ...Object.keys(Ecu.CONTINENTS),
+  ]) {
     assert.ok(Ecu.GROUP_SOURCES[k], k + ' has no source');
     assert.ok(Ecu.groupNote(k).includes('Membership checked against ' + Ecu.GROUP_SOURCES[k] + ' on ' + Ecu.GROUPS_CHECKED), k);
   }
   // the groups' sources are in the README table
-  for (const id of ['groups-eu', 'groups-nato', 'groups-un', 'groups-g7-g20', 'groups-asean', 'groups-wikidata', 'groups-continents']) assert.ok(ids.includes(id), id);
+  for (const id of ['groups-eu', 'groups-nato', 'groups-un', 'groups-g7-g20', 'groups-asean', 'groups-wikidata', 'groups-continents'])
+    assert.ok(ids.includes(id), id);
   // the G20 note says the 2026 presidency's own list differs
   assert.ok(Ecu.groupNote('G20 (19 countries)').includes('South Africa'));
-  // groups without a membership source keep just their note
-  assert.strictEqual(Ecu.groupNote('Asia'), Ecu.GROUP_NOTES.Asia);
+  // continents name the UN classification, and their notes come first
+  assert.ok(Ecu.groupNote('Asia').startsWith(Ecu.GROUP_NOTES.Asia + ' Membership checked against the UN Statistics Division'));
+});
+test('continents follow the UN M49 classification', () => {
+  const where = (n) => Object.keys(Ecu.CONTINENTS).find((c) => Ecu.CONTINENTS[c].includes(n));
+  // Cyprus is in Western Asia in M49; the other places on the island go with it
+  for (const n of ['Cyprus', 'N. Cyprus', 'Cyprus U.N. Buffer Zone', 'Akrotiri', 'Dhekelia']) assert.strictEqual(where(n), 'Asia', n);
+  assert.strictEqual(where('Russia'), 'Europe');
+  for (const n of ['Turkey', 'Georgia', 'Armenia', 'Azerbaijan', 'Kazakhstan']) assert.strictEqual(where(n), 'Asia', n);
+  // the Southern Ocean islands
+  assert.strictEqual(where('S. Geo. and the Is.'), 'South America');
+  assert.strictEqual(where('Heard I. and McDonald Is.'), 'Oceania');
+  assert.strictEqual(where('Fr. S. Antarctic Lands'), 'Africa');
+  assert.deepStrictEqual(Ecu.CONTINENTS.Antarctica, ['Antarctica']);
+  // islands M49 puts with a continent though Natural Earth calls them open ocean
+  for (const n of ['Seychelles', 'Mauritius', 'Saint Helena', 'Br. Indian Ocean Ter.']) assert.strictEqual(where(n), 'Africa', n);
+  assert.strictEqual(where('Maldives'), 'Asia');
 });

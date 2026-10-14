@@ -184,6 +184,54 @@ async function wikidata(qid) {
   return { set, unknown };
 }
 
+/**
+ * UN Statistics Division, M49 overview: the continent of each map place, as {name: continent}, for the places that
+ * have an ISO code (src/iso.js) or share Cyprus's island. The Americas are split by M49's own sub-regions: South
+ * America is its "South America" intermediate region; Northern America, Central America and the Caribbean are North
+ * America. Also returns the map places M49 does not list.
+ */
+async function m49Official() {
+  const r = await fetch('https://unstats.un.org/unsd/methodology/m49/overview/', { headers: UA });
+  if (!r.ok) throw new Error('UNSD M49 page answered HTTP ' + r.status);
+  const html = await r.text(),
+    a = html.search(/id\s*=\s*"downloadTableEN"/);
+  if (a < 0) throw new Error('UNSD M49 page: the English table was not found');
+  const rows = [...html.slice(a, html.indexOf('</table>', a)).matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map((m) =>
+    [...m[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)].map((c) => text(c[1]).trim()),
+  );
+  const head = rows[0],
+    col = (n) => head.findIndex((h) => h.toLowerCase().startsWith(n));
+  const [R, I, N, A3] = [col('region name'), col('intermediate region name'), col('country or area'), col('iso-alpha3')];
+  if ([R, I, N, A3].includes(-1)) throw new Error('UNSD M49 page: the table columns changed');
+  const byIso = new Map();
+  for (const r of rows.slice(1))
+    if (r[A3])
+      byIso.set(
+        r[A3],
+        r[R] === 'Americas'
+          ? r[I] === 'South America'
+            ? 'South America'
+            : 'North America'
+          : r[R] || (r[N] === 'Antarctica' ? 'Antarctica' : ''),
+      );
+  const ISO = require('../src/iso.js'),
+    idIso = new Map(Object.entries(ISO.ISO3_ID).map(([k, v]) => [v, k]));
+  for (const [k, n] of Object.entries(ISO.ISO3_NAME)) idIso.set('name:' + n, k);
+  // places on Cyprus's island that M49 does not list separately
+  const FOLLOW = { 'N. Cyprus': 'CYP', 'Cyprus U.N. Buffer Zone': 'CYP', Akrotiri: 'CYP', Dhekelia: 'CYP' };
+  const cont = {},
+    unlisted = [];
+  for (const g of world.objects.countries.geometries) {
+    const n = g.properties && g.properties.name;
+    // Baikonur and Guantánamo Bay are merged into Kazakhstan and Cuba on the map (ALIAS in src/js/data.js)
+    if (!n || n in cont || ISO.ISO_SKIP.includes(n) || n === 'Baikonur' || n === 'USNB Guantanamo Bay') continue;
+    const iso = FOLLOW[n] || (g.id && idIso.get(String(g.id).padStart(3, '0'))) || idIso.get('name:' + n);
+    if (iso && byIso.get(iso)) cont[n] = byIso.get(iso);
+    else if (!unlisted.includes(n)) unlisted.push(n);
+  }
+  return { cont, unlisted };
+}
+
 const diff = (a, b) => [...a].filter((x) => !b.has(x)).sort();
 // Parts of France and the Netherlands that are EU territory and use the euro (see the group notes in groups.js)
 const OVERSEAS = new Set(['French Guiana', 'Guadeloupe', 'Martinique', 'Mayotte', 'Réunion']);
@@ -298,6 +346,15 @@ const withoutOverseas = (s) => new Set([...s].filter((x) => !OVERSEAS.has(x)));
       const w = await wikidata(q);
       report(g, 'wikidata', q, mine, w.set);
     });
+  await run('Continents', 'official', 'unstats.un.org', async () => {
+    const { cont, unlisted } = await m49Official();
+    for (const c of Object.keys(Ecu.CONTINENTS)) {
+      const mine = new Set(Ecu.CONTINENTS[c].filter((n) => n in cont)),
+        theirs = new Set(Object.keys(cont).filter((n) => cont[n] === c));
+      report(c, 'official', 'UN Statistics Division, M49 classification', mine, theirs);
+    }
+    console.log('       not in M49, kept with the land around them: ' + unlisted.sort().join(', '));
+  });
   console.log(failed ? '\nSome checks failed or differ: do not call those groups verified.' : '\nAll checks passed.');
   process.exit(failed ? 1 : 0);
 })();

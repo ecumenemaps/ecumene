@@ -57,7 +57,8 @@
     "kind": "reference",
     "order": 76,
     "title": "Country groups: continents",
-    "source": "Hand-kept lists in src/groups.js, compared with Natural Earth's CONTINENT field; the cases where they differ are listed in HANDOFF.md",
-    "licence": { "name": "Natural Earth: public domain" }
+    "source": "[UN Statistics Division, M49 classification](https://unstats.un.org/unsd/methodology/m49/overview/), checked 14 Oct 2026; the Americas split into North and South by its sub-regions, and places it does not list keep the continent of the land around them",
+    "licence": { "name": "The classification is a fact; no licence claimed" },
+    "terms": "UN terms of use allow personal use only and no redistribution, so nothing is copied from the page"
   }
 ]
