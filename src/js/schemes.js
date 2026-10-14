@@ -129,13 +129,22 @@ export function simulate(hex, type) {
   const M = CVD[type],
     [r, g, b] = rgb(hex).map(lin),
     o = [0, 1, 2].map((i) => Math.min(1, Math.max(0, M[3 * i] * r + M[3 * i + 1] * g + M[3 * i + 2] * b)));
-  return '#' + o.map((u) => Math.round(gam(u) * 255).toString(16).padStart(2, '0')).join('');
+  return (
+    '#' +
+    o
+      .map((u) =>
+        Math.round(gam(u) * 255)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')
+  );
 }
 
 // CIE Lab (D65) and CIEDE2000, the usual measure of how different two colors look
 function lab(hex) {
   const [r, g, b] = rgb(hex).map(lin);
-  const f = (t) => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  const f = (t) => (t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116);
   const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047),
     y = f(0.2126 * r + 0.7152 * g + 0.0722 * b),
     z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
@@ -166,7 +175,12 @@ export function deltaE00([L1, a1, b1], [L2, a2, b2]) {
     Cpm = (C1p + C2p) / 2;
   let hm = h1p + h2p;
   if (C1p * C2p) hm = Math.abs(h1p - h2p) > 180 ? (h1p + h2p + (h1p + h2p < 360 ? 360 : -360)) / 2 : (h1p + h2p) / 2;
-  const T = 1 - 0.17 * Math.cos((hm - 30) * D) + 0.24 * Math.cos(2 * hm * D) + 0.32 * Math.cos((3 * hm + 6) * D) - 0.2 * Math.cos((4 * hm - 63) * D);
+  const T =
+    1 -
+    0.17 * Math.cos((hm - 30) * D) +
+    0.24 * Math.cos(2 * hm * D) +
+    0.32 * Math.cos((3 * hm + 6) * D) -
+    0.2 * Math.cos((4 * hm - 63) * D);
   const SL = 1 + (0.015 * (Lm - 50) ** 2) / Math.sqrt(20 + (Lm - 50) ** 2),
     SC = 1 + 0.045 * Cpm,
     SH = 1 + 0.015 * Cpm * T,

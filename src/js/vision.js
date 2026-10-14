@@ -43,7 +43,17 @@ function warn() {
   for (const x of found) (byType.get(x.type) || byType.set(x.type, []).get(x.type)).push(name(x.a) + ' and ' + name(x.b));
   w.replaceChildren(
     'Some colors look alike with a color-vision deficiency. ',
-    ...[...byType].map(([t, pairs]) => el('span', { textContent: 'With ' + SHORT[t] + ': ' + pairs.slice(0, 3).join('; ') + (pairs.length > 3 ? ' and ' + (pairs.length - 3) + ' more' : '') + '. ' })),
+    ...[...byType].map(([t, pairs]) =>
+      el('span', {
+        textContent:
+          'With ' +
+          SHORT[t] +
+          ': ' +
+          pairs.slice(0, 3).join('; ') +
+          (pairs.length > 3 ? ' and ' + (pairs.length - 3) + ' more' : '') +
+          '. ',
+      }),
+    ),
     'The Okabe–Ito paint colors, or a color-blind safe scale, avoid this; Style > Color vision previews it.',
   );
 }

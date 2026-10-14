@@ -1,7 +1,18 @@
 // Color schemes and color-vision simulation (src/js/schemes.js).
 import test from 'node:test';
 import assert from 'node:assert';
-import { SCALES, PAINT_SETS, classColors, divergingBreaks, simulate, deltaE, deltaE00, clashes, safetyNote, CVD } from '../../src/js/schemes.js';
+import {
+  SCALES,
+  PAINT_SETS,
+  classColors,
+  divergingBreaks,
+  simulate,
+  deltaE,
+  deltaE00,
+  clashes,
+  safetyNote,
+  CVD,
+} from '../../src/js/schemes.js';
 
 test('CIEDE2000 matches the published test pairs (Sharma, Wu and Dalal 2005)', () => {
   const pairs = [
@@ -16,7 +27,8 @@ test('CIEDE2000 matches the published test pairs (Sharma, Wu and Dalal 2005)', (
 });
 
 test('simulation keeps neutrals neutral and loses red-green contrast for deuteranopia', () => {
-  for (const t of Object.keys(CVD)) for (const g of ['#ffffff', '#000000', '#808080']) assert.ok(deltaE(simulate(g, t), g) < 1, t + ' ' + g);
+  for (const t of Object.keys(CVD))
+    for (const g of ['#ffffff', '#000000', '#808080']) assert.ok(deltaE(simulate(g, t), g) < 1, t + ' ' + g);
   // pure red and green are far apart normally, much closer for deuteranopia and protanopia
   assert.ok(deltaE('#d62728', '#2ca02c') > 50);
   assert.ok(deltaE(simulate('#d62728', 'deuteranopia'), simulate('#2ca02c', 'deuteranopia')) < 25);
