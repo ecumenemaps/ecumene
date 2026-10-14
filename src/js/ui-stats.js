@@ -236,6 +236,8 @@ function clearAll() {
   for (const k in app.labels) delete app.labels[k];
 }
 function done() {
+  // a statistic replaces a table of your own data, and its credit
+  app.imported = null;
   emit('stat');
   emit('legend');
   redraw();

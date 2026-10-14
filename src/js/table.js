@@ -65,7 +65,10 @@ export function parseText(text) {
     const score = n >= 2 ? freq / rows.length + (d === ',' ? 0 : 0.001) : 0;
     if (score > 0.5 && (!best || score > best.score)) best = { rows, delim: d, score };
   }
-  const lines = text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (best) {
     // a line the delimiter does not split, such as "Italy: 12%", keeps the old "name: value" reading
     best.rows = best.rows.map((r, i) => (r.length === 1 ? splitLoose(r[0]) : r));
@@ -77,7 +80,12 @@ export function parseText(text) {
 /** "France, 68", "Italy: 12%", "Peru = 3": a name and a value after the first separator; anything else is one cell. */
 function splitLoose(line) {
   const m = /^(.*?)\s*[\t;:,=]\s*([-+−]?\d[\d\s.,]*%?)\s*$/.exec(line);
-  return (m ? [m[1], m[2]] : [line]).map((c) => c.replace(/^["']|["']$/g, '').trim().slice(0, MAX_CELL));
+  return (m ? [m[1], m[2]] : [line]).map((c) =>
+    c
+      .replace(/^["']|["']$/g, '')
+      .trim()
+      .slice(0, MAX_CELL),
+  );
 }
 
 // ---- numbers, colours and categories
@@ -87,9 +95,14 @@ function splitLoose(line) {
  * NaN when the cell is not a number.
  */
 export function parseNumber(s) {
-  let v = String(s == null ? '' : s).trim().replace(/[\s  ]/g, '').replace(/^−/, '-').replace(/%$/, '');
+  let v = String(s == null ? '' : s)
+    .trim()
+    .replace(/[\s  ]/g, '')
+    .replace(/^−/, '-')
+    .replace(/%$/, '');
   if (!/^[-+]?(\d[\d.,]*|[.,]\d+)$/.test(v)) return NaN;
-  if (/,/.test(v) && /\./.test(v)) v = v.lastIndexOf(',') > v.lastIndexOf('.') ? v.replace(/\./g, '').replace(',', '.') : v.replace(/,/g, '');
+  if (/,/.test(v) && /\./.test(v))
+    v = v.lastIndexOf(',') > v.lastIndexOf('.') ? v.replace(/\./g, '').replace(',', '.') : v.replace(/,/g, '');
   else if (/^[-+]?\d{1,3}(,\d{3})+$/.test(v)) v = v.replace(/,/g, '');
   else if (/^[-+]?\d{1,3}(\.\d{3}){2,}$/.test(v)) v = v.replace(/\./g, '');
   else v = v.replace(',', '.');
@@ -187,10 +200,11 @@ export function guessColumns(rows, match) {
     }
   }
   let value = -1;
-  for (let c = width - 1; c >= 0; c--) if (c !== place && share(c, (x) => Number.isFinite(parseNumber(x))) >= 0.5) {
-    value = c;
-    break;
-  }
+  for (let c = width - 1; c >= 0; c--)
+    if (c !== place && share(c, (x) => Number.isFinite(parseNumber(x))) >= 0.5) {
+      value = c;
+      break;
+    }
   if (value < 0) value = [...Array(width).keys()].find((c) => c !== place && share(c, (x) => x !== '') > 0) ?? (place === 0 ? 1 : 0);
   // the place column decides when it is mostly places (a header of years, "2022", "2023", is still a header);
   // otherwise a first row with text where the rows below have numbers
@@ -270,7 +284,13 @@ async function entryText(entries, name) {
   return new TextDecoder().decode(raw);
 }
 const xmlText = (s) =>
-  s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&');
+  s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n))
+    .replace(/&amp;/g, '&');
 const colIndex = (ref) => {
   let n = 0;
   for (const ch of /^[A-Z]+/.exec(ref)[0]) n = n * 26 + ch.charCodeAt(0) - 64;
@@ -288,7 +308,12 @@ export async function readXlsx(bytes) {
   );
   const wb = await entryText(entries, 'xl/workbook.xml'),
     rels = await entryText(entries, 'xl/_rels/workbook.xml.rels');
-  const target = new Map([...rels.matchAll(/<Relationship\b[^>]*>/g)].map((m) => [(/\bId="([^"]+)"/.exec(m[0]) || [])[1], (/\bTarget="([^"]+)"/.exec(m[0]) || [])[1]]));
+  const target = new Map(
+    [...rels.matchAll(/<Relationship\b[^>]*>/g)].map((m) => [
+      (/\bId="([^"]+)"/.exec(m[0]) || [])[1],
+      (/\bTarget="([^"]+)"/.exec(m[0]) || [])[1],
+    ]),
+  );
   const sheets = [];
   for (const m of wb.matchAll(/<sheet\b[^>]*>/g)) {
     const name = xmlText((/\bname="([^"]*)"/.exec(m[0]) || [])[1] || 'Sheet'),
@@ -330,7 +355,15 @@ export async function readXlsx(bytes) {
  */
 export function importRecord(src, info, rows, cols, header, credit) {
   const body = header ? rows.slice(1) : rows;
-  const r = { k: 'im', src, t: info.t, rows: body.map((x) => [x[cols.place] || '', x[cols.value] || '']).filter((x) => x[0] || x[1]), credit: String(credit || '').trim().slice(0, 200) };
+  const r = {
+    k: 'im',
+    src,
+    t: info.t,
+    rows: body.map((x) => [x[cols.place] || '', x[cols.value] || '']).filter((x) => x[0] || x[1]),
+    credit: String(credit || '')
+      .trim()
+      .slice(0, 200),
+  };
   if (header) r.head = [rows[0][cols.place] || '', rows[0][cols.value] || ''];
   if (info.name) r.name = String(info.name).slice(0, 120);
   if (info.url) r.url = String(info.url).slice(0, 500);
@@ -341,7 +374,16 @@ export function validImport(r) {
   if (!r || typeof r !== 'object' || r.k !== 'im' || !['paste', 'file', 'sheet'].includes(r.src) || !Array.isArray(r.rows)) return null;
   if (typeof r.t !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r.t)) return null;
   const cell = (x) => (typeof x === 'string' || typeof x === 'number' ? String(x).slice(0, MAX_CELL) : '');
-  const out = { k: 'im', src: r.src, t: r.t, rows: r.rows.slice(0, MAX_ROWS).filter(Array.isArray).map((x) => [cell(x[0]), cell(x[1])]), credit: typeof r.credit === 'string' ? r.credit.slice(0, 200) : '' };
+  const out = {
+    k: 'im',
+    src: r.src,
+    t: r.t,
+    rows: r.rows
+      .slice(0, MAX_ROWS)
+      .filter(Array.isArray)
+      .map((x) => [cell(x[0]), cell(x[1])]),
+    credit: typeof r.credit === 'string' ? r.credit.slice(0, 200) : '',
+  };
   if (Array.isArray(r.head)) out.head = [cell(r.head[0]), cell(r.head[1])];
   if (typeof r.name === 'string') out.name = r.name.slice(0, 120);
   if (r.src === 'sheet' && typeof r.url === 'string' && sheetsCsvUrl(r.url)) out.url = r.url.slice(0, 500);
@@ -351,10 +393,23 @@ const UNCHECKED = "supplied by the map's author and not checked by Ecumene";
 /** {short, detail} credit for exports, in the same shape as statistics (statsrc.js). */
 export function importCredit(r) {
   if (!r) return null;
-  const from = r.src === 'sheet' ? 'a Google Sheets link (' + r.url + '), read on ' + r.t : r.src === 'file' ? 'the file ' + (r.name || '') + ', read on ' + r.t : 'rows pasted on ' + r.t;
+  const from =
+    r.src === 'sheet'
+      ? 'a Google Sheets link (' + r.url + '), read on ' + r.t
+      : r.src === 'file'
+        ? 'the file ' + (r.name || '') + ', read on ' + r.t
+        : 'rows pasted on ' + r.t;
   return {
     short: r.credit ? r.credit : "supplied by the map's author, not checked by Ecumene",
     detail:
-      'Data: ' + (r.head ? r.head[1] + ', ' : '') + r.rows.length + ' rows from ' + from + '. ' + (r.credit ? 'Source given by the map’s author: ' + r.credit + '. Not checked by Ecumene.' : 'No source was given: the data was ' + UNCHECKED + '.'),
+      'Data: ' +
+      (r.head ? r.head[1] + ', ' : '') +
+      r.rows.length +
+      ' rows from ' +
+      from +
+      '. ' +
+      (r.credit
+        ? 'Source given by the map’s author: ' + r.credit + '. Not checked by Ecumene.'
+        : 'No source was given: the data was ' + UNCHECKED + '.'),
   };
 }

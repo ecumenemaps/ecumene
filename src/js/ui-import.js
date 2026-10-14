@@ -8,7 +8,20 @@ import { commit } from './history.js';
 import { $, el, note, plural } from './util.js';
 import { PAINT_SETS } from './schemes.js';
 import Ecu from '../groups.js';
-import { parseText, parseNumber, parseColour, valueKind, placeMatcher, suggest, guessColumns, columnNames, sheetsCsvUrl, readXlsx, importRecord, MAX_ROWS } from './table.js';
+import {
+  parseText,
+  parseNumber,
+  parseColour,
+  valueKind,
+  placeMatcher,
+  suggest,
+  guessColumns,
+  columnNames,
+  sheetsCsvUrl,
+  readXlsx,
+  importRecord,
+  MAX_ROWS,
+} from './table.js';
 import { NO_DATA_PAINT, NO_DATA_LABEL } from './stats.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -24,13 +37,9 @@ let T = null,
 export function initImport(colourRows) {
   paintRows = colourRows;
   match = placeMatcher(geo.feats, Ecu.matcher(geo.names));
-  let timer = 0;
   $('dd').addEventListener('input', () => {
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      const r = parseText($('dd').value);
-      setTable(r.rows.length ? { src: 'paste', t: today(), rows: r.rows, cut: r.cut } : null);
-    }, 250);
+    timer = setTimeout(readPaste, 250);
   });
   $('dfo').onclick = () => $('dfi').click();
   $('dfi').onchange = () => {
@@ -45,6 +54,18 @@ export function initImport(colourRows) {
   $('dsh').onchange = () => useSheet(+$('dsh').value);
   on('import', sync);
   sync();
+}
+
+// the paste box is read a moment after typing stops; pasted is the text last read, so it is not read twice
+let timer = 0,
+  pasted = '';
+function readPaste() {
+  clearTimeout(timer);
+  const text = $('dd').value;
+  if (text === pasted) return;
+  pasted = text;
+  const r = parseText(text);
+  setTable(r.rows.length ? { src: 'paste', t: today(), rows: r.rows, cut: r.cut } : null);
 }
 
 /** Show a new table: guess its columns and header, then preview it. */
@@ -77,16 +98,38 @@ function preview() {
   $('dpv').hidden = false;
   const names = columnNames(T.rows, header),
     body = bodyRows();
-  const head = el('tr', null, ...names.map((n, i) => el('th', { textContent: n, class: i === cols.place ? 'p' : i === cols.value ? 'v' : '' })));
-  const rows = body.slice(0, 6).map((r) =>
-    el('tr', null, ...names.map((n, i) => el('td', { textContent: r[i] || '', class: (i === cols.place ? 'p' : i === cols.value ? 'v' : '') + (i === cols.place && r[i] && !match(r[i]) ? ' x' : '') }))),
+  const head = el(
+    'tr',
+    null,
+    ...names.map((n, i) => el('th', { textContent: n, class: i === cols.place ? 'p' : i === cols.value ? 'v' : '' })),
   );
+  const rows = body
+    .slice(0, 6)
+    .map((r) =>
+      el(
+        'tr',
+        null,
+        ...names.map((n, i) =>
+          el('td', {
+            textContent: r[i] || '',
+            class: (i === cols.place ? 'p' : i === cols.value ? 'v' : '') + (i === cols.place && r[i] && !match(r[i]) ? ' x' : ''),
+          }),
+        ),
+      ),
+    );
   $('dtb').replaceChildren(el('table', null, head, ...rows));
   const places = body.map((r) => r[cols.place] || '').filter(Boolean),
     unknown = [...new Set(places.filter((p) => !match(p)))],
     kind = valueKind(body.map((r) => r[cols.value] || ''));
   const from = T.src === 'sheet' ? 'From the Google Sheet. ' : T.src === 'file' ? 'From ' + T.name + '. ' : '';
-  let m = from + plural(body.length, 'row', 'rows') + ', ' + (places.length - unknown.length) + ' recognised as places. Values: ' + { number: 'numbers', colour: 'colors', category: 'categories' }[kind] + '.';
+  let m =
+    from +
+    plural(body.length, 'row', 'rows') +
+    ', ' +
+    (places.length - unknown.length) +
+    ' recognised as places. Values: ' +
+    { number: 'numbers', colour: 'colors', category: 'categories' }[kind] +
+    '.';
   if (unknown.length)
     m +=
       ' Not recognised: ' +
@@ -109,13 +152,13 @@ async function openFile(f) {
       const sheets = await readXlsx(await f.arrayBuffer());
       $('dsh').replaceChildren(...sheets.map((s, i) => el('option', { value: String(i), textContent: 'Sheet: ' + s.name })));
       $('dsh').hidden = sheets.length < 2;
-      $('dd').value = '';
+      $('dd').value = pasted = '';
       T = { src: 'file', name: f.name, t: today(), sheets };
       useSheet(0);
     } else {
       const r = parseText(await f.text());
       $('dsh').hidden = true;
-      $('dd').value = '';
+      $('dd').value = pasted = '';
       setTable({ src: 'file', name: f.name, t: today(), rows: r.rows, cut: r.cut });
     }
     note('Read ' + f.name + '.');
@@ -132,7 +175,8 @@ function useSheet(i) {
 async function loadSheet() {
   const link = $('dsu').value.trim(),
     url = sheetsCsvUrl(link);
-  if (!url) return note('That is not a Google Sheets link. Copy the link from the sheet’s Share button, or from File, Share, Publish to web.', 1);
+  if (!url)
+    return note('That is not a Google Sheets link. Copy the link from the sheet’s Share button, or from File, Share, Publish to web.', 1);
   note('Reading the sheet from Google…');
   try {
     const r = await fetch(url);
@@ -140,11 +184,16 @@ async function loadSheet() {
     if (!r.ok || /html/.test(type)) throw new Error(r.ok ? 'Google asked to sign in' : 'Google answered HTTP ' + r.status);
     const t = parseText(await r.text());
     $('dsh').hidden = true;
-    $('dd').value = '';
+    $('dd').value = pasted = '';
     setTable({ src: 'sheet', url: link, t: today(), rows: t.rows, cut: t.cut });
     note('Read the sheet: ' + plural(t.rows.length, 'row', 'rows') + '.');
   } catch (e) {
-    note('Could not read the sheet (' + (e && e.message ? e.message : e) + '). Share it as “anyone with the link”, or publish it to the web, and try again.', 1);
+    note(
+      'Could not read the sheet (' +
+        (e && e.message ? e.message : e) +
+        '). Share it as “anyone with the link”, or publish it to the web, and try again.',
+      1,
+    );
   }
 }
 
@@ -156,6 +205,7 @@ function sync() {
   $('dsrc').value = r.credit || '';
   $('dsu').value = r.src === 'sheet' ? r.url || '' : $('dsu').value;
   $('dd').value = r.src === 'paste' ? rows.map((x) => x.join('\t')).join('\n') : '';
+  pasted = $('dd').value;
   $('dsh').hidden = true;
   T = { src: r.src, t: r.t, rows, name: r.name, url: r.url };
   cols = { place: 0, value: 1 };
@@ -166,6 +216,8 @@ function sync() {
 
 /** Color the map with the table (one undo step); a statistic chosen above is used instead (ui-paint.js). */
 export function colourImport() {
+  // text pasted a moment ago may not have been read yet
+  if ($('dd').value.trim() && (!T || T.src === 'paste')) readPaste();
   if (!T || !T.rows.length) return note('Paste some rows, open a file or load a sheet first.', 1);
   if (cols.place === cols.value) return note('Choose different columns for places and values.', 1);
   const rows = [],
@@ -192,7 +244,15 @@ export function colourImport() {
     S = PAINT_SETS[app.paintSet] || PAINT_SETS.Default;
   const cats = kind === 'category' ? [...new Set(rows.map((r) => r.raw))] : [];
   if (cats.length > S.c.length)
-    return note(plural(cats.length, 'category', 'categories') + ' is more than the ' + S.c.length + ' colors of the ' + app.paintSet + ' paint set. Use fewer categories, or numbers.', 1);
+    return note(
+      plural(cats.length, 'category', 'categories') +
+        ' is more than the ' +
+        S.c.length +
+        ' colors of the ' +
+        app.paintSet +
+        ' paint set. Use fewer categories, or numbers.',
+      1,
+    );
   const prevAuto = app.imported && app.imported.head ? app.imported.head[1] : '';
   // the table colors the whole map: what was painted before goes
   [...app.fills.keys()].forEach((n) => setFill(n, null));
@@ -239,7 +299,15 @@ export function colourImport() {
   redraw();
   commit();
   const skipped = rows.length - ok.length;
-  let m = plural(ok.length, 'country', 'countries') + ' colored' + (kind === 'number' ? ' in ' + plural(used, 'class', 'classes') : kind === 'category' ? ' in ' + plural(used, 'category', 'categories') : '') + '.';
+  let m =
+    plural(ok.length, 'country', 'countries') +
+    ' colored' +
+    (kind === 'number'
+      ? ' in ' + plural(used, 'class', 'classes')
+      : kind === 'category'
+        ? ' in ' + plural(used, 'category', 'categories')
+        : '') +
+    '.';
   if (skipped) m += ' Skipped ' + skipped + ' with a value that is not ' + (kind === 'colour' ? 'a color' : 'a number') + '.';
   if (unknown.length) m += ' Not recognised: ' + listOf([...new Set(unknown)], 5) + '.';
   if (!$('dsrc').value.trim()) m += ' No source given: exports will say the data was supplied by you and not checked.';
