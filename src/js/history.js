@@ -3,9 +3,10 @@ import { app, emit, redraw } from './store.js';
 import { setFill } from './paint.js';
 
 const LIMIT = 200;
-// st: the statistic the map is colored with, lt: the legend title it came with (restored only when the statistic changes)
-const snap = () => ({ f: new Map(app.fills), u: new Map(app.units), o: JSON.stringify(app.objects), st: app.stat, lt: app.legend.title });
-let hist = [{ f: new Map(), u: new Map(), o: '[]', st: null, lt: '' }],
+// st/im: the statistic or the table of your own data the map is colored with, lt: the legend title that came with
+// them (restored only when they change), lb: the legend labels (coloring by data replaces them)
+const snap = () => ({ f: new Map(app.fills), u: new Map(app.units), o: JSON.stringify(app.objects), st: app.stat, im: app.imported, lt: app.legend.title, lb: { ...app.labels } });
+let hist = [{ f: new Map(), u: new Map(), o: '[]', st: null, im: null, lt: '', lb: {} }],
   hix = 0,
   timer = 0;
 
@@ -38,10 +39,15 @@ function restore(s) {
   });
   app.units.clear();
   s.u.forEach((c, k) => app.units.set(k, c));
-  if (app.stat !== s.st) {
+  if (app.stat !== s.st || app.imported !== s.im) {
+    // coloring by data replaced the legend labels; renamed labels otherwise stay as they are
+    for (const k in app.labels) delete app.labels[k];
+    Object.assign(app.labels, s.lb);
     app.stat = s.st;
+    app.imported = s.im;
     app.legend.title = s.lt;
     emit('stat');
+    emit('import');
   }
   emit('objects');
   emit('legend');

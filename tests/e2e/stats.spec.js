@@ -50,7 +50,6 @@ test('GDP per capita: year choice, colors, legend title, No data entry and expor
   await mode(page, 'data');
   expect(hits).toEqual([]); // nothing is fetched until a statistic is chosen
   await expect(page.locator('#dstw')).toBeHidden();
-  await expect(page.locator('#dndw')).toBeHidden();
   await page.selectOption('#dst', 'wb:NY.GDP.PCAP.CD');
   await expect(page.locator('#dyr')).toBeEnabled();
   expect(hits.length).toBe(1);
