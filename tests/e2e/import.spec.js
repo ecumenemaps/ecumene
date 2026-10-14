@@ -4,8 +4,6 @@ const { test, expect } = require('@playwright/test');
 const zlib = require('zlib');
 const { openApp, status, getCode, useCode, mode, sourceNote } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
-
 const state = (page) => page.evaluate(() => window.ecumene.getState());
 const fillOf = async (page, n) => (await state(page)).f.find((g) => g.n.includes(n));
 

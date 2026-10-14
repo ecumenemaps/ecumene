@@ -3,8 +3,6 @@
 const { test, expect } = require('@playwright/test');
 const { openApp, getCode, useCode, mode } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
-
 const US = 'United States of America';
 // paint US states (by name) and UK constituencies (by code) through the saved state, as a map file would
 async function paint(page, { blue = [], red = [], gb = [] }) {

@@ -2,8 +2,6 @@
 const { test, expect } = require('@playwright/test');
 const { openApp, status, getCode, useCode, mode } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
-
 const row = (iso, date, value) => ({
   indicator: { id: 'NY.GDP.PCAP.CD' },
   country: { id: 'XX' },

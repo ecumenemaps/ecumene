@@ -1,8 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { openApp, status, globeCentre, getCode, useCode, regionRows, mode } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
-
 test('loads with no errors and lists countries', async ({ page }) => {
   const errors = await openApp(page);
   expect(await page.locator('#names option').count()).toBeGreaterThan(240);
