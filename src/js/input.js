@@ -10,7 +10,8 @@ import { objectAt, handleAt, minPts } from './objects.js';
 import { addPoint, finishDraw, cancelDraw, select } from './editing.js';
 import { closePicker, pickCountry, unitAt, toggleUnits } from './picker.js';
 import { HOME, emit } from './store.js';
-import { $, note } from './util.js';
+import { $, el, note } from './util.js';
+import { countryInfo, unitInfo } from './hoverinfo.js';
 
 let cv, tip, onHoverChanged;
 const paintMode = () => $('pm').checked;
@@ -32,15 +33,41 @@ function placeTip() {
   if (y + h > app.H - 4) y = app.my - h - 10;
   tip.style.transform = 'translate(' + Math.max(2, x) + 'px,' + Math.max(2, y) + 'px)';
 }
-/** Update the name tag: subdivision (when picking), else named region, else what a click paints, else country. */
+// The loaded unit under the pointer, in Subdivisions mode or in a country with painted units: the tag names it and
+// says what the map says about it
+let under = null;
+function unitUnder() {
+  if (!app.hover || app.pick || app.drawing || app.sel >= 0 || app.hoverObj >= 0) return null;
+  const n = nameOf(app.hover);
+  if (!unitsOf(n) || !(subMode() || [...app.units.keys()].some((k) => k.startsWith(n + '|')))) return null;
+  const f = unitAtLL(n, geoAt(app.mx, app.my));
+  return f && { country: n, f };
+}
+function refreshUnder() {
+  const u = unitUnder();
+  if ((u && u.f) === (under && under.f)) return;
+  under = u;
+  refreshTip();
+}
+/**
+ * Update the name tag: subdivision (when picking), else named region, else what a click paints, else a painted unit,
+ * else country. A second line says what the map says about the place: its value, color label or seats (hoverinfo.js).
+ */
 export function refreshTip() {
   const pk = app.pick,
-    o = app.objects[app.hoverObj];
+    o = app.objects[app.hoverObj],
+    u = app.hover ? under : null;
   const name =
-    (pk && pk.hov ? pk.hov.properties.n : o ? o.label.trim() : '') || (app.subHov ? app.subHov.label : '') || (app.hover ? nameOf(app.hover) : '');
-  $('sr').textContent = name;
+    (pk && pk.hov ? pk.hov.properties.n : o ? o.label.trim() : '') ||
+    (app.subHov ? app.subHov.label : '') ||
+    (u ? u.f.properties.n : '') ||
+    (app.hover ? nameOf(app.hover) : '');
+  const sh = app.subHov && app.subHov.feats.length ? app.subHov : null;
+  const info =
+    !name || pk || o ? '' : sh ? unitInfo(sh.country, sh.feats) : u ? unitInfo(u.country, [u.f]) : app.hover ? countryInfo(nameOf(app.hover)) : '';
+  $('sr').textContent = info ? name + '. ' + info : name;
   if (app.hoverStyle.tip && name) {
-    tip.textContent = name;
+    tip.replaceChildren(name, ...(info ? [el('span', { class: 'ti', textContent: info })] : []));
     tip.hidden = false;
     placeTip();
   } else tip.hidden = true;
@@ -49,6 +76,7 @@ function setHover(id) {
   if (id === app.hover) return;
   app.hover = id;
   app.subHov = null; // recomputed by refreshSub for the new country
+  under = unitUnder();
   refreshTip();
   onHoverChanged();
   redraw();
@@ -81,6 +109,7 @@ function scheduleLoad(n) {
 }
 /** Work out which units a click would paint at the pointer (app.subHov), loading the country's units if needed. */
 export function refreshSub() {
+  refreshUnder();
   let h = null,
     want = '';
   if (subMode() && app.hover) {

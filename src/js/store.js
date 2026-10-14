@@ -81,8 +81,9 @@ export const app = {
   solid: '#e4572e', // the last plain color chosen: patterns are drawn on it
   ink: '#222222', // pattern color
   paintSet: 'Default', // swatch set in the paint panel (schemes.js PAINT_SETS)
-  // color by data: scale (schemes.js SCALES), classes, method, centre for diverging scales ('' = automatic), reversed
-  data: { scale: 'Blues', n: 5, m: 'equal', c: '', rev: false, nd: true }, // nd: mark countries without data
+  // color by data: scale (schemes.js SCALES), classes, method ('jenks' natural breaks, 'quantile', 'equal'; classes.js),
+  // centre for diverging scales ('' = automatic), reversed
+  data: { scale: 'Blues', n: 5, m: 'jenks', c: '', rev: false, nd: true }, // nd: mark countries without data
   // the statistic the map was colored with, saved with it (stats.js validRecord): {k:'wb', c, y, t, v, ys?} or {k:'ev'}
   stat: null,
   // or the table of your own data it was colored with (table.js importRecord): {k:'im', src, t, rows, credit, ...}

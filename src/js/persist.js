@@ -222,7 +222,8 @@ export function setState(o) {
   Object.assign(app.data, {
     scale: SCALES[ds.scale] ? ds.scale : 'Blues',
     n: Number.isInteger(ds.n) ? clamp(ds.n, 2, 9) : 5,
-    m: ds.m === 'quantile' ? 'quantile' : 'equal',
+    // a map keeps the method it was made with; maps saved before methods were saved get natural breaks
+    m: ['jenks', 'quantile', 'equal'].includes(ds.m) ? ds.m : 'jenks',
     c: typeof ds.c === 'string' && (ds.c === '' || Number.isFinite(+ds.c)) ? ds.c.slice(0, 30) : '',
     rev: !!ds.rev,
     nd: ds.nd !== false,

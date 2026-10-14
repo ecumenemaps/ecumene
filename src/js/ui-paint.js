@@ -1,6 +1,7 @@
 // Panel: paint colour, find a country, fill from a list or group, colour by data.
 import { geoCentroid } from 'd3-geo';
 import { SCALES, PAINT_SETS, safetyNote, classColors, divergingBreaks } from './schemes.js';
+import { classBreaks, classIndex, classLabels } from './classes.js';
 import { PATTERNS, PATTERN_TYPES, patternPaint, parsePaint, previewURL } from './patterns.js';
 import { app, on, emit, redraw } from './store.js';
 import { geo } from './data.js';
@@ -203,24 +204,30 @@ export function colourRows(rows, set) {
   const D = app.data,
     vals = rows.map((x) => x.value),
     div = SCALES[D.scale].kind === 'div';
-  let b;
+  let b, labels;
   if (div) {
     // centre: the value given, else 0 when the data has both signs, else the average
     const lo = Math.min(...vals),
       hi = Math.max(...vals),
       c = D.c !== '' && Number.isFinite(+D.c) ? +D.c : lo < 0 && hi > 0 ? 0 : vals.reduce((s, v) => s + v, 0) / vals.length;
     b = divergingBreaks(vals, Math.max(2, D.n), c);
-  } else b = Ecu.breaks(vals, D.n, D.m);
-  if (b.length < 2) b = [vals[0] - 1, vals[0]];
-  const k = b.length - 1,
+    if (b.length < 2) b = [vals[0] - 1, vals[0]];
+    labels = b.slice(0, -1).map((x, i) => Ecu.fmt(x) + ' to ' + Ecu.fmt(b[i + 1]));
+  } else {
+    // natural breaks, equal intervals or quantiles, with rounded edges (classes.js)
+    const r = classBreaks(vals, D.n, D.m);
+    b = r.b;
+    labels = classLabels(b, r.int, Ecu.fmt);
+  }
+  const k = Math.max(1, b.length - 1),
     cols = classColors(D.scale, k, D.rev);
   const used = new Set();
   for (const x of rows) {
-    const i = Ecu.classOf(x.value, b);
+    const i = Math.min(k - 1, classIndex(x.value, b));
     used.add(i);
     set(x, cols[i]);
   }
-  for (let i = 0; i < k; i++) app.labels[cols[i]] = Ecu.fmt(b[i]) + ' to ' + Ecu.fmt(b[i + 1]);
+  for (let i = 0; i < k; i++) app.labels[cols[i]] = labels[i] || Ecu.fmt(b[0]);
   app.legend.order = cols.filter((c, i) => used.has(i));
   return used.size;
 }
