@@ -40,25 +40,29 @@ void main(){float hw=uW*.5;float al=1.-smoothstep(hw-.5,hw+.5,abs(vD));o=vec4(uC
 // land colour). The subdivision pass uses its own palette and uSkip=1, so unpainted units are not drawn at all and
 // the country's fill shows through. uFlat overrides the colour (used for lakes). A second texture of the same shape
 // holds pattern fills (patterns.js): rgb the pattern colour, alpha the pattern type (0 none); the fragment shader
-// draws the pattern in CSS pixels (uPx device pixels each), the same shapes as the SVG and canvas tiles.
+// draws the pattern in CSS pixels (uPx device pixels each), the same shapes as the SVG and canvas tiles. The pattern is
+// laid out from an anchor on the Earth (uAnc: lon/lat per id, the centre of the country's largest part), projected
+// each frame, so it moves with the country when the globe turns instead of staying still on the screen.
 const VS_FILL = `#version 300 es
 precision highp float;precision highp int;precision highp sampler2D;
-in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal,uPat;uniform int uHover;uniform float uDark;uniform vec4 uFlat;uniform int uSkip;
-flat out vec3 vCol;flat out vec4 vPat;flat out float vA;out float vZ;
+in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal,uPat,uAnc;uniform int uHover;uniform float uDark;uniform vec4 uFlat;uniform int uSkip;
+flat out vec3 vCol;flat out vec4 vPat;flat out float vA;flat out vec2 vAnc;out float vZ;
 vec3 shade(vec3 cc){float lu=dot(cc,vec3(.299,.587,.114));return lu>.45?cc*(1.-uDark):mix(cc,vec3(1.),uDark);}
+vec3 sphere(vec2 ll){float lo=ll.x*0.017453292,la=ll.y*0.017453292;float c=cos(la);return vec3(c*cos(lo),c*sin(lo),sin(la));}
 void main(){
- float lo=aLL.x*0.017453292,la=aLL.y*0.017453292;float c=cos(la);vec3 P=vec3(c*cos(lo),c*sin(lo),sin(la));
+ vec3 P=sphere(aLL);
  vec3 v=vec3(dot(P,uE),dot(P,uN),dot(P,uC));
+ vAnc=vec2(0.);
  vec3 cc=uFlat.rgb;vA=1.;vPat=vec4(0.);
  if(uFlat.a<.5){int id=int(aId);ivec2 at=ivec2(id&1023,id>>10);vec4 pc=texelFetch(uPal,at,0);cc=pc.a>.5?pc.rgb:uLand;
-  if(pc.a>.5)vPat=texelFetch(uPat,at,0);
+  if(pc.a>.5){vPat=texelFetch(uPat,at,0);vec3 A=sphere(texelFetch(uAnc,at,0).rg);vAnc=uRes*.5+vec2(dot(A,uE),dot(A,uN))*uR;}
   if(uSkip==1&&pc.a<.5)vA=0.;
   if(id==uHover){cc=shade(cc);vPat.rgb=shade(vPat.rgb);}}
  vCol=cc;vZ=v.z;
  gl_Position=vec4(((uRes*.5+v.xy*uR)/uRes)*2.-1.,0.,1.);
 }`;
 const FS_FILL = `#version 300 es
-precision highp float;flat in vec3 vCol;flat in vec4 vPat;flat in float vA;in float vZ;uniform vec2 uRes;uniform float uPx;out vec4 o;
+precision highp float;flat in vec3 vCol;flat in vec4 vPat;flat in float vA;flat in vec2 vAnc;in float vZ;uniform vec2 uRes;uniform float uPx;out vec4 o;
 // 1 when the pattern's ink covers point q (CSS pixels, y down), with a soft edge of about a device pixel
 float band(float d,float w,float aa){return 1.-smoothstep(w*.5-aa,w*.5+aa,d);}
 float diag(float s,float T,float w,float aa){float d=mod(s,T);return band(min(d,T-d)*.70710678,w,aa);}
@@ -74,7 +78,8 @@ float mask(int t,vec2 q,float aa){
  return 0.;}
 void main(){if(vZ<0.||vA<.5)discard;
  int t=int(vPat.a*255.+.5);vec3 col=vCol;
- if(t>0){vec2 q=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y)/uPx;col=mix(vCol,vPat.rgb,mask(t,q,.6/uPx));}
+ // q: CSS pixels from the projected anchor, y down
+ if(t>0){vec2 q=vec2(gl_FragCoord.x-vAnc.x,vAnc.y-gl_FragCoord.y)/uPx;col=mix(vCol,vPat.rgb,mask(t,q,.6/uPx));}
  o=vec4(col,1.);}`;
 
 let gl, cv, pFull, pLine, pFill;
@@ -89,7 +94,10 @@ const pal = new Uint8Array(PAL_N * 4),
 export const UPAL_ROWS = 8;
 const upal = new Uint8Array(1024 * UPAL_ROWS * 4),
   upat = new Uint8Array(1024 * UPAL_ROWS * 4);
-let palTex, upalTex, patTex, upatTex, BL, HL, LO, LOM, SL, GRL, RV;
+// pattern anchors (lon, lat) per country id and per unit id: patterns are laid out from them (see VS_FILL)
+const anc = new Float32Array(PAL_N * 2),
+  uanc = new Float32Array(1024 * UPAL_ROWS * 2);
+let palTex, upalTex, patTex, upatTex, ancTex, uancTex, uancDirty = false, BL, HL, LO, LOM, SL, GRL, RV;
 /** Write a paint (hex color or pattern) into palette and pattern bytes at entry i. */
 export function putPaint(palette, patterns, i, paint) {
   const p = parsePaint(paint),
@@ -194,7 +202,7 @@ export function initGL(canvas) {
   try {
     pFull = program(VS_FULL, FS_FULL, ['uRes', 'uR', 'uShade', 'uBg', 'uOcean', 'uBorder', 'uMode'], uF);
     pLine = program(VS_LINE, FS_LINE, ['uRes', 'uR', 'uW', 'uC', 'uE', 'uN', 'uCol'], uL);
-    pFill = program(VS_FILL, FS_FILL, ['uRes', 'uR', 'uC', 'uE', 'uN', 'uLand', 'uPal', 'uPat', 'uPx', 'uHover', 'uDark', 'uFlat', 'uSkip'], uP);
+    pFill = program(VS_FILL, FS_FILL, ['uRes', 'uR', 'uC', 'uE', 'uN', 'uLand', 'uPal', 'uPat', 'uAnc', 'uPx', 'uHover', 'uDark', 'uFlat', 'uSkip'], uP);
   } catch (e) {
     return 'Shader error: ' + e.message;
   }
@@ -218,9 +226,21 @@ export function initGL(canvas) {
   palTex = palette(PAL_N, 1, pal); // left bound on TEXTURE1
   upatTex = palette(1024, UPAL_ROWS, upat, gl.TEXTURE2);
   patTex = palette(PAL_N, 1, pat, gl.TEXTURE2); // left bound on TEXTURE2
+  // anchors: two floats per entry, read with texelFetch (float textures are not filtered)
+  const anchors = (w, h, data) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, k, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, w, h, 0, gl.RG, gl.FLOAT, data);
+    return t;
+  };
+  uancTex = anchors(1024, UPAL_ROWS, uanc);
+  ancTex = anchors(PAL_N, 1, anc); // left bound on TEXTURE3
   gl.useProgram(pFill);
   gl.uniform1i(uP.uPal, 1);
   gl.uniform1i(uP.uPat, 2);
+  gl.uniform1i(uP.uAnc, 3);
   BL = lineSet();
   HL = lineSet();
   LO = lineSet();
@@ -306,6 +326,25 @@ export function uploadPhys(p) {
 export const setBorders = (arr) => setLines(BL, arr);
 export const setHoverOutline = (arr) => (arr ? setLines(HL, arr) : (HL.n = 0));
 
+/** Pattern anchors of the countries: [[id, lon, lat], ...]. */
+export function setAnchors(list) {
+  for (const [id, lon, lat] of list) {
+    anc[id * 2] = lon;
+    anc[id * 2 + 1] = lat;
+  }
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, ancTex);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PAL_N, 1, gl.RG, gl.FLOAT, anc);
+}
+/** A country's pattern anchor, [lon, lat]. */
+export const anchorOf = (id) => [anc[id * 2], anc[id * 2 + 1]];
+/** A unit takes its country's anchor, so a pattern runs on unbroken across the units of one country. */
+export function setUnitAnchor(gid, countryId) {
+  uanc[gid * 2] = anc[countryId * 2];
+  uanc[gid * 2 + 1] = anc[countryId * 2 + 1];
+  uancDirty = true;
+}
+
 /** Set (a hex color or pattern paint) or clear (null) the fill of a country id. */
 export function setCountryColor(id, paint) {
   if (paint) putPaint(pal, pat, id, paint);
@@ -370,11 +409,19 @@ export function render(R) {
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, upatTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1024, UPAL_ROWS, gl.RGBA, gl.UNSIGNED_BYTE, upat);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, uancTex);
+    if (uancDirty) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1024, UPAL_ROWS, gl.RG, gl.FLOAT, uanc);
+      uancDirty = false;
+    }
     gl.uniform1i(uP.uSkip, 1);
     gl.uniform1i(uP.uHover, 0);
     gl.bindVertexArray(UV.vao);
     gl.drawElements(gl.TRIANGLES, UV.n, gl.UNSIGNED_INT, 0);
     gl.uniform1i(uP.uSkip, 0);
+    gl.bindTexture(gl.TEXTURE_2D, ancTex);
+    gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, patTex);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, palTex);
