@@ -21,7 +21,24 @@ const GROUPS={
  'UN Security Council permanent members':split(`China|France|Russia|United Kingdom|United States of America`)
 };
 for(const k in CONTINENTS)GROUPS[k]=CONTINENTS[k];
-const GROUP_NOTES={'Asia':'Russia is counted in Europe; Turkey, Kazakhstan and the Caucasus in Asia.','G20 (19 countries)':'The African Union and EU are members but are not single countries.','European Union (27)':'The member states plus France\'s overseas regions, which are part of the EU; the Canaries, Azores and Madeira are drawn as part of Spain and Portugal.','Eurozone (21)':'The member states plus France\'s overseas regions, which use the euro.'};
+const GROUP_NOTES={'Asia':'Russia is counted in Europe; Turkey, Kazakhstan and the Caucasus in Asia.','G20 (19 countries)':'The African Union and EU are members but are not single countries. The 2026 presidency\'s own site (g20.org) lists its State Participants differently (no South Africa, Poland added); this shows the 19 standing members.','European Union (27)':'The member states plus France\'s overseas regions, which are part of the EU; the Canaries, Azores and Madeira are drawn as part of Spain and Portugal.','Eurozone (21)':'The member states plus France\'s overseas regions, which use the euro.'};
+// Where each group's membership was checked and when (scripts/check_groups.js reads these pages and compares). The
+// lists are facts; the terms of each page are in the README sources table.
+const GROUPS_CHECKED='14 Oct 2026';
+const GROUP_SOURCES={
+ 'European Union (27)':'the European Union\'s EU countries page',
+ 'Eurozone (21)':'the European Union\'s EU countries page and the European Central Bank\'s euro page',
+ 'NATO (32)':'NATO\'s member countries page',
+ 'G7':'the Government of Canada\'s G7 page (the EU takes part but is not a member country)',
+ 'G20 (19 countries)':'the Government of Canada\'s G20 page',
+ 'ASEAN (11)':'the Government of Japan\'s Ministry of Foreign Affairs ASEAN page (asean.org cannot be read by a script)',
+ 'UN Security Council permanent members':'Article 23 of the UN Charter (China and Russia hold the seats it names for the Republic of China and the USSR)'
+};
+/** The note shown under a group: what it includes, and where its membership was checked and when. */
+function groupNote(name){
+ const n=GROUP_NOTES[name]||'',s=GROUP_SOURCES[name];
+ return (n+(s?(n?' ':'')+'Membership checked against '+s+' on '+GROUPS_CHECKED+'.':'')).trim();
+}
 // user-friendly aliases -> map names
 const ALIAS_RAW={
  'usa':'United States of America','us':'United States of America','u s':'United States of America','u s a':'United States of America','united states':'United States of America','united states of america':'United States of America','america':'United States of America',
@@ -82,6 +99,6 @@ function breaks(values,n,method){
 function classOf(x,b){for(let i=1;i<b.length;i++)if(x<=b[i])return i-1;return b.length-2;}
 function fmt(x){const a=Math.abs(x);if(a===0)return '0';if(a>=1e9)return +(x/1e9).toPrecision(3)+'B';if(a>=1e6)return +(x/1e6).toPrecision(3)+'M';if(a>=1e4)return Math.round(x).toLocaleString('en-US');
  return String(+x.toPrecision(a<1?2:3));}
-return {CONTINENTS,GROUPS,GROUP_NOTES,ALIAS_RAW,norm,matcher,parseList,parseData,breaks,classOf,fmt};
+return {CONTINENTS,GROUPS,GROUP_NOTES,GROUP_SOURCES,GROUPS_CHECKED,groupNote,ALIAS_RAW,norm,matcher,parseList,parseData,breaks,classOf,fmt};
 })();
 if(typeof module!=='undefined')module.exports=Ecu;

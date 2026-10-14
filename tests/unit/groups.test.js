@@ -119,3 +119,17 @@ test('number formatting', () => {
   assert.strictEqual(Ecu.fmt(0), '0');
   assert.strictEqual(Ecu.fmt(-2500000000), '-2.5B');
 });
+test('every membership group names its source and when it was checked', () => {
+  const { loadSources } = require('../../scripts/lib/sources.js');
+  const ids = loadSources().map((s) => s.id);
+  for (const k of ['European Union (27)', 'Eurozone (21)', 'NATO (32)', 'G7', 'G20 (19 countries)', 'ASEAN (11)', 'UN Security Council permanent members']) {
+    assert.ok(Ecu.GROUP_SOURCES[k], k + ' has no source');
+    assert.ok(Ecu.groupNote(k).includes('Membership checked against ' + Ecu.GROUP_SOURCES[k] + ' on ' + Ecu.GROUPS_CHECKED), k);
+  }
+  // the groups' sources are in the README table
+  for (const id of ['groups-eu', 'groups-nato', 'groups-un', 'groups-g7-g20', 'groups-asean', 'groups-wikidata', 'groups-continents']) assert.ok(ids.includes(id), id);
+  // the G20 note says the 2026 presidency's own list differs
+  assert.ok(Ecu.groupNote('G20 (19 countries)').includes('South Africa'));
+  // groups without a membership source keep just their note
+  assert.strictEqual(Ecu.groupNote('Asia'), Ecu.GROUP_NOTES.Asia);
+});
