@@ -10,6 +10,7 @@ import { animate, centreOn } from './view.js';
 import { DETAIL, clearUnits, layersOf, activeLayer, setLayer } from './units.js';
 import { refreshSub } from './input.js';
 import { initStats, statChosen, colourStat } from './ui-stats.js';
+import { initImport, colourImport } from './ui-import.js';
 import { $, el, note } from './util.js';
 import Ecu from '../groups.js';
 
@@ -185,28 +186,12 @@ function initData(resolve) {
   sync();
   on('style', sync);
   initStats(colourRows);
+  initImport(colourRows);
   $('dgo').onclick = () => {
     if (!app.ready) return;
     // a statistic chosen above wins over pasted rows
     if (statChosen()) return colourStat();
-    const r = Ecu.parseData($('dd').value, resolve);
-    if (!r.rows.length) {
-      note(r.bad.length ? 'Could not read "' + r.bad[0] + '". Use: country, value' : 'Paste some rows first (country, value).', 1);
-      return;
-    }
-    const used = colourRows(r.rows, (x, col) => setFill(x.name, col));
-    // pasted numbers have no source to credit
-    if (app.stat) {
-      app.stat = null;
-      emit('stat');
-    }
-    emit('legend');
-    redraw();
-    commit();
-    let m = r.rows.length + ' countries colored in ' + used + ' classes.';
-    if (r.unknown.length) m += ' Not found: ' + listOf(r.unknown, 6) + '.';
-    if (r.bad.length) m += ' Skipped ' + r.bad.length + ' unreadable line' + (r.bad.length > 1 ? 's' : '') + '.';
-    note(m, r.unknown.length > 0 || r.bad.length > 0);
+    colourImport();
   };
 }
 

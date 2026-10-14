@@ -43,10 +43,10 @@ export function toggleFill(name) {
 export function clearFills() {
   [...app.fills.keys()].forEach((n) => setFill(n, null));
   app.units.clear();
-  if (app.stat) {
-    // the title and credit came with the statistic
+  if (app.stat || app.imported) {
+    // the title and credit came with the statistic or your table
     app.legend.title = '';
-    app.stat = null;
+    app.stat = app.imported = null;
     emit('stat');
   }
   emit('legend');
