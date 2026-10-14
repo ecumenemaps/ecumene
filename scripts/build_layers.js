@@ -217,6 +217,12 @@ for (const e of layers()) {
       covered += polys.reduce((s, Q) => s + km2(Q), 0);
       const props = { n: name, c: code, ty: e.unit, r: '', g: '' };
       for (const [k, spec] of Object.entries(F.groups || {})) props[k] = groupValue(spec, p, code, polys, country);
+      // seats: a regex whose first group is the unit's number of seats, read from the name field before strip
+      if (F.seats) {
+        const m = new RegExp(F.seats).exec(String(p[F.name] || ''));
+        if (!m || !(+m[1] > 0)) throw new Error(e.id + ': ' + name + ' has no seat count in "' + p[F.name] + '"');
+        props.s = +m[1];
+      }
       feats.push({ type: 'Feature', id: feats.length, geometry: { type: 'MultiPolygon', coordinates: polys }, properties: props });
     }
   }
@@ -251,7 +257,7 @@ for (const e of layers()) {
   index[country].push({ id: e.id, name: e.menu, unit: e.unit, ed: e.edition.split(';')[0], f: e.id + '/' + file, n: feats.length, gr, title: e.title, credit: e.credit, short: e.short, url: e.url, note: e.note || '', order: e.order ?? 50 });
   index[country].sort((a, b) => a.order - b.order);
   console.log(
-    e.id + ': ' + feats.length + ' units, ' + (out.length / 1024).toFixed(0) + ' KB; ' + cut + ' cut back to the coast (' + Math.round(dropped) + ' km² outside ' + country + ' dropped); units cover ' + ((100 * covered) / countryKm2).toFixed(1) + '% of it',
+    e.id + ': ' + feats.length + ' units, ' + (out.length / 1024).toFixed(0) + ' KB; ' + cut + ' cut back to the coast (' + Math.round(dropped) + ' km² outside ' + country + ' dropped); units cover ' + ((100 * covered) / countryKm2).toFixed(1) + '% of it' + (feats[0] && feats[0].properties.s ? '; ' + feats.reduce((t, f) => t + f.properties.s, 0) + ' seats' : ''),
   );
 }
 fs.mkdirSync(R('data/layers'), { recursive: true });
