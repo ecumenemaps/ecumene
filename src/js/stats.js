@@ -182,7 +182,8 @@ export function validRecord(r) {
 /**
  * Seats in the House of Representatives by state after the 2020 Census (U.S. Census Bureau, 2020 apportionment,
  * public domain). Electors are the seats plus two senators; the District of Columbia has 3 (23rd Amendment). These
- * hold for the 2024, 2028 and 2032 elections.
+ * hold for the 2024 and 2028 presidential elections (the 2030 census sets the electors from 2032). Checked against
+ * the Census table by scripts/check_electoral.js (see scripts/sources/stat-us-electoral.json).
  */
 export const HOUSE_SEATS = {
   Alabama: 7,
@@ -242,4 +243,4 @@ export const ELECTORAL_VOTES = Object.assign(Object.fromEntries(Object.entries(H
 });
 /** The state a Natural Earth US admin-1 unit stands for (its properties: n name, ty type), or '' for any other unit. */
 export const electoralName = (p) => (p.ty === 'Federal District' ? 'District of Columbia' : p.ty === 'State' ? p.n : '');
-export const ELECTORAL_TITLE = 'Electoral votes per state, 2024, 2028 and 2032 elections';
+export const ELECTORAL_TITLE = 'Electoral votes per state, 2024 and 2028 elections';

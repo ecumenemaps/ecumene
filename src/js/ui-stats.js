@@ -54,7 +54,7 @@ export function initStats(colourRows) {
       { label: 'World Bank, loaded when chosen' },
       ...WB.indicators.map((i) => el('option', { value: 'wb:' + i.code, textContent: i.menu })),
     ),
-    el('optgroup', { label: 'United States' }, el('option', { value: 'ev', textContent: 'Electoral votes per state (2024 to 2032)' })),
+    el('optgroup', { label: 'United States' }, el('option', { value: 'ev', textContent: 'Electoral votes per state (2024 and 2028)' })),
   );
   $('dst').onchange = choose;
   $('dyr').onchange = () => info(yearNote());

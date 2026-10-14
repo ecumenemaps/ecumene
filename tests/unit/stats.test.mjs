@@ -189,3 +189,17 @@ test('electoralName maps Natural Earth US units to states and DC', () => {
   assert.strictEqual(electoralName({ n: 'Rest of United States of America', ty: 'Not divided in the source data' }), '');
   assert.ok(ELECTORAL_VOTES[electoralName({ n: 'Washington', ty: 'State' })] === 12);
 });
+
+test('the seat table is the one verified against the Census table', async () => {
+  // scripts/check_electoral.js compared these 50 numbers with Census Table 1 on 2026-10-14. Changing the table
+  // changes this fingerprint: run that script, then update the fingerprint and the date in stat-us-electoral.json.
+  const { createHash } = await import('node:crypto');
+  const fp = createHash('sha256')
+    .update(JSON.stringify(Object.entries(HOUSE_SEATS).sort(([a], [b]) => (a < b ? -1 : 1))))
+    .digest('hex');
+  assert.strictEqual(fp, '05b23c042782ac6a1d65126438342c23afc52f1a87ee86102ef22ec8c290e945');
+  const src = statistics().find((s) => s.id === 'stat-us-electoral');
+  assert.match(src.verified.sha256, /^[0-9a-f]{64}$/);
+  assert.match(src.verified.years, /2024 and 2028/);
+  assert.ok(!JSON.stringify(src).includes('2032 elections'));
+});

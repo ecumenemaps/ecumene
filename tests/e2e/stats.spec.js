@@ -164,7 +164,7 @@ test('electoral votes color the US states', async ({ page }) => {
   await page.click('#dgo');
   await expect(status(page)).toContainText('51 states (with DC) colored', { timeout: 120000 });
   const s = await page.evaluate(() => window.ecumene.getState());
-  expect(s.lg.t).toBe('Electoral votes per state, 2024, 2028 and 2032 elections');
+  expect(s.lg.t).toBe('Electoral votes per state, 2024 and 2028 elections');
   expect(s.st).toEqual({ k: 'ev' });
   const us = s.u.flatMap((g) => g.k['United States of America'] || []);
   expect(us.length).toBe(51);
