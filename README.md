@@ -47,7 +47,7 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 - `src/template.html`: page shell, panel markup and CSS
 - `src/js/`: the app as ES modules, bundled by esbuild (see `HANDOFF.md` for the module map)
 - `src/groups.js`: country groups, name aliases and data parsing (shared with the build scripts and tests)
-- `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, helper `lib/tri.js`), `fetch_data.js`, and `build.js`
+- `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, helpers `lib/tri.js` and `lib/cut.js`, which the editor also uses), `fetch_data.js`, and `build.js`
 - `src/home/`: the home page (template and the hero globe script); `site/examples/`: example maps (state JSON and thumbnails, made by `scripts/make_examples.js`); `site/data/`: data used by examples
 - `tests/unit/`, `tests/e2e/`: tests; `tests/server.js` is a minimal static server
 

@@ -32,6 +32,11 @@ function page(entry, template, outFile) {
   return { html: html.length, js: js.length };
 }
 const app = page('src/js/main.js', 'src/template.html', 'dist/app/index.html');
+// the clipper for cutting lakes out of exported shapes (src/js/export.js), loaded on the first export
+esbuild.buildSync({
+  stdin: { contents: "import pc from 'polygon-clipping'; window.polygonClipping = pc;", resolveDir: R('.') },
+  bundle: true, format: 'iife', target: ['es2020'], minify: !dev, legalComments: 'none', outfile: R('dist/app/clip.js'),
+});
 const home = page('src/home/home.js', 'src/home/index.html', 'dist/index.html');
 
 // home page: small world for the hero globe, self-hosted fonts (no third-party requests), examples
@@ -45,5 +50,5 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
 const size = (p) => fs.statSync(R(p)).size;
 const a1 = fs.readdirSync(R('dist/app/admin1')).reduce((s, f) => s + size('dist/app/admin1/' + f), 0);
 console.log('dist/index.html (home) ' + kb(home.html) + ' (script ' + kb(home.js) + ')');
-console.log('dist/app/index.html ' + kb(app.html) + ' (script ' + kb(app.js) + ')');
+console.log('dist/app/index.html ' + kb(app.html) + ' (script ' + kb(app.js) + '), clip.js ' + kb(size('dist/app/clip.js')));
 console.log('dist/app/data: countries ' + kb(size('dist/app/data/countries.json')) + ', tris ' + kb(size('dist/app/data/tris.bin')) + ', phys ' + kb(size('dist/app/data/phys.bin')) + '; admin1 ' + kb(a1));

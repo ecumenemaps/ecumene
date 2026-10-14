@@ -19,6 +19,7 @@
     "d3": "^7",
     "d3-geo-projection": "^4.0.0",
     "earcut": "2.2.4",
+    "polygon-clipping": "^0.15.7",
     "topojson-client": "^3",
     "topojson-server": "^3.0.1",
     "world-atlas": "^2"
@@ -27,7 +28,6 @@
     "@fontsource-variable/source-serif-4": "^5.3.1",
     "@playwright/test": "^1.56.0",
     "esbuild": "^0.24.2",
-    "polygon-clipping": "^0.15.7",
     "prettier": "^3.3.3"
   }
 }
