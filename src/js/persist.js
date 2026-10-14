@@ -9,6 +9,7 @@ import { hexOk, clamp } from './util.js';
 import { OVERSEAS } from '../overseas.js';
 import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
 import { SCALES, PAINT_SETS } from './schemes.js';
+import { validRecord } from './stats.js';
 // a paint is a hex color or a pattern (patterns.js)
 import { paintOk } from './patterns.js';
 
@@ -72,6 +73,8 @@ export function getState() {
     lg: { t: L.title, p: L.pos, xy: L.xy, k: L.scale, s: L.show, n: L.note, o: L.order.filter((c) => used.has(c)) },
     ps: app.paintSet,
     ds: Object.assign({}, app.data),
+    // the statistic and the numbers used, so the map never changes when it is reopened or shared
+    ...(app.stat ? { st: app.stat } : {}),
     r: [+app.rot[0].toFixed(2), +app.rot[1].toFixed(2)],
     z: +app.zoom.toFixed(2),
   };
@@ -207,7 +210,10 @@ export function setState(o) {
     m: ds.m === 'quantile' ? 'quantile' : 'equal',
     c: typeof ds.c === 'string' && (ds.c === '' || Number.isFinite(+ds.c)) ? ds.c.slice(0, 30) : '',
     rev: !!ds.rev,
+    nd: ds.nd !== false,
   });
+  app.stat = validRecord(o.st);
+  emit('stat');
   legendColours();
   if (Array.isArray(o.r) && o.r.length === 2 && o.r.every(Number.isFinite)) app.rot = [o.r[0], clamp(o.r[1], -90, 90)];
   if (Number.isFinite(o.z)) app.zoom = clamp(o.z, 0.8, 40);

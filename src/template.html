@@ -101,6 +101,7 @@ summary{font-size:13px;font-weight:600;color:var(--mute);cursor:pointer;margin-b
 .cg label{display:flex;align-items:center;gap:8px;font-size:13px}
 .cg input{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
 .rg{display:flex;flex-direction:column;gap:4px;font-size:13px;margin-top:10px;color:var(--mute)}
+.rg[hidden],label.sw2[hidden]{display:none}
 .rg input{width:100%}
 button.b:disabled{opacity:.45;cursor:default}
 textarea{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
@@ -175,14 +176,19 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <div class="mode" data-mode="data">
 <section>
 <h2>Color by data</h2>
-<textarea id="dd" rows="8" placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
+<label class="rg" style="margin-top:0">Statistic<select id="dst" aria-label="Statistic"></select></label>
+<div id="dstw" hidden><select id="dyr" aria-label="Year" style="margin-top:8px"></select><div class="row" style="margin-top:8px"><button class="b" id="dstr" type="button" title="Fetch the numbers again from the World Bank">Fetch again</button></div></div>
+<label class="sw2" id="dndw" style="margin-top:8px" hidden title="Countries without a value get a grey dotted fill and a No data legend entry, so they never look like a low value"><input id="dnd" type="checkbox" checked> Mark countries with no data</label>
+<p id="dsti" class="hint"></p>
+<p class="hint" style="margin-top:12px">Or paste your own rows:</p>
+<textarea id="dd" rows="8"placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
 <div class="cg" style="margin-top:8px"><select id="dpal" aria-label="Color scale"></select><select id="dn" aria-label="Number of classes"></select></div>
 <select id="dm" aria-label="Class method"><option value="equal">Equal intervals</option><option value="quantile">Quantiles (equal counts)</option></select>
 <label class="rg" id="dcw" hidden>Centre on (equal steps either side)<input id="dc" type="number" step="any" placeholder="0, or the average if all values are on one side" aria-label="Centre value"></label>
 <label class="sw2" style="margin-top:8px"><input id="drev" type="checkbox"> Reverse colors</label>
 <p id="dpaln" class="hint" style="margin-top:4px"></p>
 <div class="row" style="margin-top:8px"><button class="b" id="dgo">Color the map</button></div>
-<p class="hint">Only the listed countries are colored. Each class becomes a legend entry you can rename in Legend.</p>
+<p class="hint">Pasted rows color only the listed countries. Each class becomes a legend entry you can rename in Legend.</p>
 </section>
 </div>
 <div class="mode" data-mode="draw">

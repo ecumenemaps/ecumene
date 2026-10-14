@@ -48,7 +48,7 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 - `src/js/`: the app as ES modules, bundled by esbuild (see `HANDOFF.md` for the module map)
 - `src/groups.js`: country groups, name aliases and data parsing (shared with the build scripts and tests)
 - `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, `build_layers.js`, helpers `lib/tri.js` and `lib/cut.js`, which the editor also uses), downloads (`fetch_data.js` for Natural Earth, `fetch_sources.js` for the layers listed in `scripts/sources/`), and `build.js`. See "Adding a data layer" in `HANDOFF.md`.
-- `src/home/`: the home page (template and the hero globe script); `site/examples/`: example maps (state JSON and thumbnails, made by `scripts/make_examples.js`); `site/data/`: data used by examples
+- `src/home/`: the home page (template and the hero globe script); `site/examples/`: example maps (state JSON and thumbnails, made by `scripts/make_examples.js`)
 - `tests/unit/`, `tests/e2e/`: tests; `tests/server.js` is a minimal static server
 
 ## Data and licences
@@ -68,6 +68,8 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 | Counties and county equivalents (United States, 2024) | [U.S. Census Bureau, cartographic boundary files](https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html), 2024 cartographic boundaries, 1:5,000,000 | [Public domain (U.S. government work)](https://www.usa.gov/government-copyright) |
 | Congressional districts (United States, 119th Congress, 2025-2027) | [U.S. Census Bureau, cartographic boundary files](https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html), Districts of the 119th Congress (elected in 2024), 2024 cartographic boundaries, 1:5,000,000 | [Public domain (U.S. government work)](https://www.usa.gov/government-copyright) |
 | Municipios (Puerto Rico, 2024) | [U.S. Census Bureau, cartographic boundary files](https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html), 2024 cartographic boundaries, 1:5,000,000 | [Public domain (U.S. government work)](https://www.usa.gov/government-copyright) |
+| Country statistics (Data panel): GDP per capita, population, life expectancy and 9 more indicators | [World Bank, World Development Indicators](https://datatopics.worldbank.org/world-development-indicators/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| Electoral votes per US state (Data panel), 2024 and 2028 elections | [U.S. Census Bureau, 2020 Census apportionment of the U.S. House of Representatives](https://www.census.gov/data/tables/2020/dec/2020-apportionment-data.html) | [Public domain (U.S. government work)](https://www.usa.gov/government-copyright) |
 | Country groups: European Union and Eurozone | [European Union, EU countries](https://european-union.europa.eu/principles-countries-history/eu-countries_en); [European Central Bank, euro area countries](https://www.ecb.europa.eu/euro/intro/html/index.en.html), checked 14 Oct 2026 | Membership is a fact; no licence claimed (terms of the pages checked: EU site content is CC BY 4.0 (europa.eu legal notice); the ECB page's terms were not checked) |
 | Country groups: NATO | [NATO, member countries](https://www.nato.int/en/about-us/organization/nato-member-countries), checked 14 Oct 2026 | Membership is a fact; no licence claimed (terms of the pages checked: not found, NATO's copyright pages did not load) |
 | Country groups: UN Security Council permanent members | [United Nations, UN Charter Chapter V, Article 23](https://www.un.org/en/about-us/un-charter/chapter-5), checked 14 Oct 2026 | The five names are a fact; no licence claimed (terms of the pages checked: UN terms of use allow personal use only and no redistribution, so nothing is copied from the page) |
@@ -77,7 +79,7 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 | Country groups: continents | Hand-kept lists in src/groups.js, compared with Natural Earth's CONTINENT field; the cases where they differ are listed in HANDOFF.md | Natural Earth: public domain |
 | Robinson and Winkel tripel projections | `d3-geo-projection` | ISC |
 | Home-page typeface: Source Serif 4 | Adobe, via `@fontsource-variable/source-serif-4` (self-hosted) | SIL OFL 1.1 |
-| GDP per capita example | World Bank (NY.GDP.MKTP.CD ÷ SP.POP.TOTL, 2022) via github.com/datasets | CC BY 4.0 |
+| GDP per capita example | World Bank, World Development Indicators (NY.GDP.PCAP.CD, 2022), fetched from the World Bank's API and saved in the example with the date | CC BY 4.0 |
 <!-- sources:end -->
 
 Layers other than Natural Earth are fitted to the Natural Earth coastline, so paint stays on the map's land; each export credits every layer it uses, in the source note and in the SVG's description.

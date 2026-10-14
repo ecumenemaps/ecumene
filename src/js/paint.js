@@ -43,6 +43,12 @@ export function toggleFill(name) {
 export function clearFills() {
   [...app.fills.keys()].forEach((n) => setFill(n, null));
   app.units.clear();
+  if (app.stat) {
+    // the title and credit came with the statistic
+    app.legend.title = '';
+    app.stat = null;
+    emit('stat');
+  }
   emit('legend');
   redraw();
   commit();
