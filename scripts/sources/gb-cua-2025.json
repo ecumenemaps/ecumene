@@ -1,0 +1,38 @@
+{
+  "id": "gb-cua-2025",
+  "kind": "layer",
+  "order": 11,
+  "title": "Counties and unitary authorities (UK, December 2025)",
+  "menu": "Counties and unitary authorities (2025)",
+  "country": "United Kingdom",
+  "unit": "Local authority",
+  "publisher": "Office for National Statistics, Open Geography Portal",
+  "url": "https://geoportal.statistics.gov.uk/datasets/e546277846294ad38138cbe651e7a3e0",
+  "edition": "Boundaries as at December 2025; ultra generalised (500 m), clipped to mean high water",
+  "licence": {
+    "name": "Open Government Licence v3.0",
+    "url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "credit": "Source: Office for National Statistics licensed under the Open Government Licence v.3.0. Contains OS data © Crown copyright and database right 2025.",
+  "short": "ONS, OS (OGL v3)",
+  "download": {
+    "origin": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Counties_and_Unitary_Authorities_December_2025_Boundaries_UK_BUC/FeatureServer/0/query?where=1%3D1&outFields=CTYUA25CD,CTYUA25NM&outSR=4326&f=geojson",
+    "file": "gb-cua-2025.geojson",
+    "sha256": "e3716ce772f9c11f8dbff11ffe91fa7a095f0eb40d18f6469833cfa20099ccb5"
+  },
+  "fields": {
+    "code": "CTYUA25CD",
+    "name": "CTYUA25NM",
+    "groups": {
+      "g": {
+        "from": "code",
+        "prefix": {
+          "E": "England",
+          "S": "Scotland",
+          "W": "Wales",
+          "N": "Northern Ireland"
+        }
+      }
+    }
+  }
+}

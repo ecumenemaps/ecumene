@@ -53,7 +53,7 @@ for (const e of layers())
     for (const f of feats) {
       const p = f.properties;
       assert.ok(p.n && p.c, 'unit ' + f.id + ' has a name and a code');
-      assert.ok(/^[A-Za-z0-9_.+-]{1,32}$/.test(p.c), p.c + ': codes are saved in maps as layer:code');
+      assert.ok(/^[A-Za-z0-9_.+-]{1,64}$/.test(p.c), p.c + ': codes are saved in maps as layer:code (persist.js LAYER_CODE)');
       assert.ok(!codes.has(p.c), 'duplicate code ' + p.c);
       codes.add(p.c);
       for (const P of polys(f.geometry))
@@ -71,6 +71,24 @@ for (const e of layers())
       assert.ok(outside < 1 + 0.001 * area, f.properties.n + ': ' + outside.toFixed(1) + ' km² outside ' + e.country);
       units += area;
     }
+    // no two units overlap, so a click means one of them
+    const bb = (f) => {
+      let b = [1e9, 1e9, -1e9, -1e9];
+      for (const P of polys(f.geometry))
+        for (const [x, y] of P[0]) b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)];
+      return b;
+    };
+    const boxes = feats.map(bb);
+    for (let i = 0; i < feats.length; i++)
+      for (let j = i + 1; j < feats.length; j++) {
+        const a = boxes[i],
+          b = boxes[j];
+        if (a[0] > b[2] || b[0] > a[2] || a[1] > b[3] || b[1] > a[3]) continue;
+        const over = pc
+          .intersection(polys(feats[i].geometry).map(snap), polys(feats[j].geometry).map(snap))
+          .reduce((s, P) => s + km2(P), 0);
+        assert.ok(over < 1, feats[i].properties.n + ' and ' + feats[j].properties.n + ' overlap by ' + over.toFixed(1) + ' km²');
+      }
     const country = C.reduce((s, P) => s + km2(P), 0);
     assert.ok(units / country > 0.95, 'units cover ' + ((100 * units) / country).toFixed(1) + '% of ' + e.country);
   });

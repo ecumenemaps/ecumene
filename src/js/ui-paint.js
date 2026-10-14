@@ -202,7 +202,7 @@ function initLayerMenu() {
     const y = activeLayer(c);
     sel.replaceChildren(...L.map((x) => el('option', { value: x.id, textContent: x.name, selected: x.id === y })));
     const x = L.find((l) => l.id === y);
-    $('subls').textContent = x && x.credit ? x.n + ' units · ' + x.ed + '. ' + x.credit : '';
+    $('subls').textContent = x && x.credit ? x.n + ' units · ' + x.ed + '. ' + (x.note ? x.note + ' ' : '') + x.credit : '';
   };
   sel.onchange = () => {
     const c = app.sub.country;

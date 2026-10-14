@@ -27,20 +27,27 @@ function loadSources() {
     if (e.kind === 'layer') {
       for (const k of ['menu', 'country', 'unit', 'publisher', 'url', 'edition', 'credit', 'short']) if (!e[k]) bad('no ' + k);
       if (!e.licence.url) bad('no licence url');
-      if (!e.download || !e.download.origin || !e.download.file) bad('no download');
-      if (!e.fields || !e.fields.code || !e.fields.name) bad('no code and name fields');
+      for (const p of partsOf(e)) {
+        if (!p.download || !p.download.origin || !p.download.file) bad('a part has no download');
+        if (!p.fields || !p.fields.code || !p.fields.name) bad('a part has no code and name fields');
+      }
     } else if (e.kind !== 'reference') bad('kind must be "layer" or "reference"');
     else if (!e.source) bad('no source');
   }
   return all.sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.id.localeCompare(b.id));
 }
 const layers = () => loadSources().filter((e) => e.kind === 'layer');
+/**
+ * A layer's parts: each its own download and fields (a UK layer can join Great Britain from OS and Northern Ireland
+ * from OSNI). A layer with one source gives `download` and `fields` directly.
+ */
+const partsOf = (e) => e.parts || [{ download: e.download, fields: e.fields }];
 
-/** Mirror asset name: the file name with the first 8 hex digits of its checksum, so an asset never changes. */
-function mirrorName(e) {
-  const f = e.download.file,
-    i = f.lastIndexOf('.');
-  return f.slice(0, i) + '-' + e.download.sha256.slice(0, 8) + f.slice(i);
+/** Mirror asset name for a download: the file name with the first 8 hex digits of its checksum, so an asset never changes. */
+function mirrorName(d) {
+  const f = d.file,
+    i = f.indexOf('.');
+  return f.slice(0, i) + '-' + d.sha256.slice(0, 8) + f.slice(i);
 }
 
 /** The README sources table (Markdown). */
@@ -55,4 +62,4 @@ function readmeTable() {
 const README_START = '<!-- sources:start (generated from scripts/sources by `node scripts/fetch_sources.js --readme`) -->',
   README_END = '<!-- sources:end -->';
 
-module.exports = { loadSources, layers, mirrorName, readmeTable, README_START, README_END, MIRROR };
+module.exports = { loadSources, layers, partsOf, mirrorName, readmeTable, README_START, README_END, MIRROR };

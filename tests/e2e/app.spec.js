@@ -388,7 +388,7 @@ test('subdivision layers: switch the UK to Westminster constituencies, paint, sa
   const yk = await rest(-1.1, 54.0);
   await expect(page.locator('#sublw')).toBeVisible();
   await expect(page.locator('#subln')).toHaveText('United Kingdom');
-  await expect(page.locator('#subl option')).toHaveText(['States and provinces (Natural Earth)', 'Westminster constituencies (2024)']);
+  await expect(page.locator('#subl option').nth(1)).toHaveText('Westminster constituencies (2024)');
   await expect(page.locator('#tip')).toHaveText('York · Yorkshire and the Humber');
   await page.mouse.click(yk[0], yk[1]);
   await expect.poll(units).toEqual(['GBR-2120']);
@@ -450,6 +450,59 @@ test('subdivision layers: switch the UK to Westminster constituencies, paint, sa
   const ref = await page.evaluate(() => window.ecumene.getState().g.at(-1).ref);
   expect(ref.y).toBe('gb-wpc-2024');
   expect(ref.ids.length).toBe(32);
+  expect(errors).toEqual([]);
+});
+
+test('UK and Ireland pack: every layer offered, ceremonial and historic counties, Irish counties by province', async ({ page }) => {
+  const errors = await openApp(page);
+  const view = (r, z) =>
+    page.evaluate(
+      ([r, z]) => {
+        const s = window.ecumene.getState();
+        Object.assign(s, { r, z, f: [], u: [] });
+        window.ecumene.setState(s);
+      },
+      [r, z],
+    );
+  await view([2.5, -54.5], 5);
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const box = await page.locator('#cv').boundingBox();
+  const rest = async (lon, lat) => {
+    const p = await page.evaluate((g) => window.ecumene.px(g), [lon, lat]);
+    await page.mouse.move(box.x + p[0], box.y + p[1]);
+    await page.mouse.move(box.x + p[0] + 1, box.y + p[1] + 1);
+    return [box.x + p[0] + 1, box.y + p[1] + 1];
+  };
+  await rest(-1.1, 54.0);
+  await expect(page.locator('#subl option')).toHaveText([
+    'States and provinces (Natural Earth)',
+    'Westminster constituencies (2024)',
+    'Counties and unitary authorities (2025)',
+    'Ceremonial counties',
+    'Historic counties',
+  ]);
+  await page.selectOption('#subl', 'gb-ceremonial-2026');
+  await expect(page.locator('#subls')).toContainText('county boroughs of Belfast and Londonderry, which are not in the open data');
+  await rest(-1.2, 54.05);
+  await expect(page.locator('#tip')).toHaveText('North Yorkshire');
+  await page.selectOption('#subl', 'gb-historic');
+  await rest(-1.1, 54.0);
+  await expect(page.locator('#tip')).toHaveText('Yorkshire');
+  // Ireland: its own layers; counties grouped by province
+  await view([7.8, -53.3], 5);
+  const kd = await rest(-6.8, 53.15);
+  await expect(page.locator('#subln')).toHaveText('Ireland');
+  await expect(page.locator('#subl option')).toHaveText(['States and provinces (Natural Earth)', 'Counties (26)', 'Local authority areas (31)', 'Dáil constituencies (2023)']);
+  await page.selectOption('#subl', 'ie-counties-2019');
+  await page.selectOption('#subd', 'r');
+  await rest(-6.8, 53.15);
+  await expect(page.locator('#tip')).toHaveText('Leinster');
+  await page.mouse.click(kd[0], kd[1]);
+  await expect.poll(() => page.evaluate(() => window.ecumene.getState().u.flatMap((g) => g.k.Ireland || []).length)).toBe(12);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('© Tailte Éireann, licensed under Creative Commons Attribution 4.0');
+  expect(svg).toContain('Tailte Éireann (CC BY 4.0)');
   expect(errors).toEqual([]);
 });
 
