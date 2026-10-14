@@ -60,6 +60,16 @@ export function initStylePanel({ onHoverChange, refreshTip }) {
     S.shade = +e.target.value / 100;
     redraw();
   };
+  // subdivision borders: their own settings, so a style preset leaves them as they are
+  const SL = app.sublines;
+  $('slon').onchange = (e) => {
+    SL.on = e.target.checked;
+    $('slw').hidden = !SL.on;
+    redraw();
+  };
+  $('slc').oninput = (e) => ((SL.col = e.target.value), redraw());
+  $('slu').oninput = (e) => ((SL.w = +e.target.value), redraw());
+  $('slg').oninput = (e) => ((SL.gw = +e.target.value), redraw());
   const H = app.hoverStyle;
   $('shd').oninput = (e) => {
     H.amt = +e.target.value / 100;
@@ -90,6 +100,11 @@ export function initStylePanel({ onHoverChange, refreshTip }) {
     $('sfont').value = S.font;
     $('sbw').value = S.bw;
     $('ssh').value = Math.round(S.shade * 100);
+    $('slon').checked = SL.on;
+    $('slw').hidden = !SL.on;
+    $('slc').value = SL.col;
+    $('slu').value = SL.w;
+    $('slg').value = SL.gw;
     document.querySelectorAll('[data-k]').forEach((i) => {
       if (i.type === 'checkbox') i.checked = !!app.layers[i.dataset.k];
       else i.value = app.layers[i.dataset.k];

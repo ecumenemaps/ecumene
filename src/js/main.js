@@ -7,6 +7,7 @@ import { Rb, tinyMarkers, setProj, proj } from './view.js';
 import { loadUnits } from './units.js';
 import { drawUnitHover, drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
 import { drawSeatBar, currentTally } from './seatbar.js';
+import { electionById } from './seats.js';
 import { configureEditing } from './editing.js';
 import { configurePicker, closePicker, initPicker } from './picker.js';
 import { initInput, setCursor, refreshTip } from './input.js';
@@ -177,8 +178,10 @@ async function main() {
     seatRect: () => app.seatRect,
     seats: () => {
       const r = currentTally();
-      return r && { el: r.el.id, total: r.t.total, counted: r.t.counted, uncalled: r.t.uncalled, parts: r.t.parts, winner: r.t.winner };
+      return r && { el: r.el.id, total: r.t.total, counted: r.t.counted, uncalled: r.t.uncalled, parts: r.t.parts, winner: r.t.winner, outcome: r.t.outcome };
     },
+    // the electoral votes of a Natural Earth US unit's properties (0 for units that are not a state or DC)
+    electoralVotes: (p) => electionById('us-ec').seats(p),
     // small-country markers on screen, in canvas pixels
     markers: () => tinyMarkers().map((m) => ({ n: m.n, x: m.p[0], y: m.p[1] })),
     // canvas pixel of a [lon, lat] in the current view

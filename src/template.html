@@ -261,6 +261,15 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <label class="rg">Globe shading<input id="ssh" type="range" min="0" max="100" value="40"></label>
 </section>
 <section>
+<h2>Subdivision borders</h2>
+<label class="sw2" title="Lines between the subdivisions of countries that have painted subdivisions, so neighbours painted alike stay apart"><input id="slon" type="checkbox"> Show subdivision borders</label>
+<div id="slw" hidden>
+<label class="sw2" style="margin-top:8px"><input id="slc" type="color" value="#ffffff" aria-label="Subdivision border color"> Color</label>
+<label class="rg">Between subdivisions<input id="slu" type="range" min="0.3" max="4" step="0.1" value="0.6"></label>
+<label class="rg" title="Where a layer groups its units into larger parts: US states in the county and congressional district layers, the four UK nations">Between states and nations<input id="slg" type="range" min="0.3" max="4" step="0.1" value="2"></label>
+</div>
+</section>
+<section>
 <h2>Hover</h2>
 <select id="hs" aria-label="Hover style"><option value="dark">Darken country</option><option value="outline">Outline</option><option value="both">Darken and outline</option><option value="none">None</option></select>
 <label class="rg">Hover darkness<input id="shd" type="range" min="5" max="40" value="16"></label>

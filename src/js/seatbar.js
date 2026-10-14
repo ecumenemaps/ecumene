@@ -66,7 +66,10 @@ export function drawSeatBar(c, w, h) {
   // notes, wrapped to the bar's width
   c.font = font('400', 11);
   const notes = [];
+  // every seat called and no majority: what happens next comes first
+  const outcome = t.outcome === 'tie' ? el.tie || el.hung : t.outcome === 'hung' ? el.hung : '';
   for (const n of [
+    outcome,
     el.note,
     t.counted !== t.total ? 'Counted ' + t.counted + ' of ' + t.total + ' ' + el.unit + ': some units are missing.' : '',
   ].filter(Boolean)) {
@@ -108,7 +111,12 @@ export function drawSeatBar(c, w, h) {
   c.textAlign = 'right';
   c.font = font('400', 12);
   c.fillStyle = MUTE;
-  c.fillText(t.winner ? (label(t.winner.paint) || 'One color') + ' has a majority' : t.majority + ' for a majority', bw - p, p + 8);
+  const head = {
+    majority: t.winner && (label(t.winner.paint) || 'One color') + ' has a majority',
+    tie: 'Tie',
+    hung: 'No majority',
+  }[t.outcome];
+  c.fillText(head || t.majority + ' for a majority', bw - p, p + 8);
   // the two leading totals at the ends
   const bar = arrange(t),
     yNum = p + 18 + 12;

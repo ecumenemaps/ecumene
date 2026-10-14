@@ -5,14 +5,14 @@
 // Loaded units are triangulated into a second fill mesh that the globe draws over the countries (gl.js), skipping
 // unpainted units so the country's own fill shows through, and drawing the borders on top.
 import { geoBounds, geoContains } from 'd3-geo';
-import { feature } from 'topojson-client';
+import { feature, mesh } from 'topojson-client';
 import earcut from 'earcut';
 import { triangulate } from '../../scripts/lib/tri.js';
 import { app, emit, redraw } from './store.js';
 import { geo, inSea } from './data.js';
 import { loadSubdivisions } from './objects.js';
 import { commit } from './history.js';
-import { uploadUnitMesh, setUnitPainter, setUnitAnchor, putPaint, UPAL_ROWS } from './gl.js';
+import { uploadUnitMesh, setUnitPainter, setUnitAnchor, setUnitLines, segs, putPaint, UPAL_ROWS } from './gl.js';
 
 /** How long the pointer rests on a country before its units load. */
 export const LOAD_DELAY = 75;
@@ -105,8 +105,59 @@ function uploadMeshes() {
   }
   uploadUnitMesh(ll, idx, ids);
 }
+// Subdivision borders (app.sublines) are drawn for the layers that have paint, and in Subdivisions mode for the
+// country under the pointer; the lines of those layers are joined and handed to the globe when the set changes.
+let linesShown = '';
+// the loaded layers whose borders show: those with paint, and (not in exports, which clear the hover) the one
+// being pointed at in Subdivisions mode
+function shownLayers() {
+  const keys = new Set();
+  for (const k of app.units.keys()) {
+    const [n, code] = splitKey(k);
+    keys.add(n + '|' + layerOfCode(code));
+  }
+  if (app.sub.on && app.subHov && app.hover) keys.add(app.subHov.country + '|' + activeLayer(app.subHov.country));
+  return [...keys].filter((k) => ready.has(k)).sort();
+}
+function linesOf(k) {
+  const U = ready.get(k);
+  if (!U.lines) U.lines = unitLines(U.topo, U.gr);
+  return U.lines;
+}
+function updateLines() {
+  if (!app.sublines.on) return;
+  const shown = shownLayers(),
+    sig = shown.join('\n');
+  if (sig === linesShown) return;
+  linesShown = sig;
+  const join = (part) => {
+    const arrs = shown.map((k) => linesOf(k)[part]),
+      out = new Float32Array(arrs.reduce((s, a) => s + a.length, 0));
+    let o = 0;
+    for (const a of arrs) {
+      out.set(a, o);
+      o += a.length;
+    }
+    return out;
+  };
+  setUnitLines(join('u'), join('g'));
+}
+/**
+ * The borders of a country's units from its TopoJSON: between units (u), and between the larger parts the layer
+ * groups them into (g, where it has that grouping), as globe segments and as GeoJSON for SVG export (mu, mg).
+ */
+export function unitLines(t, gr) {
+  const o = t.objects.u,
+    mu = mesh(t, o, (a, b) => a !== b),
+    mg = gr && gr.g ? mesh(t, o, (a, b) => a !== b && a.properties.g !== b.properties.g) : { type: 'MultiLineString', coordinates: [] };
+  return { u: segs(mu.coordinates), g: segs(mg.coordinates), mu, mg };
+}
+/** The subdivision borders shown, as GeoJSON for export: [{u, g}] per layer. Empty when they are switched off. */
+export const shownUnitLines = () => (app.sublines.on ? shownLayers().map((k) => ({ u: linesOf(k).mu, g: linesOf(k).mg })) : []);
+
 /** Fill the subdivision palette and pattern bytes from app.units before a frame; returns false when nothing is painted. */
 function paintPalette(pal, pat) {
+  updateLines();
   pal.fill(0);
   pat.fill(0);
   let any = false;
@@ -140,7 +191,15 @@ export function loadUnits(country, layer = activeLayer(country)) {
           });
           // the same 4-degree grid as the country mesh, so long edges follow the sphere
           const mesh = await triangulate(feats, earcut, 4, tick, feats.map((f) => f.gid));
-          const U = { feats, byCode: new Map(feats.map((f) => [f.properties.c, f])), mesh: { ll: mesh.ll, id: mesh.id, idx: mesh.idx } };
+          const U = {
+            feats,
+            byCode: new Map(feats.map((f) => [f.properties.c, f])),
+            mesh: { ll: mesh.ll, id: mesh.id, idx: mesh.idx },
+            // borders are worked out the first time they are shown
+            topo: t,
+            gr: (layerInfo(country, layer) || {}).gr,
+            lines: null,
+          };
           ready.set(key, U);
           loading.delete(key);
           uploadMeshes();
