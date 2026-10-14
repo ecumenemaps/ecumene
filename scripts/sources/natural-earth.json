@@ -22,5 +22,13 @@
     "title": "States and provinces (admin-1, 10m)",
     "source": "Natural Earth",
     "licence": { "name": "Public domain" }
+  },
+  {
+    "id": "ne-map-units",
+    "kind": "reference",
+    "order": 4,
+    "title": "Check of the overseas parts split from France and the Netherlands (admin-0 map units, 10m)",
+    "source": "Natural Earth, compared by scripts/check_overseas.js; their polygon centres are a unit-test fixture",
+    "licence": { "name": "Public domain" }
   }
 ]
