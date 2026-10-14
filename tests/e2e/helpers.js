@@ -34,4 +34,17 @@ async function useCode(page, code) {
 async function regionRows(page) {
   return page.locator('#rgl .rg-row').count();
 }
-module.exports = { openApp, status, globeCentre, getCode, useCode, regionRows, mode };
+// The source line printed on an SVG export, as one text: it wraps onto several lines when it is too long for the frame
+// (at its " · " separators, which are then dropped, or at spaces), so its lines are joined with spaces.
+function sourceNote(svg) {
+  const g = /<g id="source-note">([\s\S]*?)<\/g>/.exec(svg);
+  if (!g) return '';
+  const lines = [...g[1].matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map((m) => m[1]);
+  // each line is drawn twice (a halo, then the text)
+  return lines
+    .filter((l, i) => i % 2 === 1)
+    .join(' ')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+module.exports = { openApp, status, globeCentre, getCode, useCode, regionRows, mode, sourceNote };

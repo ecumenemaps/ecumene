@@ -23,13 +23,13 @@ for (const f of fs.readdirSync(R('data/admin1'))) fs.copyFileSync(R('data/admin1
 if (fs.existsSync(R('data/layers'))) fs.cpSync(R('data/layers'), R('dist/app/layers'), { recursive: true });
 
 // a script bundle inlined into an HTML template
-function page(entry, template, outFile) {
+function page(entry, template, outFile, transform = (h) => h) {
   const out = esbuild.buildSync({
     entryPoints: [R(entry)], bundle: true, format: 'iife', target: ['es2020'],
     minify: !dev, sourcemap: dev ? 'inline' : false, write: false, legalComments: 'none',
   });
   const js = out.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
-  const html = fs.readFileSync(R(template), 'utf8') + '<script>' + js + '</script>\n</body>\n</html>\n';
+  const html = transform(fs.readFileSync(R(template), 'utf8')) + '<script>' + js + '</script>\n</body>\n</html>\n';
   fs.writeFileSync(R(outFile), html);
   return { html: html.length, js: js.length };
 }
@@ -39,7 +39,12 @@ esbuild.buildSync({
   stdin: { contents: "import pc from 'polygon-clipping'; window.polygonClipping = pc;", resolveDir: R('.') },
   bundle: true, format: 'iife', target: ['es2020'], minify: !dev, legalComments: 'none', outfile: R('dist/app/clip.js'),
 });
-const home = page('src/home/home.js', 'src/home/index.html', 'dist/index.html');
+// the example gallery (scripts/lib/gallery.js): featured cards on the home page, every example on dist/gallery/
+const G = require('./lib/gallery.js'),
+  examples = G.loadExamples(R('site/examples'));
+const home = page('src/home/home.js', 'src/home/index.html', 'dist/index.html', (h) => G.homeWithExamples(h, examples));
+fs.mkdirSync(R('dist/gallery'), { recursive: true });
+fs.writeFileSync(R('dist/gallery/index.html'), G.galleryPage(fs.readFileSync(R('src/gallery/index.html'), 'utf8'), fs.readFileSync(R('src/home/index.html'), 'utf8'), examples));
 
 // home page: small world for the hero globe, self-hosted fonts (no third-party requests), examples
 const w110 = require('world-atlas/countries-110m.json');

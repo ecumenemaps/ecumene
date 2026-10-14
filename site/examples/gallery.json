@@ -1,0 +1,102 @@
+[
+  {
+    "name": "eu",
+    "featured": true,
+    "title": "The European Union",
+    "desc": "Orthographic, in the Wikipedia locator style.",
+    "how": "Paint: Group, European Union (27). Style: Wikipedia preset.",
+    "source": "Natural Earth; membership checked against the European Union's EU countries page.",
+    "alt": "Orthographic globe centred on Europe with the 27 European Union members in green"
+  },
+  {
+    "name": "gdp",
+    "featured": true,
+    "title": "GDP per capita, 2022",
+    "desc": "Equal Earth. World Bank data fetched on {fetched}, five classes by quantile; countries without a value are marked.",
+    "how": "Data: Statistic, GDP per capita, year 2022; quantiles.",
+    "source": "World Bank, World Development Indicators (CC BY 4.0).",
+    "alt": "World map in Equal Earth projection, countries shaded by GDP per capita in five classes"
+  },
+  {
+    "name": "althist",
+    "featured": true,
+    "title": "A restored Byzantium, 1453",
+    "desc": "A fictional scenario: the regions and arrows are freehand and invented. Only the coastlines and country borders underneath are real data.",
+    "how": "Draw: Region, Arrow and Marker.",
+    "source": "Invented, over Natural Earth's present-day borders; its exports say it is fictional.",
+    "alt": "Globe of the eastern Mediterranean showing a fictional 1453, with empires drawn as regions and campaigns as arrows"
+  },
+  {
+    "name": "uk",
+    "featured": true,
+    "title": "The countries of the United Kingdom",
+    "desc": "Lambert conformal conic. Exact outlines from Natural Earth subdivisions.",
+    "how": "Draw: Exact outline, United Kingdom, by constituent part.",
+    "source": "Natural Earth admin-1 (public domain).",
+    "alt": "Lambert conformal conic map of the United Kingdom with England, Scotland, Wales and Northern Ireland outlined"
+  },
+  {
+    "name": "electoral",
+    "title": "Electoral votes per state, 2024 and 2028",
+    "desc": "Lambert conformal conic. Each state's electoral votes from the 2020 Census apportionment, in three classes.",
+    "how": "Data: Statistic, Electoral votes per state.",
+    "source": "U.S. Census Bureau, 2020 apportionment (public domain), checked against the Census table.",
+    "alt": "Map of the United States with the states shaded by their number of electoral votes, California and Texas darkest"
+  },
+  {
+    "name": "lifeexp",
+    "title": "Life expectancy at birth",
+    "desc": "Robinson. World Bank data fetched on {fetched}, for {year}, the latest year with good coverage.",
+    "how": "Data: Statistic, Life expectancy at birth.",
+    "source": "World Bank, World Development Indicators; collected by the UN Population Division (CC BY 4.0).",
+    "alt": "World map in Robinson projection, countries shaded by life expectancy at birth"
+  },
+  {
+    "name": "nato",
+    "title": "NATO members by when they joined",
+    "desc": "Globe over the North Atlantic. The year each country joined, from NATO's member countries page (read on {read}), in four periods; countries that are not members are left unpainted. Greenland, part of the Kingdom of Denmark, is a separate place on the map and is left unpainted too.",
+    "how": "Data: paste a table of countries and periods; words become categories.",
+    "source": "NATO, member countries page (nato.int).",
+    "alt": "Globe over the North Atlantic with NATO members colored by the period in which they joined"
+  },
+  {
+    "name": "euro",
+    "title": "The euro area within the EU",
+    "desc": "Orthographic. Euro area members in solid color, the other EU members hatched.",
+    "how": "Paint: Group, European Union (27), with a hatch pattern; then Group, Eurozone (21) in a solid color.",
+    "source": "Membership checked against the European Union's EU countries page and the European Central Bank.",
+    "alt": "Globe centred on Europe with euro area members in solid blue and the other EU members hatched"
+  },
+  {
+    "name": "continents",
+    "title": "Continents",
+    "desc": "Robinson. Continents as in the UN's M49 classification, the Americas split by its sub-regions, in color-blind safe Okabe–Ito colors.",
+    "how": "Paint: Okabe–Ito colors, then Group, each continent.",
+    "source": "UN Statistics Division, M49 classification; Natural Earth borders.",
+    "alt": "World map in Robinson projection with each continent in a different color"
+  },
+  {
+    "name": "texas",
+    "title": "The counties of Texas",
+    "desc": "Lambert conformal conic. All 254 counties, from the Census Bureau's 2024 boundaries, colored so that neighbouring counties always differ.",
+    "how": "Paint: Subdivisions, Layer for the United States: Counties; Detail: Constituent parts paints a whole state.",
+    "source": "U.S. Census Bureau, 2024 cartographic boundaries (public domain).",
+    "alt": "Map of Texas with its 254 counties outlined"
+  },
+  {
+    "name": "ireland",
+    "title": "Ireland's four provinces",
+    "desc": "Lambert conformal conic. The provinces, painted from the counties layer's 26 counties a province at a time. Ulster's other six counties are in Northern Ireland, part of the United Kingdom, and are left unpainted.",
+    "how": "Paint: Subdivisions, Layer for Ireland: Counties; Detail: Regions.",
+    "source": "Tailte Éireann (CC BY 4.0).",
+    "alt": "Map of Ireland colored by its four provinces"
+  },
+  {
+    "name": "mortality",
+    "title": "Under-5 mortality, in a color-blind safe scale",
+    "desc": "Equal Earth. World Bank data fetched on {fetched}, for {year}, in Viridis, which reads the same with the common color-vision deficiencies.",
+    "how": "Data: Statistic, Under-5 mortality; scale Viridis. Style: Color vision preview to check.",
+    "source": "World Bank, World Development Indicators; UN Inter-agency Group for Child Mortality Estimation (CC BY 4.0).",
+    "alt": "World map in Equal Earth projection, countries shaded by under-5 mortality in the Viridis scale"
+  }
+]

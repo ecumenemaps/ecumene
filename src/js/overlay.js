@@ -312,16 +312,52 @@ export function drawSourceNote(c, w, h, text, legend) {
   c.textAlign = left ? 'left' : 'right';
   c.textBaseline = 'bottom';
   const x = left ? 10 : w - 10,
-    y = h - 6,
     bg = app.style.bg;
+  // a line too long for the frame wraps at its " · " separators (and, if a part is still too long, at its spaces), so
+  // a credit is never cut off at the edge
+  // beside a legend at the bottom, keep to the space it leaves (unless that is too narrow to read)
+  const low = !!legend && legend.y + legend.h > h - 40,
+    room = low ? (left ? legend.x - 20 : w - (legend.x + legend.w) - 20) : w - 20;
+  const lines = [],
+    max = room >= 180 ? room : w - 20;
+  let line = '';
+  for (const part of text.split(' · ')) {
+    const next = line ? line + ' · ' + part : part;
+    if (!line || c.measureText(next).width <= max) {
+      line = next;
+      continue;
+    }
+    lines.push(line);
+    line = part;
+  }
+  lines.push(line);
+  const wrapped = [];
+  for (const l of lines) {
+    if (c.measureText(l).width <= max) {
+      wrapped.push(l);
+      continue;
+    }
+    let cur = '';
+    for (const word of l.split(' ')) {
+      const next = cur ? cur + ' ' + word : word;
+      if (cur && c.measureText(next).width > max) {
+        wrapped.push(cur);
+        cur = word;
+      } else cur = next;
+    }
+    wrapped.push(cur);
+  }
   c.lineJoin = 'round';
   c.lineWidth = 3;
-  c.strokeStyle = bg;
-  c.globalAlpha = 0.85;
-  c.strokeText(text, x, y);
-  c.globalAlpha = 1;
-  c.fillStyle = lum(bg) > 0.5 ? '#5b6672' : '#aab4bf';
-  c.fillText(text, x, y);
+  wrapped.forEach((l, i) => {
+    const y = h - 6 - (wrapped.length - 1 - i) * 12;
+    c.strokeStyle = bg;
+    c.globalAlpha = 0.85;
+    c.strokeText(l, x, y);
+    c.globalAlpha = 1;
+    c.fillStyle = lum(bg) > 0.5 ? '#5b6672' : '#aab4bf';
+    c.fillText(l, x, y);
+  });
 }
 
 /** Legend box with named colours, named regions and named arrows. */
