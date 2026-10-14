@@ -1,16 +1,6 @@
 // Panel: paint colour, find a country, fill from a list or group, colour by data.
-import {
-  interpolateBlues,
-  interpolateGreens,
-  interpolateOranges,
-  interpolatePurples,
-  interpolateReds,
-  interpolateViridis,
-  interpolateYlOrRd,
-  interpolateYlGnBu,
-} from 'd3-scale-chromatic';
-import { color } from 'd3-color';
 import { geoCentroid } from 'd3-geo';
+import { SCALES, PAINT_SETS, safetyNote, classColors, divergingBreaks } from './schemes.js';
 import { app, on, emit, redraw } from './store.js';
 import { geo } from './data.js';
 import { setFill, paintMany } from './paint.js';
@@ -21,47 +11,53 @@ import { refreshSub } from './input.js';
 import { $, el, note } from './util.js';
 import Ecu from '../groups.js';
 
-export const COLORS = ['#e4572e', '#f2a541', '#f6d743', '#7cc06b', '#2a9d8f', '#3d8bd9', '#5b5fc7', '#a05cc7', '#d6539f', '#7a6a5b'];
-const SCALES = {
-  Blues: interpolateBlues,
-  Greens: interpolateGreens,
-  Oranges: interpolateOranges,
-  Purples: interpolatePurples,
-  Reds: interpolateReds,
-  Viridis: interpolateViridis,
-  'Yellow-Orange-Red': interpolateYlOrRd,
-  'Yellow-Green-Blue': interpolateYlGnBu,
-};
 const listOf = (items, n) => items.slice(0, n).join(', ') + (items.length > n ? ' and ' + (items.length - n) + ' more' : '');
 
 function initPalette() {
-  const box = $('pal');
+  const box = $('pal'),
+    set = $('pset');
   const custom = el('input', { type: 'color', id: 'cc', value: app.active, title: 'Custom color', aria: { label: 'Custom color' } });
   const mark = () => box.querySelectorAll('.sw').forEach((b) => b.classList.toggle('on', b.dataset.c === app.active));
-  for (const col of COLORS) {
-    const b = el('button', {
-      class: 'sw',
-      aria: { label: 'Paint with ' + col },
-      onclick: () => {
-        app.active = col;
-        custom.value = col;
-        mark();
-      },
-    });
-    b.dataset.c = col;
-    b.style.background = col;
-    box.append(b);
-  }
+  set.replaceChildren(...Object.keys(PAINT_SETS).map((k) => el('option', { value: k, textContent: k === 'Default' ? 'Default colors' : k })));
+  // the swatches of the chosen set, then the custom color
+  const fill = () => {
+    if (!PAINT_SETS[app.paintSet]) app.paintSet = 'Default';
+    set.value = app.paintSet;
+    const S = PAINT_SETS[app.paintSet];
+    box.replaceChildren(
+      ...S.c.map((col) => {
+        const b = el('button', {
+          class: 'sw',
+          aria: { label: 'Paint with ' + col },
+          onclick: () => {
+            app.active = col;
+            custom.value = col;
+            mark();
+          },
+        });
+        b.dataset.c = col;
+        b.style.background = col;
+        return b;
+      }),
+      custom,
+    );
+    $('psetn').textContent = safetyNote(S);
+    mark();
+  };
+  set.onchange = () => {
+    app.paintSet = set.value;
+    fill();
+  };
   custom.oninput = () => {
     app.active = custom.value;
     mark();
   };
-  box.append(custom);
-  mark();
+  fill();
   on('palette', () => {
     custom.value = app.active;
     mark();
   });
+  on('style', fill);
 }
 
 function initSearch() {
@@ -130,8 +126,32 @@ function initLists(resolve) {
 }
 
 function initData(resolve) {
-  $('dpal').replaceChildren(...Object.keys(SCALES).map((k) => el('option', { textContent: k })));
-  $('dn').replaceChildren(...[3, 4, 5, 6, 7, 8, 9].map((n) => el('option', { value: n, textContent: n + ' classes', selected: n === 5 })));
+  const group = (kind, label) =>
+    el('optgroup', { label }, ...Object.keys(SCALES).filter((k) => SCALES[k].kind === kind).map((k) => el('option', { value: k, textContent: k })));
+  $('dpal').replaceChildren(group('seq', 'Low to high'), group('div', 'Either side of a centre'));
+  $('dn').replaceChildren(...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => el('option', { value: n, textContent: n + ' classes' })));
+  const D = app.data;
+  // the controls show and edit app.data, which is saved with the map
+  const sync = () => {
+    if (!SCALES[D.scale]) D.scale = 'Blues';
+    const div = SCALES[D.scale].kind === 'div';
+    $('dpal').value = D.scale;
+    $('dn').value = String(D.n);
+    $('dm').value = D.m;
+    $('dc').value = D.c;
+    $('drev').checked = !!D.rev;
+    $('dcw').hidden = !div;
+    // a diverging scale uses equal steps either side of its centre
+    $('dm').disabled = div;
+    $('dpaln').textContent = safetyNote(SCALES[D.scale]);
+  };
+  $('dpal').onchange = () => ((D.scale = $('dpal').value), sync());
+  $('dn').onchange = () => (D.n = +$('dn').value);
+  $('dm').onchange = () => (D.m = $('dm').value);
+  $('dc').onchange = () => (D.c = $('dc').value.trim());
+  $('drev').onchange = () => (D.rev = $('drev').checked);
+  sync();
+  on('style', sync);
   $('dgo').onclick = () => {
     if (!app.ready) return;
     const r = Ecu.parseData($('dd').value, resolve);
@@ -139,14 +159,19 @@ function initData(resolve) {
       note(r.bad.length ? 'Could not read "' + r.bad[0] + '". Use: country, value' : 'Paste some rows first (country, value).', 1);
       return;
     }
-    const vals = r.rows.map((x) => x.value);
-    let b = Ecu.breaks(vals, +$('dn').value, $('dm').value);
+    const vals = r.rows.map((x) => x.value),
+      div = SCALES[D.scale].kind === 'div';
+    let b;
+    if (div) {
+      // centre: the value given, else 0 when the data has both signs, else the average
+      const lo = Math.min(...vals),
+        hi = Math.max(...vals),
+        c = D.c !== '' && Number.isFinite(+D.c) ? +D.c : lo < 0 && hi > 0 ? 0 : vals.reduce((s, v) => s + v, 0) / vals.length;
+      b = divergingBreaks(vals, Math.max(2, D.n), c);
+    } else b = Ecu.breaks(vals, D.n, D.m);
     if (b.length < 2) b = [vals[0] - 1, vals[0]];
     const k = b.length - 1,
-      f = SCALES[$('dpal').value],
-      cols = [];
-    // avoid the near-white end of the scale so the lightest class is still visible on land
-    for (let i = 0; i < k; i++) cols.push(color(f(k === 1 ? 0.6 : 0.15 + (0.8 * i) / (k - 1))).formatHex());
+      cols = classColors(D.scale, k, D.rev);
     const used = new Set();
     for (const x of r.rows) {
       const i = Ecu.classOf(x.value, b);

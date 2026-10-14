@@ -17,6 +17,8 @@ Context for anyone (or any session) picking this up. See README for build and te
 | `picker.js` | Subdivision picker (groups, list, map clicks) |
 | `overlay.js` | 2D canvas drawing for objects, names, legend, editing handles, the outline of the subdivisions under the pointer; reused by PNG and SVG export |
 | `paint.js` | Country fills, recolour and remove a colour (countries and subdivisions), legend colour order and counts |
+| `schemes.js` | Color schemes (pure, unit tested): ColorBrewer class colors for sequential and diverging scales (lightest sequential class dropped, it is near white on land), Viridis and Cividis, paint swatch sets (Default, Okabe–Ito, Set 2, Dark 2, Paired, Tableau 10) with ColorBrewer's color-blind and print ratings; symmetric diverging breaks; Machado et al. (2009) color-vision matrices, CIEDE2000, and `clashes` (pairs at least 10 apart normally but under 10 with a deficiency) |
+| `vision.js` | Screen-only color-vision preview (SVG feColorMatrix filters on the globe and overlay canvases, so exports are untouched) and the Legend panel's warning when the map's colors clash |
 | `units.js` | Paintable subdivisions: a country's layers (`layersOf`, `activeLayer`, `setLayer`), per-country-and-layer loading when the pointer rests (`LOAD_DELAY`), triangulation into the globe's subdivision mesh, the unit or group under a point at the chosen detail, painting by unit code (Natural Earth `adm1_code`, or `layer:code`) |
 | `history.js` | Undo and redo (snapshots of country fills, painted subdivisions and objects) |
 | `persist.js` | `getState`/`setState` (validated), map codes `GM1.`, downloads, autosave |

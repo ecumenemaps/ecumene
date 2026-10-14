@@ -602,6 +602,65 @@ test('colour by data builds classed legend', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('color schemes: diverging scale, paint sets, color-vision preview and clash warning', async ({ page }) => {
+  const errors = await openApp(page);
+  const fillOf = async (n) => (await page.evaluate(() => window.ecumene.getState().f)).find((g) => g.n.includes(n));
+  // a diverging scale centred on 0: negatives red, positives blue, equal steps either side
+  await mode(page, 'data');
+  await page.selectOption('#dpal', 'Red-Blue');
+  await expect(page.locator('#dcw')).toBeVisible();
+  await expect(page.locator('#dm')).toBeDisabled();
+  await expect(page.locator('#dpaln')).toHaveText('Color-blind safe, prints well.');
+  await page.selectOption('#dn', '4');
+  await page.fill('#dd', 'France, -6\nGermany, 6\nSpain, -2\nItaly, 2');
+  await page.click('#dgo');
+  expect((await fillOf('France')).c).toBe('#ca0020');
+  expect((await fillOf('Germany')).c).toBe('#0571b0');
+  expect((await fillOf('Spain')).l).toBe('-3 to 0');
+  await page.check('#drev');
+  await page.click('#dgo');
+  expect((await fillOf('Germany')).c).toBe('#ca0020');
+  // the Okabe–Ito paint colors
+  await mode(page, 'paint');
+  await page.selectOption('#pset', 'Okabe–Ito');
+  await expect(page.locator('#pal .sw')).toHaveCount(8);
+  await expect(page.locator('#psetn')).toHaveText('Color-blind safe.');
+  // orange and green look alike with deuteranopia and protanopia: the legend panel says so, by label
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    s.f = [
+      { c: '#f2a541', n: ['France'], l: 'Founding members' },
+      { c: '#7cc06b', n: ['Spain'], l: 'Joined later' },
+    ];
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'legend');
+  await expect(page.locator('#cvdw')).toBeVisible();
+  await expect(page.locator('#cvdw')).toContainText('With deuteranopia (green-blind): Founding members and Joined later');
+  await expect(page.locator('#cvdw')).toContainText('protanopia');
+  // the preview changes the screen only
+  await mode(page, 'style');
+  await page.selectOption('#cvd', 'deuteranopia');
+  expect(await page.evaluate(() => document.getElementById('cv').style.filter)).toContain('cvd-deuteranopia');
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('fill="#f2a541"');
+  expect(svg).not.toContain('cvd-');
+  await page.selectOption('#cvd', '');
+  expect(await page.evaluate(() => document.getElementById('cv').style.filter)).toBe('');
+  // the paint set and data settings are saved with the map
+  const st = await page.evaluate(() => window.ecumene.getState());
+  expect(st.ps).toBe('Okabe–Ito');
+  expect(st.ds).toEqual({ scale: 'Red-Blue', n: 4, m: 'equal', c: '', rev: true });
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    delete s.ps;
+    delete s.ds;
+    window.ecumene.setState(s);
+  });
+  await expect(page.locator('#pset')).toHaveValue('Default');
+  expect(errors).toEqual([]);
+});
+
 test('legend editor: reorder, remove, title survive a map code', async ({ page }) => {
   const errors = await openApp(page);
   await mode(page, 'paint');

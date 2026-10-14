@@ -131,7 +131,9 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <div class="mode" data-mode="paint">
 <section>
 <h2>Paint color</h2>
+<select id="pset" aria-label="Paint colors" style="margin-bottom:6px"></select>
 <div id="pal"></div>
+<p id="psetn" class="hint" style="margin-top:4px"></p>
 <p class="hint">Drag to rotate. Scroll or pinch to zoom. Click a country to paint it, click again to clear it. Hold Ctrl (Cmd on Mac) and move over countries to paint many at once.</p>
 <label class="sw2" style="margin-top:8px"><input id="pm" type="checkbox"> Paint while dragging (for touch)</label>
 </section>
@@ -168,6 +170,9 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <textarea id="dd" rows="8" placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
 <div class="cg" style="margin-top:8px"><select id="dpal" aria-label="Color scale"></select><select id="dn" aria-label="Number of classes"></select></div>
 <select id="dm" aria-label="Class method"><option value="equal">Equal intervals</option><option value="quantile">Quantiles (equal counts)</option></select>
+<label class="rg" id="dcw" hidden>Centre on (equal steps either side)<input id="dc" type="number" step="any" placeholder="0, or the average if all values are on one side" aria-label="Centre value"></label>
+<label class="sw2" style="margin-top:8px"><input id="drev" type="checkbox"> Reverse colors</label>
+<p id="dpaln" class="hint" style="margin-top:4px"></p>
 <div class="row" style="margin-top:8px"><button class="b" id="dgo">Color the map</button></div>
 <p class="hint">Only the listed countries are colored. Each class becomes a legend entry you can rename in Legend.</p>
 </section>
@@ -227,6 +232,11 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <label class="rg">Hover darkness<input id="shd" type="range" min="5" max="40" value="16"></label>
 <label class="sw2" style="margin-top:8px"><input id="tg" type="checkbox" checked> Show name tag</label>
 </section>
+<section>
+<h2>Color vision</h2>
+<select id="cvd" aria-label="Preview color vision"><option value="">Normal color vision</option></select>
+<p class="hint">Preview how the map looks with a color-vision deficiency (Machado et al. 2009). Only the screen changes; exports keep your colors.</p>
+</section>
 </div>
 <div class="mode" data-mode="legend">
 <section>
@@ -236,6 +246,7 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <div class="row" style="margin-top:8px"><select id="lp" aria-label="Legend position" style="width:auto;flex:1"><option value="bl">Bottom left</option><option value="br">Bottom right</option><option value="tl">Top left</option><option value="tr">Top right</option><option value="xy" hidden>Where you dragged it</option></select>
 <label class="sw2"><input id="ls" type="checkbox" checked> Show legend</label></div>
 <label class="rg">Legend size<input id="lk" type="range" min="60" max="200" step="5" value="100" aria-label="Legend size"></label>
+<p id="cvdw" class="hint" hidden></p>
 <p class="hint">Drag the legend on the map to place it anywhere. Exports put it in the same place.</p>
 </section>
 </div>

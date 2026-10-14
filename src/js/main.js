@@ -12,6 +12,7 @@ import { initInput, setCursor, refreshTip } from './input.js';
 import { initPaintPanel } from './ui-paint.js';
 import { initStylePanel } from './ui-style.js';
 import { initLegendPanel } from './ui-legend.js';
+import { initVision } from './vision.js';
 import { initObjectsPanel } from './ui-objects.js';
 import { initFilePanel } from './ui-file.js';
 import { initModes, setMode } from './ui-modes.js';
@@ -132,6 +133,7 @@ async function main() {
   initStylePanel({ onHoverChange: () => updateHoverOutline(true), refreshTip });
   initPaintPanel();
   initLegendPanel();
+  initVision();
   initObjectsPanel();
   initPicker();
   initFilePanel();
