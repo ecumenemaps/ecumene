@@ -9,6 +9,7 @@ import { commit } from './history.js';
 import { animate, centreOn } from './view.js';
 import { DETAIL, clearUnits, layersOf, activeLayer, setLayer } from './units.js';
 import { refreshSub } from './input.js';
+import { initStats, statChosen, colourStat } from './ui-stats.js';
 import { $, el, note } from './util.js';
 import Ecu from '../groups.js';
 
@@ -183,42 +184,60 @@ function initData(resolve) {
   $('drev').onchange = () => (D.rev = $('drev').checked);
   sync();
   on('style', sync);
+  initStats(colourRows);
   $('dgo').onclick = () => {
     if (!app.ready) return;
+    // a statistic chosen above wins over pasted rows
+    if (statChosen()) return colourStat();
     const r = Ecu.parseData($('dd').value, resolve);
     if (!r.rows.length) {
       note(r.bad.length ? 'Could not read "' + r.bad[0] + '". Use: country, value' : 'Paste some rows first (country, value).', 1);
       return;
     }
-    const vals = r.rows.map((x) => x.value),
-      div = SCALES[D.scale].kind === 'div';
-    let b;
-    if (div) {
-      // centre: the value given, else 0 when the data has both signs, else the average
-      const lo = Math.min(...vals),
-        hi = Math.max(...vals),
-        c = D.c !== '' && Number.isFinite(+D.c) ? +D.c : lo < 0 && hi > 0 ? 0 : vals.reduce((s, v) => s + v, 0) / vals.length;
-      b = divergingBreaks(vals, Math.max(2, D.n), c);
-    } else b = Ecu.breaks(vals, D.n, D.m);
-    if (b.length < 2) b = [vals[0] - 1, vals[0]];
-    const k = b.length - 1,
-      cols = classColors(D.scale, k, D.rev);
-    const used = new Set();
-    for (const x of r.rows) {
-      const i = Ecu.classOf(x.value, b);
-      used.add(i);
-      setFill(x.name, cols[i]);
+    const used = colourRows(r.rows, (x, col) => setFill(x.name, col));
+    // pasted numbers have no source to credit
+    if (app.stat) {
+      app.stat = null;
+      emit('stat');
     }
-    for (let i = 0; i < k; i++) app.labels[cols[i]] = Ecu.fmt(b[i]) + ' to ' + Ecu.fmt(b[i + 1]);
-    app.legend.order = cols.filter((c, i) => used.has(i));
     emit('legend');
     redraw();
     commit();
-    let m = r.rows.length + ' countries colored in ' + used.size + ' classes.';
+    let m = r.rows.length + ' countries colored in ' + used + ' classes.';
     if (r.unknown.length) m += ' Not found: ' + listOf(r.unknown, 6) + '.';
     if (r.bad.length) m += ' Skipped ' + r.bad.length + ' unreadable line' + (r.bad.length > 1 ? 's' : '') + '.';
     note(m, r.unknown.length > 0 || r.bad.length > 0);
   };
+}
+
+/**
+ * Class rows ({value, ...}) with the Data panel's scale, number of classes and method; set(row, color) applies
+ * each color. Puts the classes in the legend, with their ranges as labels. Returns the number of classes used.
+ */
+export function colourRows(rows, set) {
+  const D = app.data,
+    vals = rows.map((x) => x.value),
+    div = SCALES[D.scale].kind === 'div';
+  let b;
+  if (div) {
+    // centre: the value given, else 0 when the data has both signs, else the average
+    const lo = Math.min(...vals),
+      hi = Math.max(...vals),
+      c = D.c !== '' && Number.isFinite(+D.c) ? +D.c : lo < 0 && hi > 0 ? 0 : vals.reduce((s, v) => s + v, 0) / vals.length;
+    b = divergingBreaks(vals, Math.max(2, D.n), c);
+  } else b = Ecu.breaks(vals, D.n, D.m);
+  if (b.length < 2) b = [vals[0] - 1, vals[0]];
+  const k = b.length - 1,
+    cols = classColors(D.scale, k, D.rev);
+  const used = new Set();
+  for (const x of rows) {
+    const i = Ecu.classOf(x.value, b);
+    used.add(i);
+    set(x, cols[i]);
+  }
+  for (let i = 0; i < k; i++) app.labels[cols[i]] = Ecu.fmt(b[i]) + ' to ' + Ecu.fmt(b[i + 1]);
+  app.legend.order = cols.filter((c, i) => used.has(i));
+  return used.size;
 }
 
 function initSubdivisions() {

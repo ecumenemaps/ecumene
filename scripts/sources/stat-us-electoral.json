@@ -1,0 +1,11 @@
+{
+  "id": "stat-us-electoral",
+  "kind": "statistic",
+  "order": 61,
+  "title": "Electoral votes per US state (Data panel), 2024, 2028 and 2032 elections",
+  "publisher": "U.S. Census Bureau, 2020 Census apportionment of the U.S. House of Representatives",
+  "url": "https://www.census.gov/data/tables/2020/dec/2020-apportionment-data.html",
+  "licence": { "name": "Public domain (U.S. government work)", "url": "https://www.usa.gov/government-copyright" },
+  "note": "Bundled with the editor, not fetched. A state's electors are its seats in the House plus its two senators; the District of Columbia has 3 (23rd Amendment). Maine and Nebraska split their votes by congressional district; the map shows each state's total.",
+  "credit": "U.S. Census Bureau, 2020 Census apportionment; electors = House seats + 2 (the District of Columbia has 3). Public domain."
+}

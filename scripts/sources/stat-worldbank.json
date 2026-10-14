@@ -1,0 +1,26 @@
+{
+  "id": "stat-worldbank",
+  "kind": "statistic",
+  "order": 60,
+  "title": "Country statistics (Data panel): GDP per capita, population, life expectancy and 9 more indicators",
+  "publisher": "World Bank, World Development Indicators",
+  "url": "https://datatopics.worldbank.org/world-development-indicators/",
+  "licence": { "name": "CC BY 4.0", "url": "https://creativecommons.org/licenses/by/4.0/" },
+  "api": "https://api.worldbank.org/v2/country/all/indicator/",
+  "note": "Fetched from the World Bank's API in the browser when a statistic is chosen, and saved inside the map. Each series is CC BY 4.0 in the World Bank's own series metadata, which also names the organisation that collected it.",
+  "credit": "World Bank, World Development Indicators",
+  "indicators": [
+    { "code": "NY.GDP.PCAP.CD", "menu": "GDP per capita (current US$)", "title": "GDP per capita (current US$)", "origin": "World Bank national accounts data and OECD National Accounts data files" },
+    { "code": "NY.GDP.PCAP.PP.CD", "menu": "GDP per capita, PPP (current international $)", "title": "GDP per capita, PPP (current international $)", "origin": "International Comparison Program, World Bank" },
+    { "code": "SP.POP.TOTL", "menu": "Population", "title": "Population, total", "origin": "United Nations Population Division, World Population Prospects, and national statistical offices" },
+    { "code": "EN.POP.DNST", "menu": "Population density (people per sq. km)", "title": "Population density (people per sq. km of land area)", "origin": "Food and Agriculture Organization and World Bank population estimates" },
+    { "code": "SP.URB.TOTL.IN.ZS", "menu": "Urban population (% of total)", "title": "Urban population (% of total population)", "origin": "United Nations Population Division, World Urbanization Prospects" },
+    { "code": "SP.DYN.LE00.IN", "menu": "Life expectancy at birth (years)", "title": "Life expectancy at birth, total (years)", "origin": "United Nations Population Division, World Population Prospects" },
+    { "code": "SP.DYN.TFRT.IN", "menu": "Fertility rate (births per woman)", "title": "Fertility rate, total (births per woman)", "origin": "United Nations Population Division, World Population Prospects" },
+    { "code": "SH.DYN.MORT", "menu": "Under-5 mortality (per 1,000 live births)", "title": "Mortality rate, under-5 (per 1,000 live births)", "origin": "UN Inter-agency Group for Child Mortality Estimation" },
+    { "code": "SE.ADT.LITR.ZS", "menu": "Adult literacy rate (%)", "title": "Literacy rate, adult total (% of people ages 15 and above)", "origin": "UNESCO Institute for Statistics" },
+    { "code": "IT.NET.USER.ZS", "menu": "Internet users (% of population)", "title": "Individuals using the Internet (% of population)", "origin": "International Telecommunication Union" },
+    { "code": "EN.GHG.CO2.PC.CE.AR5", "menu": "CO2 emissions per person (t CO2e)", "title": "Carbon dioxide (CO2) emissions excluding LULUCF per capita (t CO2e/capita)", "origin": "EDGAR, European Commission Joint Research Centre" },
+    { "code": "AG.LND.FRST.ZS", "menu": "Forest area (% of land area)", "title": "Forest area (% of land area)", "origin": "Food and Agriculture Organization" }
+  ]
+}
