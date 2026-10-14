@@ -20,6 +20,8 @@ export function shownElection() {
 }
 /** The tally of the shown election, or null (no election painted, or its units are still loading). */
 export function currentTally() {
+  // a map colored by a statistic (the electoral votes themselves, in classes) is not a count of who won
+  if (app.stat) return null;
   const el = shownElection();
   if (!el) return null;
   const U = unitsOf(el.country, el.layer);

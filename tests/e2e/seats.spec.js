@@ -61,6 +61,12 @@ test('electoral votes: counted per colour, majority, the controls', async ({ pag
   await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
   expect(await page.evaluate(() => window.ecumene.seatRect())).toBeNull();
   await page.check('#sbs');
+  // coloring the states by the electoral votes statistic (classes, not winners) shows no counter
+  await mode(page, 'data');
+  await page.selectOption('#dst', 'ev');
+  await page.click('#dgo');
+  await expect(page.locator('#st')).toContainText('51 states (with DC) colored');
+  expect(await seats(page)).toBeNull();
   expect(errors).toEqual([]);
 });
 
