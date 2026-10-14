@@ -20,7 +20,7 @@
     "kind": "reference",
     "order": 92,
     "title": "GDP per capita example",
-    "source": "World Bank (NY.GDP.MKTP.CD ÷ SP.POP.TOTL, 2022) via github.com/datasets",
+    "source": "World Bank, World Development Indicators (NY.GDP.PCAP.CD, 2022), fetched from the World Bank's API and saved in the example with the date",
     "licence": { "name": "CC BY 4.0" }
   }
 ]

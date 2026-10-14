@@ -82,7 +82,9 @@ export const app = {
   ink: '#222222', // pattern color
   paintSet: 'Default', // swatch set in the paint panel (schemes.js PAINT_SETS)
   // color by data: scale (schemes.js SCALES), classes, method, centre for diverging scales ('' = automatic), reversed
-  data: { scale: 'Blues', n: 5, m: 'equal', c: '', rev: false },
+  data: { scale: 'Blues', n: 5, m: 'equal', c: '', rev: false, nd: true }, // nd: mark countries without data
+  // the statistic the map was colored with, saved with it (stats.js validRecord): {k:'wb', c, y, t, v, ys?} or {k:'ev'}
+  stat: null,
   cvd: '', // color-vision preview on screen ('' = normal)
   // country fills: name -> hex, and legend labels per colour
   fills: new Map(),

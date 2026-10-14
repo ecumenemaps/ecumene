@@ -20,16 +20,19 @@ const EXAMPLES = {
     await view(page, [-14, -50], 1);
     return { mode: 'paint', export: { proj: 'ortho', area: 'world', width: 550 } };
   },
-  // World Bank GDP per capita, 2022, five quantile classes.
+  // World Bank GDP per capita, 2022, five quantile classes. The numbers are fetched from the World Bank's API while
+  // the example is made (this needs the network) and saved in the example with the year and the date fetched, so
+  // the example never changes by itself; run this script again to refresh it. The legend title and credit are the
+  // editor's own.
   async gdp(page) {
-    const rows = fs.readFileSync(R('site/data/gdp-per-capita-2022.csv'), 'utf8').split('\n').filter((l) => l && !l.startsWith('#')).join('\n');
     await mode(page, 'data');
-    await page.fill('#dd', rows);
+    await page.selectOption('#dst', 'wb:NY.GDP.PCAP.CD');
+    await page.waitForFunction(() => document.querySelector('#dyr option[value="2022"]') && !document.getElementById('dyr').disabled, null, { timeout: 60000 });
+    await page.selectOption('#dyr', '2022');
     await page.selectOption('#dpal', 'Yellow-Green-Blue');
     await page.selectOption('#dn', '5');
     await page.selectOption('#dm', 'quantile');
     await page.click('#dgo');
-    await setLegend(page, { t: 'GDP per capita, 2022 (current US$, World Bank)', p: 'bl' });
     await view(page, [-10, 0], 1);
     return { mode: 'data', export: { proj: 'equalearth', area: 'world', width: 1600 } };
   },

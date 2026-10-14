@@ -3,8 +3,9 @@ import { app, emit, redraw } from './store.js';
 import { setFill } from './paint.js';
 
 const LIMIT = 200;
-const snap = () => ({ f: new Map(app.fills), u: new Map(app.units), o: JSON.stringify(app.objects) });
-let hist = [{ f: new Map(), u: new Map(), o: '[]' }],
+// st: the statistic the map is colored with, lt: the legend title it came with (restored only when the statistic changes)
+const snap = () => ({ f: new Map(app.fills), u: new Map(app.units), o: JSON.stringify(app.objects), st: app.stat, lt: app.legend.title });
+let hist = [{ f: new Map(), u: new Map(), o: '[]', st: null, lt: '' }],
   hix = 0,
   timer = 0;
 
@@ -37,6 +38,11 @@ function restore(s) {
   });
   app.units.clear();
   s.u.forEach((c, k) => app.units.set(k, c));
+  if (app.stat !== s.st) {
+    app.stat = s.st;
+    app.legend.title = s.lt;
+    emit('stat');
+  }
   emit('objects');
   emit('legend');
   emit('history');

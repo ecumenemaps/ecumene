@@ -650,7 +650,7 @@ test('color schemes: diverging scale, paint sets, color-vision preview and clash
   // the paint set and data settings are saved with the map
   const st = await page.evaluate(() => window.ecumene.getState());
   expect(st.ps).toBe('Okabe–Ito');
-  expect(st.ds).toEqual({ scale: 'Red-Blue', n: 4, m: 'equal', c: '', rev: true });
+  expect(st.ds).toEqual({ scale: 'Red-Blue', n: 4, m: 'equal', c: '', rev: true, nd: true });
   await page.evaluate(() => {
     const s = window.ecumene.getState();
     delete s.ps;
