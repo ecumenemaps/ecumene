@@ -3,8 +3,6 @@
 const { test, expect } = require('@playwright/test');
 const { openApp } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
-
 // move the pointer to a lon/lat, then nudge it (the tag follows pointer moves)
 async function rest(page, lon, lat) {
   const box = await page.locator('#cv').boundingBox(),
