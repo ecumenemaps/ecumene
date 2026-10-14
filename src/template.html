@@ -44,6 +44,12 @@ p.hint{margin:6px 0 0;color:var(--mute);font-size:13px}
 #pal{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .sw{width:28px;height:28px;border-radius:50%;border:1px solid rgba(0,0,0,.25);padding:0;cursor:pointer}
 .sw.on{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--ink)}
+#ptn{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+#ptn .sw{border-radius:6px;background-size:auto}
+.pth{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+.pth label{display:flex;align-items:center;gap:6px;margin:0}
+.pth input[type=color]{width:28px;height:24px;padding:0;border:1px solid rgba(0,0,0,.25)}
+.lgp{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.25);flex:none;background-size:auto}
 #cc{width:36px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
 input[type=text],input[type=search]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
 button.b{padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
@@ -134,6 +140,8 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <select id="pset" aria-label="Paint colors" style="margin-bottom:6px"></select>
 <div id="pal"></div>
 <p id="psetn" class="hint" style="margin-top:4px"></p>
+<div class="pth"><span class="hint" title="Patterns are drawn on the plain color chosen above">Patterns</span><label class="hint">Pattern color <input id="pink" type="color" value="#222222" aria-label="Pattern color"></label></div>
+<div id="ptn"></div>
 <p class="hint">Drag to rotate. Scroll or pinch to zoom. Click a country to paint it, click again to clear it. Hold Ctrl (Cmd on Mac) and move over countries to paint many at once.</p>
 <label class="sw2" style="margin-top:8px"><input id="pm" type="checkbox"> Paint while dragging (for touch)</label>
 </section>

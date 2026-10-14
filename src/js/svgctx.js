@@ -277,11 +277,17 @@ export class SvgContext {
     return { width: String(t).length * parseFont(this.font).size * 0.55 };
   }
   drawImage() {}
+  /** Add a reusable definition (a <pattern>) once, by id; it is written in <defs> at the top. */
+  registerDef(id, markup) {
+    (this.defs || (this.defs = new Map())).set(id, markup);
+  }
   /** The finished document. */
   toString(w, h, head = '') {
+    const defs = this.defs && this.defs.size ? '<defs>\n' + [...this.defs.values()].join('\n') + '\n</defs>\n' : '';
     return (
       '<?xml version="1.0" encoding="UTF-8"?>\n' +
       '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">\n' +
+      defs +
       head +
       this.out.join('\n') +
       '\n</svg>\n'

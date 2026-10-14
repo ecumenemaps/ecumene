@@ -5,6 +5,7 @@ import { app, on } from './store.js';
 import { legendColours } from './paint.js';
 import { CVD, CVD_NAMES, clashes } from './schemes.js';
 import { $, el } from './util.js';
+import { isPattern } from './patterns.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 function addFilters() {
@@ -33,8 +34,9 @@ export function applyPreview() {
 const SHORT = { deuteranopia: 'deuteranopia (green-blind)', protanopia: 'protanopia (red-blind)', tritanopia: 'tritanopia (blue-blind)' };
 /** The Legend panel's warning about colors that look alike with a color-vision deficiency. */
 function warn() {
+  // patterned entries are told apart by their pattern, so only plain colors are compared
   const w = $('cvdw'),
-    cols = legendColours(),
+    cols = legendColours().filter((c) => !isPattern(c)),
     found = clashes(cols);
   w.hidden = !found.length;
   if (!found.length) return;

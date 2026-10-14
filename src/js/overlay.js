@@ -9,6 +9,7 @@ import { isRegion, isArea, areaGeo, areaAnchor } from './objects.js';
 import { legendColours } from './paint.js';
 import { font } from './fonts.js';
 import { D, darker, halo, hx, lum } from './util.js';
+import { fillWith, baseColor } from './patterns.js';
 
 const INK = '#1b2430';
 
@@ -244,7 +245,8 @@ export function drawUnitHover(c) {
 
 /** Fill and edge of a tiny-country marker: the country's colour when painted, otherwise land with a border-coloured edge. */
 export function markerPaint(m) {
-  const col = app.fills.get(m.n);
+  // a dot is too small for a pattern: it shows the pattern's background color
+  const col = app.fills.has(m.n) ? baseColor(app.fills.get(m.n)) : null;
   return col ? { fill: col, edge: darker(col) } : { fill: app.style.land, edge: app.style.border };
 }
 // the globe's hover shading (see gl.js): light colours darken, dark ones lighten
@@ -401,7 +403,8 @@ export function drawLegend(c, w, h) {
       c.fill();
     } else {
       c.globalAlpha = x.reg ? Math.max(0.15, x.reg.op) : 1;
-      c.fillStyle = x.col;
+      // a pattern swatch is drawn at the device pixels it ends up on (screen, or a PNG export's scale)
+      fillWith(c, x.col, app.dpr * (L.scale || 1));
       c.fillRect(bx + p, y, 16, 16);
       c.globalAlpha = 1;
       if (x.reg) {

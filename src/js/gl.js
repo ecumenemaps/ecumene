@@ -3,6 +3,7 @@
 // graticule, lake outlines, rivers, hover outline).
 import { app } from './store.js';
 import { V, D, rgb01, lum } from './util.js';
+import { parsePaint, PATTERN_TYPES } from './patterns.js';
 
 const VS_FULL = `#version 300 es
 void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));gl_Position=vec4(p*2.-1.,0.,1.);}`;
@@ -37,24 +38,44 @@ precision highp float;in float vD;in float vF;uniform vec4 uCol;uniform float uW
 void main(){float hw=uW*.5;float al=1.-smoothstep(hw-.5,hw+.5,abs(vD));o=vec4(uCol.rgb,uCol.a*al*vF);}`;
 // Fill colour per country comes from a palette texture, entry id at (id % 1024, id / 1024) (alpha 0 = unpainted ->
 // land colour). The subdivision pass uses its own palette and uSkip=1, so unpainted units are not drawn at all and
-// the country's fill shows through. uFlat overrides the colour (used for lakes).
+// the country's fill shows through. uFlat overrides the colour (used for lakes). A second texture of the same shape
+// holds pattern fills (patterns.js): rgb the pattern colour, alpha the pattern type (0 none); the fragment shader
+// draws the pattern in CSS pixels (uPx device pixels each), the same shapes as the SVG and canvas tiles.
 const VS_FILL = `#version 300 es
 precision highp float;precision highp int;precision highp sampler2D;
-in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal;uniform int uHover;uniform float uDark;uniform vec4 uFlat;uniform int uSkip;
-flat out vec3 vCol;flat out float vA;out float vZ;
+in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal,uPat;uniform int uHover;uniform float uDark;uniform vec4 uFlat;uniform int uSkip;
+flat out vec3 vCol;flat out vec4 vPat;flat out float vA;out float vZ;
+vec3 shade(vec3 cc){float lu=dot(cc,vec3(.299,.587,.114));return lu>.45?cc*(1.-uDark):mix(cc,vec3(1.),uDark);}
 void main(){
  float lo=aLL.x*0.017453292,la=aLL.y*0.017453292;float c=cos(la);vec3 P=vec3(c*cos(lo),c*sin(lo),sin(la));
  vec3 v=vec3(dot(P,uE),dot(P,uN),dot(P,uC));
- vec3 cc=uFlat.rgb;vA=1.;
- if(uFlat.a<.5){int id=int(aId);vec4 pc=texelFetch(uPal,ivec2(id&1023,id>>10),0);cc=pc.a>.5?pc.rgb:uLand;
+ vec3 cc=uFlat.rgb;vA=1.;vPat=vec4(0.);
+ if(uFlat.a<.5){int id=int(aId);ivec2 at=ivec2(id&1023,id>>10);vec4 pc=texelFetch(uPal,at,0);cc=pc.a>.5?pc.rgb:uLand;
+  if(pc.a>.5)vPat=texelFetch(uPat,at,0);
   if(uSkip==1&&pc.a<.5)vA=0.;
-  if(id==uHover){float lu=dot(cc,vec3(.299,.587,.114));cc=lu>.45?cc*(1.-uDark):mix(cc,vec3(1.),uDark);}}
+  if(id==uHover){cc=shade(cc);vPat.rgb=shade(vPat.rgb);}}
  vCol=cc;vZ=v.z;
  gl_Position=vec4(((uRes*.5+v.xy*uR)/uRes)*2.-1.,0.,1.);
 }`;
 const FS_FILL = `#version 300 es
-precision highp float;flat in vec3 vCol;flat in float vA;in float vZ;out vec4 o;
-void main(){if(vZ<0.||vA<.5)discard;o=vec4(vCol,1.);}`;
+precision highp float;flat in vec3 vCol;flat in vec4 vPat;flat in float vA;in float vZ;uniform vec2 uRes;uniform float uPx;out vec4 o;
+// 1 when the pattern's ink covers point q (CSS pixels, y down), with a soft edge of about a device pixel
+float band(float d,float w,float aa){return 1.-smoothstep(w*.5-aa,w*.5+aa,d);}
+float diag(float s,float T,float w,float aa){float d=mod(s,T);return band(min(d,T-d)*.70710678,w,aa);}
+float mask(int t,vec2 q,float aa){
+ if(t==1)return diag(q.x+q.y,8.,1.6,aa);
+ if(t==2)return diag(q.x+q.y,12.,4.5,aa);
+ if(t==3)return band(abs(mod(q.y,8.)-4.),2.,aa);
+ if(t==4)return band(abs(mod(q.x,8.)-4.),2.,aa);
+ if(t==5)return max(diag(q.x+q.y,8.,1.2,aa),diag(q.x-q.y,8.,1.2,aa));
+ if(t==6)return band(length(mod(q,8.)-4.),3.8,aa);
+ if(t==7){vec2 k=floor(q/6.);return mod(k.x+k.y,2.)<.5?1.:0.;}
+ if(t==8)return band(length(mod(q,4.)-2.),1.5,aa);
+ return 0.;}
+void main(){if(vZ<0.||vA<.5)discard;
+ int t=int(vPat.a*255.+.5);vec3 col=vCol;
+ if(t>0){vec2 q=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y)/uPx;col=mix(vCol,vPat.rgb,mask(t,q,.6/uPx));}
+ o=vec4(col,1.);}`;
 
 let gl, cv, pFull, pLine, pFill;
 const uF = {},
@@ -62,11 +83,23 @@ const uF = {},
   uP = {};
 // palette entries: country ids are 16-bit in the mesh; WebGL2 guarantees textures at least 2048 wide
 export const PAL_N = 1024;
-const pal = new Uint8Array(PAL_N * 4);
+const pal = new Uint8Array(PAL_N * 4),
+  pat = new Uint8Array(PAL_N * 4);
 // subdivision palette: 1024 x UPAL_ROWS entries, one per loaded unit (units.js assigns the ids)
 export const UPAL_ROWS = 8;
-const upal = new Uint8Array(1024 * UPAL_ROWS * 4);
-let palTex, upalTex, BL, HL, LO, LOM, SL, GRL, RV;
+const upal = new Uint8Array(1024 * UPAL_ROWS * 4),
+  upat = new Uint8Array(1024 * UPAL_ROWS * 4);
+let palTex, upalTex, patTex, upatTex, BL, HL, LO, LOM, SL, GRL, RV;
+/** Write a paint (hex color or pattern) into palette and pattern bytes at entry i. */
+export function putPaint(palette, patterns, i, paint) {
+  const p = parsePaint(paint),
+    c = rgb01(p ? p.bg : paint);
+  palette.set([c[0] * 255, c[1] * 255, c[2] * 255, 255], i * 4);
+  if (p) {
+    const f = rgb01(p.fg);
+    patterns.set([f[0] * 255, f[1] * 255, f[2] * 255, PATTERN_TYPES.indexOf(p.type) + 1], i * 4);
+  } else patterns[i * 4 + 3] = 0;
+}
 const TV = { vao: null, n: 0 },
   LK = { vao: null, n: 0 },
   UV = { vao: null, n: 0, bufs: null };
@@ -161,15 +194,15 @@ export function initGL(canvas) {
   try {
     pFull = program(VS_FULL, FS_FULL, ['uRes', 'uR', 'uShade', 'uBg', 'uOcean', 'uBorder', 'uMode'], uF);
     pLine = program(VS_LINE, FS_LINE, ['uRes', 'uR', 'uW', 'uC', 'uE', 'uN', 'uCol'], uL);
-    pFill = program(VS_FILL, FS_FILL, ['uRes', 'uR', 'uC', 'uE', 'uN', 'uLand', 'uPal', 'uHover', 'uDark', 'uFlat', 'uSkip'], uP);
+    pFill = program(VS_FILL, FS_FILL, ['uRes', 'uR', 'uC', 'uE', 'uN', 'uLand', 'uPal', 'uPat', 'uPx', 'uHover', 'uDark', 'uFlat', 'uSkip'], uP);
   } catch (e) {
     return 'Shader error: ' + e.message;
   }
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  const palette = (w, h, data) => {
+  const palette = (w, h, data, unit = gl.TEXTURE1) => {
     const t = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE1);
+    gl.activeTexture(unit);
     gl.bindTexture(gl.TEXTURE_2D, t);
     for (const [k, v] of [
       [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE],
@@ -183,8 +216,11 @@ export function initGL(canvas) {
   };
   upalTex = palette(1024, UPAL_ROWS, upal);
   palTex = palette(PAL_N, 1, pal); // left bound on TEXTURE1
+  upatTex = palette(1024, UPAL_ROWS, upat, gl.TEXTURE2);
+  patTex = palette(PAL_N, 1, pat, gl.TEXTURE2); // left bound on TEXTURE2
   gl.useProgram(pFill);
   gl.uniform1i(uP.uPal, 1);
+  gl.uniform1i(uP.uPat, 2);
   BL = lineSet();
   HL = lineSet();
   LO = lineSet();
@@ -270,14 +306,16 @@ export function uploadPhys(p) {
 export const setBorders = (arr) => setLines(BL, arr);
 export const setHoverOutline = (arr) => (arr ? setLines(HL, arr) : (HL.n = 0));
 
-/** Set (hex) or clear (null) the fill colour for a country id. */
-export function setCountryColor(id, hex) {
-  if (hex) {
-    const c = rgb01(hex);
-    pal.set([c[0] * 255, c[1] * 255, c[2] * 255, 255], id * 4);
-  } else pal[id * 4 + 3] = 0;
+/** Set (a hex color or pattern paint) or clear (null) the fill of a country id. */
+export function setCountryColor(id, paint) {
+  if (paint) putPaint(pal, pat, id, paint);
+  else pal[id * 4 + 3] = pat[id * 4 + 3] = 0;
   gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, palTex);
   gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PAL_N, 1, gl.RGBA, gl.UNSIGNED_BYTE, pal);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, patTex);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PAL_N, 1, gl.RGBA, gl.UNSIGNED_BYTE, pat);
 }
 
 /** Draw the globe for the current view in app (rot, zoom, dpr, style, layers, hover). */
@@ -320,18 +358,25 @@ export function render(R) {
   gl.uniform1i(uP.uHover, app.subHov ? 0 : app.hover);
   gl.uniform1f(uP.uDark, HS.dark ? HS.amt : 0);
   gl.uniform4f(uP.uFlat, 0, 0, 0, 0);
+  // patterns are sized in CSS pixels, so they look the same at any zoom and scale with PNG export
+  gl.uniform1f(uP.uPx, dpr);
   gl.bindVertexArray(TV.vao);
   gl.drawElements(gl.TRIANGLES, TV.n, gl.UNSIGNED_INT, 0);
   // painted subdivisions over their countries; unpainted units are skipped
-  if (UV.n && unitPaint && unitPaint(upal)) {
+  if (UV.n && unitPaint && unitPaint(upal, upat)) {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, upalTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1024, UPAL_ROWS, gl.RGBA, gl.UNSIGNED_BYTE, upal);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, upatTex);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1024, UPAL_ROWS, gl.RGBA, gl.UNSIGNED_BYTE, upat);
     gl.uniform1i(uP.uSkip, 1);
     gl.uniform1i(uP.uHover, 0);
     gl.bindVertexArray(UV.vao);
     gl.drawElements(gl.TRIANGLES, UV.n, gl.UNSIGNED_INT, 0);
     gl.uniform1i(uP.uSkip, 0);
+    gl.bindTexture(gl.TEXTURE_2D, patTex);
+    gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, palTex);
   }
   // the always-water lakes come first, so every setting draws at least them

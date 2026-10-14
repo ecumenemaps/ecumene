@@ -9,6 +9,8 @@ import { hexOk, clamp } from './util.js';
 import { OVERSEAS } from '../overseas.js';
 import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
 import { SCALES, PAINT_SETS } from './schemes.js';
+// a paint is a hex color or a pattern (patterns.js)
+import { paintOk } from './patterns.js';
 
 // Natural Earth adm1_code, such as GBR-2083 (a few read like RUS+99?), or ALD+0 for the "Rest of" unit the build
 // adds where no subdivision covers part of a country (an overseas part's file adds digits: NLD535+0)
@@ -125,7 +127,7 @@ export function setState(o) {
   let skipped = 0;
   const preSplit = o.d !== DATA;
   for (const g of o.f) {
-    if (!g || !hexOk(g.c) || !Array.isArray(g.n)) continue;
+    if (!g || !paintOk(g.c) || !Array.isArray(g.n)) continue;
     const c = g.c.toLowerCase();
     if (g.l) app.labels[c] = String(g.l).slice(0, 60);
     for (const n of preSplit ? g.n.concat(splitParts(g.n)) : g.n) {
@@ -138,7 +140,7 @@ export function setState(o) {
   for (const k in app.sub.layer) delete app.sub.layer[k];
   if (Array.isArray(o.u))
     for (const g of o.u) {
-      if (!g || !hexOk(g.c) || !g.k || typeof g.k !== 'object') continue;
+      if (!g || !paintOk(g.c) || !g.k || typeof g.k !== 'object') continue;
       const c = g.c.toLowerCase();
       if (g.l && !app.labels[c]) app.labels[c] = String(g.l).slice(0, 60);
       for (const n of Object.keys(g.k)) {
@@ -195,7 +197,7 @@ export function setState(o) {
   L.note = lg.n !== false;
   L.xy = Array.isArray(lg.xy) && lg.xy.length === 2 && lg.xy.every(Number.isFinite) ? lg.xy.map((v) => clamp(v, 0, 1)) : null;
   L.scale = Number.isFinite(lg.k) ? clamp(lg.k, 0.5, 2.5) : 1;
-  L.order = Array.isArray(lg.o) ? lg.o.filter(hexOk) : [];
+  L.order = Array.isArray(lg.o) ? lg.o.filter(paintOk).map((c) => c.toLowerCase()) : [];
   // paint swatch set and color-by-data settings (maps saved before them get the defaults)
   app.paintSet = PAINT_SETS[o.ps] ? o.ps : 'Default';
   const ds = o.ds && typeof o.ds === 'object' ? o.ds : {};

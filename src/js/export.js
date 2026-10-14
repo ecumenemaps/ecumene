@@ -10,6 +10,7 @@ import { exportView } from './projections.js';
 import { unitByKey, splitKey, layerOfCode, loadPainted } from './units.js';
 import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
+import { fillWith, baseColor } from './patterns.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
 let canvas = null;
@@ -292,7 +293,7 @@ function drawSVG(v, cuts) {
     const col = app.fills.get(n);
     c.beginPath();
     for (const f of fs) path(f);
-    c.fillStyle = col || S.land;
+    fillWith(c, col || S.land);
     c.tag({ id: 'country-' + slug(n), 'data-name': n });
     c.fill();
   }
@@ -309,7 +310,9 @@ function drawSVG(v, cuts) {
       if (!f) return;
       c.beginPath();
       path((cuts && cuts.units.get(k)) || f);
-      c.fillStyle = c.strokeStyle = col;
+      // a pattern's seam-hiding stroke is its background color
+      fillWith(c, col);
+      c.strokeStyle = baseColor(col);
       c.tag({ id: 'unit-' + slug(code), 'data-name': f.properties.n, 'data-country': n });
       c.fillStroke();
     });
