@@ -4,6 +4,8 @@ import { recolor, removeColour, colourCounts, legendColours } from './paint.js';
 import { commit } from './history.js';
 import { $, el } from './util.js';
 import { PATTERNS, isPattern, parsePaint, baseColor, withBackground, previewURL } from './patterns.js';
+import { seatElections, shownElection } from './seatbar.js';
+import { electionById } from './seats.js';
 
 function render() {
   const box = $('lgd'),
@@ -89,8 +91,25 @@ export function initLegendPanel() {
   };
   $('lt').addEventListener('input', redraw);
   $('lgd').addEventListener('input', redraw); // renamed entries show on the map at once
+  // the seat counter
+  const B = app.seatbar;
+  $('sbs').onchange = (e) => {
+    B.show = e.target.checked;
+    syncSeats();
+    redraw();
+  };
+  $('sbk').oninput = (e) => {
+    B.scale = +e.target.value / 100;
+    redraw();
+  };
+  $('sbe').onchange = (e) => {
+    B.el = e.target.value;
+    syncSeats();
+    redraw();
+  };
   on('legend', () => {
     render();
+    syncSeats();
     redraw();
   });
   on('legendpos', syncPos);
@@ -99,6 +118,26 @@ export function initLegendPanel() {
     syncPos();
     $('ls').checked = L.show;
     $('lk').value = Math.round(L.scale * 100);
+    $('sbs').checked = B.show;
+    $('sbk').value = Math.round(B.scale * 100);
+    syncSeats();
   });
   render();
+  syncSeats();
+}
+
+/** The seat counter's controls: which elections the map has painted, and which one is counted. */
+function syncSeats() {
+  const B = app.seatbar,
+    ids = seatElections(),
+    shown = shownElection();
+  $('sbe').replaceChildren(...ids.map((id) => el('option', { value: id, textContent: electionById(id).title })));
+  $('sbe').hidden = ids.length < 2 || !B.show;
+  if (shown) $('sbe').value = shown.id;
+  $('sbkw').hidden = !B.show || !ids.length;
+  $('sbi').textContent = !ids.length
+    ? 'Appears when US states, US House districts, UK constituencies or Dáil constituencies are painted, counting seats per color.'
+    : B.show
+      ? 'Counting: ' + shown.title + ' (' + shown.total + ', ' + shown.majority + ' for a majority). Name each color in the legend to name it on the bar. Drag the bar to move it.'
+      : '';
 }

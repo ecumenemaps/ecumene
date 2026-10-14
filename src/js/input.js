@@ -195,10 +195,11 @@ function paintAt(x, y) {
   redraw();
 }
 // The legend box on the map can be dragged anywhere; its position is kept as fractions of the frame.
-const inLegend = (x, y) => {
-  const r = app.legendRect;
-  return !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-};
+// So can the seat counter (seatbar.js), which is drawn over the legend and so is found first.
+const inRect = (r, x, y) => !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+const BOXES = { seats: () => [app.seatRect, app.seatbar], legend: () => [app.legendRect, app.legend] };
+const boxAt = (x, y) => (inRect(app.seatRect, x, y) ? 'seats' : inRect(app.legendRect, x, y) ? 'legend' : null);
+const inLegend = (x, y) => !!boxAt(x, y);
 let legendDrag = null,
   overLegend = false;
 const wantsPaint = (e) => !app.drawing && app.sel < 0 && !app.pick && (e.ctrlKey || e.metaKey || paintMode());
@@ -240,8 +241,10 @@ export function initInput(canvas, opts) {
     if (pointers.size === 1) {
       moved = 0;
       pinched = false;
-      if (inLegend(app.mx, app.my)) {
-        legendDrag = [app.mx - app.legendRect.x, app.my - app.legendRect.y];
+      const box = boxAt(app.mx, app.my);
+      if (box) {
+        const r = BOXES[box]()[0];
+        legendDrag = { box, d: [app.mx - r.x, app.my - r.y] };
         moved = 99;
         return;
       }
@@ -328,10 +331,10 @@ export function initInput(canvas, opts) {
     pointers.set(e.pointerId, [e.clientX, e.clientY]);
     if (legendDrag && pointers.size === 1) {
       track(e);
-      const r = app.legendRect;
-      const x = Math.max(4, Math.min(app.W - r.w - 4, app.mx - legendDrag[0])),
-        y = Math.max(4, Math.min(app.H - r.h - 4, app.my - legendDrag[1]));
-      app.legend.xy = [x / app.W, y / app.H];
+      const [r, target] = BOXES[legendDrag.box]();
+      const x = Math.max(4, Math.min(app.W - r.w - 4, app.mx - legendDrag.d[0])),
+        y = Math.max(4, Math.min(app.H - r.h - 4, app.my - legendDrag.d[1]));
+      target.xy = [x / app.W, y / app.H];
       redraw();
       return;
     }
