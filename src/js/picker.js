@@ -5,6 +5,7 @@ import { feature, mesh } from 'topojson-client';
 import { app, redraw } from './store.js';
 import { geo } from './data.js';
 import { loadSubdivisions } from './objects.js';
+import { hasUnits, layersOf, layerInfo, activeLayer } from './units.js';
 import { addShape, cancelDraw, select } from './editing.js';
 import { geoAt, setZoom, animate, centreOn } from './view.js';
 import { $, el, note, clamp } from './util.js';
@@ -27,6 +28,7 @@ export function openPicker() {
   $('a1o').hidden = true;
   $('a1c').value = '';
   $('a1f').value = '';
+  $('a1y').hidden = true;
   render();
   $('a1c').focus();
   note('Choose a country, or click one on the globe. Then click subdivisions on the map or tick them in the list.');
@@ -39,23 +41,32 @@ export function closePicker() {
   refreshTip();
   redraw();
 }
-export async function pickCountry(c) {
-  if (!geo.a1index[c]) {
+/** Show the layer menu for the picked country when it offers more than one layer. */
+function layerMenu(c, y) {
+  const L = layersOf(c),
+    sel = $('a1y');
+  sel.hidden = L.length < 2;
+  sel.replaceChildren(...L.map((x) => el('option', { value: x.id, textContent: x.name, selected: x.id === y })));
+}
+export async function pickCountry(c, layer) {
+  if (!hasUnits(c)) {
     note(c + ' has no subdivisions in the data.', 1);
     return;
   }
-  if (app.pick && app.pick.c === c && app.pick.feats) {
+  const y = layer !== undefined ? layer : activeLayer(c);
+  if (app.pick && app.pick.c === c && app.pick.y === y && app.pick.feats) {
     $('a1c').value = c;
     return;
   }
   $('a1c').value = c;
+  layerMenu(c, y);
   $('a1s').textContent = 'Loading ' + c + '…';
   try {
-    const t = await loadSubdivisions(c);
+    const t = await loadSubdivisions(c, y);
     if (!app.pick) return;
     const feats = feature(t, t.objects.u).features;
     feats.forEach((f) => (f.bb = geoBounds(f)));
-    app.pick = { c, topo: t, feats, mesh: mesh(t, t.objects.u), sel: new Set(), hov: null };
+    app.pick = { c, y, topo: t, feats, mesh: mesh(t, t.objects.u), sel: new Set(), hov: null };
     setCursor(true);
     // frame the country: zoom so its rough angular radius fills about half the view
     const area = feats.reduce((a, f) => a + Math.min(geoArea(f), 0.5), 0),
@@ -100,7 +111,7 @@ function render() {
     $('a1ok').disabled = true;
     return;
   }
-  for (const k of Object.keys(geo.a1index[pk.c].gr || {})) {
+  for (const k of Object.keys((layerInfo(pk.c, pk.y) || {}).gr || {})) {
     const vals = [...new Set(pk.feats.map((f) => f.properties[k]).filter(Boolean))].sort();
     gb.append(el('div', { class: 'a1h', textContent: GROUP_NAMES[k] + ':' }));
     for (const v of vals) {
@@ -153,7 +164,8 @@ export function initPicker() {
   $('a1ok').onclick = () => {
     const pk = app.pick;
     if (!pk || !pk.sel.size) return;
-    const ref = { k: 'a1', c: pk.c, ids: [...pk.sel].sort((a, b) => a - b) },
+    const ids = [...pk.sel].sort((a, b) => a - b),
+      ref = pk.y ? { k: 'a1', c: pk.c, y: pk.y, ids } : { k: 'a1', c: pk.c, ids },
       label = defaultLabel();
     closePicker();
     addShape(ref, label);
@@ -169,7 +181,8 @@ export function initPicker() {
   $('a1none').onclick = () => {
     if (app.pick && app.pick.feats) toggleUnits([...app.pick.sel], false);
   };
-  const countries = Object.keys(geo.a1index),
+  $('a1y').onchange = () => app.pick && app.pick.c && pickCountry(app.pick.c, $('a1y').value);
+  const countries = [...new Set([...Object.keys(geo.a1index), ...Object.keys(geo.layers)])],
     match = Ecu.matcher(countries);
   $('a1c').addEventListener('change', () => {
     const v = $('a1c').value,

@@ -1,0 +1,38 @@
+{
+  "id": "gb-wpc-2024",
+  "kind": "layer",
+  "order": 10,
+  "title": "Westminster parliamentary constituencies (UK, July 2024)",
+  "menu": "Westminster constituencies (2024)",
+  "country": "United Kingdom",
+  "unit": "Constituency",
+  "publisher": "Office for National Statistics, Open Geography Portal",
+  "url": "https://geoportal.statistics.gov.uk/datasets/ef63f363ac824b79ae9670744fcc4307",
+  "edition": "Boundaries as at 4 July 2024; ultra generalised (500 m), clipped to mean high water",
+  "licence": {
+    "name": "Open Government Licence v3.0",
+    "url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "credit": "Source: Office for National Statistics licensed under the Open Government Licence v.3.0. Contains OS data © Crown copyright and database right 2024.",
+  "short": "ONS, OS (OGL v3)",
+  "download": {
+    "origin": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Westminster_Parliamentary_Constituencies_July_2024_Boundaries_UK_BUC/FeatureServer/0/query?where=1%3D1&outFields=PCON24CD,PCON24NM&outSR=4326&f=geojson",
+    "file": "gb-wpc-2024.geojson",
+    "sha256": "5022e63098dc41a8e0093c1fc5d20864ba86b9d41f7f0f7b5bb024eaad2c7145"
+  },
+  "fields": {
+    "code": "PCON24CD",
+    "name": "PCON24NM",
+    "groups": {
+      "g": {
+        "from": "code",
+        "prefix": {
+          "E": "England",
+          "S": "Scotland",
+          "W": "Wales",
+          "N": "Northern Ireland"
+        }
+      }
+    }
+  }
+}

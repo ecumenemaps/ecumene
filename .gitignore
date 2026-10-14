@@ -4,5 +4,6 @@ data/*.b64
 data/*.bin
 data/src/
 data/admin1/
+data/layers/
 test-results/
 playwright-report/

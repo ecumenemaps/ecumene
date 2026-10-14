@@ -19,6 +19,8 @@ fs.copyFileSync(R('data/phys.bin'), R('dist/app/data/phys.bin'));
 // base64 copies for hosts that refuse .bin (see fetchBin in src/js/data.js)
 for (const k of ['tris', 'phys']) fs.writeFileSync(R('dist/app/data/' + k + '.b64.txt'), fs.readFileSync(R('data/' + k + '.bin')).toString('base64'));
 for (const f of fs.readdirSync(R('data/admin1'))) fs.copyFileSync(R('data/admin1/' + f), R('dist/app/admin1/' + f));
+// other subdivision layers (scripts/build_layers.js); optional, the editor works without them
+if (fs.existsSync(R('data/layers'))) fs.cpSync(R('data/layers'), R('dist/app/layers'), { recursive: true });
 
 // a script bundle inlined into an HTML template
 function page(entry, template, outFile) {

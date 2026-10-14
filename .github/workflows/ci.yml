@@ -14,18 +14,21 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Natural Earth sources and the built data change rarely; cache them
+      # the sources (Natural Earth, and the layers in scripts/sources from the mirror release) and the built data
+      # change rarely; cache them
       - uses: actions/cache@v4
         with:
           path: |
             data/src
             data/*.bin
             data/admin1
-          key: data-${{ hashFiles('scripts/fetch_data.js', 'scripts/build_*.js', 'scripts/lib/**', 'src/overseas.js', 'package-lock.json') }}
+            data/layers
+          key: data-${{ hashFiles('scripts/fetch_*.js', 'scripts/build_*.js', 'scripts/lib/**', 'scripts/sources/**', 'src/overseas.js', 'package-lock.json') }}
       - name: Fetch and build data
         run: |
-          [ -f data/src/ne_10m_admin_1_states_provinces.geojson ] || npm run fetch
-          [ -f data/tris.bin ] && [ -f data/phys.bin ] && [ -f data/admin1/index.json ] || npm run data
+          [ -f data/src/ne_10m_admin_1_states_provinces.geojson ] || node scripts/fetch_data.js
+          node scripts/fetch_sources.js
+          [ -f data/tris.bin ] && [ -f data/phys.bin ] && [ -f data/admin1/index.json ] && [ -f data/layers/index.json ] || npm run data
       - run: npm run build
       - run: npm run test:unit
       - run: npx playwright install --with-deps chromium
