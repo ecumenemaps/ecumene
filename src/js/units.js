@@ -12,7 +12,7 @@ import { app, emit, redraw } from './store.js';
 import { geo, inSea } from './data.js';
 import { loadSubdivisions } from './objects.js';
 import { commit } from './history.js';
-import { uploadUnitMesh, setUnitPainter, putPaint, UPAL_ROWS } from './gl.js';
+import { uploadUnitMesh, setUnitPainter, setUnitAnchor, putPaint, UPAL_ROWS } from './gl.js';
 
 /** How long the pointer rests on a country before its units load. */
 export const LOAD_DELAY = 75;
@@ -134,6 +134,7 @@ export function loadUnits(country, layer = activeLayer(country)) {
           feats.forEach((f) => {
             f.bb = geoBounds(f);
             f.gid = ++nextGid;
+            setUnitAnchor(f.gid, geo.nameId.get(country) || 0);
             // a layer's codes carry its id, so a painted key says which layer it belongs to
             if (layer) f.properties.c = layer + ':' + f.properties.c;
           });
