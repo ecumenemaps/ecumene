@@ -51,26 +51,43 @@ const meets = (a, b) => a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= 
  * d3 reads a polygon wound the "wrong" way as the whole globe except it; publishers differ (ArcGIS winds outer rings
  * clockwise, RFC 7946 anticlockwise, the clipper anticlockwise), so orient each polygon by its area on the sphere.
  */
-const d3wind = (Q) => (geoArea({ type: 'Polygon', coordinates: Q }) > 2 * Math.PI ? Q.map((r) => r.slice().reverse()) : Q);
+// ring by ring: the outer ring encloses the small side, each hole the large side (its outside), as d3 expects;
+// sources do not always wind holes opposite to their outer ring (a Census district in Illinois)
+const ringBig = (r) => geoArea({ type: 'Polygon', coordinates: [r] }) > 2 * Math.PI;
+const d3wind = (Q) => Q.map((r, i) => (ringBig(r) === (i > 0) ? r : r.slice().reverse()));
 /** Fit one unit to its country: [polygons in d3 winding, km² dropped outside the country]. */
 function fit(P, C) {
   const near = C.list.filter((c) => meets(c.b, bboxOf(P))).map((c) => c.P);
   const out = near.length ? pc.difference(P, ...near) : P;
   const outside = out.reduce((s, Q) => s + km2(Q), 0);
-  // wholly inside (up to rounding): keep the publisher's shape untouched, so shared borders stay identical
-  if (outside < 0.01) return [P.map(d3wind), 0];
+  // wholly inside (up to rounding): keep the publisher's shape untouched, so shared borders stay identical, but drop
+  // degenerate slivers (a 4-point piece of an Illinois district has no area, which d3 would draw as the whole globe)
+  if (outside < 0.01) return [P.filter((Q) => km2(Q) >= 0.01).map(d3wind), 0];
   const kept = pc.intersection(P, near).filter((Q) => km2(Q) >= MIN_KM2);
   return [kept.map(d3wind), outside];
 }
 
 // ---- names, codes and groupings
 const titleCase = (s) => s.toLowerCase().replace(/(^|[\s\-'(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
-/** A unit's name from a part's fields: {name, case:'title', strip: regex removed from the end, e.g. " Council"}. */
+/**
+ * A unit's name from a part's fields: name is a field, or a template of fields ("{STATEFP} {CD119FP}"); then
+ * case:'title', strip (a regex removed, e.g. " Council$") and replace ([[regex, replacement], ...] in order).
+ */
 function nameOf(F, p) {
-  let n = String(p[F.name] || '').trim();
+  let n = F.name.includes('{') ? F.name.replace(/\{(\w+)\}/g, (m, k) => String(p[k] ?? '')) : String(p[F.name] || '');
+  n = n.trim();
   if (F.case === 'title') n = titleCase(n);
   if (F.strip) n = n.replace(new RegExp(F.strip), '').trim();
+  for (const [re, to] of F.replace || []) n = n.replace(new RegExp(re), to);
   return n;
+}
+/** A part's filter: {field, in: [values]} keeps those, {field, notIn: [values]} drops them. */
+const keep = (filter, p) => !filter || (filter.in ? filter.in.includes(String(p[filter.field])) : !filter.notIn.includes(String(p[filter.field])));
+/** A part's lookups replace field values before anything else: {STATEFP: {"06": "California"}}. */
+function applyLookup(lookup, p) {
+  const o = { ...p };
+  for (const [k, map] of Object.entries(lookup || {})) if (Object.prototype.hasOwnProperty.call(map, String(o[k]))) o[k] = map[String(o[k])];
+  return o;
 }
 const slug = (s) =>
   s
@@ -142,9 +159,14 @@ function resolveOverlaps(id, feats) {
  * Read one part's features, merged by name (`dissolve`: the publisher splits a unit into pieces) and simplified
  * (`simplify`, mapshaper's options, e.g. "interval=150" metres) where the source asks.
  */
-async function readPart(file, F, simplify) {
+async function readPart(file, F, simplify, filter) {
   let buf = fs.readFileSync(file);
   if (file.endsWith('.gz')) buf = zlib.gunzipSync(buf);
+  if (filter) {
+    const j = JSON.parse(buf);
+    j.features = j.features.filter((f) => keep(filter, f.properties));
+    buf = Buffer.from(JSON.stringify(j));
+  }
   if (!F.dissolve && !simplify) return JSON.parse(buf).features;
   const ms = require('mapshaper'),
     cmd = ['-i in.json'];
@@ -176,10 +198,10 @@ for (const e of layers()) {
     const src = R('data/src/' + part.download.file),
       F = part.fields;
     if (!fs.existsSync(src)) throw new Error(e.id + ': ' + src + ' is missing; run node scripts/fetch_sources.js');
-    for (const f of await readPart(src, F, e.simplify)) {
+    for (const f of await readPart(src, F, e.simplify, part.filter)) {
       // a unit must never vanish quietly
       if (!f.geometry) throw new Error(e.id + ': ' + (f.properties[F.name] || 'a unit') + ' has no shape after reading');
-      const p = f.properties,
+      const p = applyLookup(part.lookup, f.properties),
         name = nameOf(F, p),
         code = codeOf(F, p, name);
       if (!code || !name) throw new Error(e.id + ': a feature has no code or name');
@@ -199,8 +221,23 @@ for (const e of layers()) {
     }
   }
   resolveOverlaps(e.id, feats);
+  // quantise to about 1e-4 degrees (11 m, well inside the sources' accuracy) whatever the layer's extent: a fixed 1e5 steps across the US (whose Aleutians
+  // reach past 180°, so nearly 360° wide) would be 0.0036° and move Alaska's fjord coasts off the land
+  let x0 = 1e9,
+    x1 = -1e9,
+    y0 = 1e9,
+    y1 = -1e9;
+  for (const f of feats)
+    for (const Q of f.geometry.coordinates)
+      for (const [x, y] of Q[0]) {
+        x0 = Math.min(x0, x);
+        x1 = Math.max(x1, x);
+        y0 = Math.min(y0, y);
+        y1 = Math.max(y1, y);
+      }
+  const quant = Math.max(1e5, Math.ceil(Math.max(x1 - x0, y1 - y0) / 1e-4));
   const file = (a1[country] ? a1[country].f : country.replace(/[^A-Za-z]/g, '') + '.json'),
-    topo = ts.topology({ u: { type: 'FeatureCollection', features: feats } }, 1e5),
+    topo = ts.topology({ u: { type: 'FeatureCollection', features: feats } }, quant),
     out = JSON.stringify(topo);
   fs.mkdirSync(R('data/layers/' + e.id), { recursive: true });
   fs.writeFileSync(R('data/layers/' + e.id + '/' + file), out);

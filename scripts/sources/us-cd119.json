@@ -1,0 +1,114 @@
+{
+  "id": "us-cd119",
+  "kind": "layer",
+  "order": 31,
+  "title": "Congressional districts (United States, 119th Congress, 2025-2027)",
+  "menu": "Congressional districts (119th Congress)",
+  "country": "United States of America",
+  "unit": "Congressional district",
+  "publisher": "U.S. Census Bureau, cartographic boundary files",
+  "url": "https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html",
+  "edition": "Districts of the 119th Congress (elected in 2024), 2024 cartographic boundaries, 1:5,000,000; the 50 states and the District of Columbia",
+  "note": "Districts as elected in 2024; states that redrew their districts afterwards are not shown with the new lines. The District of Columbia elects a non-voting delegate.",
+  "licence": {
+    "name": "Public domain (U.S. government work)",
+    "url": "https://www.usa.gov/government-copyright"
+  },
+  "credit": "Source: U.S. Census Bureau, 2024 cartographic boundary files. Public domain.",
+  "short": "U.S. Census Bureau (public domain)",
+  "simplify": "interval=100",
+  "download": {
+    "origin": "https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_cd119_5m.zip",
+    "extract": "cb_2024_us_cd119_5m",
+    "file": "us-census-cd119-2024-5m.geojson.gz",
+    "sha256": "fb6996c93aa5e11e537ceaf4012260667cdb6f9b366ed5f2919b73e9e3376e49"
+  },
+  "filter": {
+    "field": "STATEFP",
+    "notIn": [
+      "60",
+      "66",
+      "69",
+      "72",
+      "78"
+    ]
+  },
+  "lookup": {
+    "STATEFP": {
+      "10": "Delaware",
+      "11": "District of Columbia",
+      "12": "Florida",
+      "13": "Georgia",
+      "15": "Hawaii",
+      "16": "Idaho",
+      "17": "Illinois",
+      "18": "Indiana",
+      "19": "Iowa",
+      "20": "Kansas",
+      "21": "Kentucky",
+      "22": "Louisiana",
+      "23": "Maine",
+      "24": "Maryland",
+      "25": "Massachusetts",
+      "26": "Michigan",
+      "27": "Minnesota",
+      "28": "Mississippi",
+      "29": "Missouri",
+      "30": "Montana",
+      "31": "Nebraska",
+      "32": "Nevada",
+      "33": "New Hampshire",
+      "34": "New Jersey",
+      "35": "New Mexico",
+      "36": "New York",
+      "37": "North Carolina",
+      "38": "North Dakota",
+      "39": "Ohio",
+      "40": "Oklahoma",
+      "41": "Oregon",
+      "42": "Pennsylvania",
+      "44": "Rhode Island",
+      "45": "South Carolina",
+      "46": "South Dakota",
+      "47": "Tennessee",
+      "48": "Texas",
+      "49": "Utah",
+      "50": "Vermont",
+      "51": "Virginia",
+      "53": "Washington",
+      "54": "West Virginia",
+      "55": "Wisconsin",
+      "56": "Wyoming",
+      "01": "Alabama",
+      "02": "Alaska",
+      "04": "Arizona",
+      "05": "Arkansas",
+      "06": "California",
+      "08": "Colorado",
+      "09": "Connecticut"
+    }
+  },
+  "fields": {
+    "code": "GEOID",
+    "name": "{STATEFP} {CD119FP}",
+    "replace": [
+      [
+        " 00$",
+        " (at-large)"
+      ],
+      [
+        " 98$",
+        " (delegate)"
+      ],
+      [
+        " 0(\\d)$",
+        " $1"
+      ]
+    ],
+    "groups": {
+      "g": {
+        "field": "STATEFP"
+      }
+    }
+  }
+}

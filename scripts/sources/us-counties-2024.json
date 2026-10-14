@@ -1,0 +1,46 @@
+{
+  "id": "us-counties-2024",
+  "kind": "layer",
+  "order": 30,
+  "title": "Counties and county equivalents (United States, 2024)",
+  "menu": "Counties (2024)",
+  "country": "United States of America",
+  "unit": "County",
+  "publisher": "U.S. Census Bureau, cartographic boundary files",
+  "url": "https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html",
+  "edition": "2024 cartographic boundaries, 1:5,000,000; the 50 states and the District of Columbia",
+  "note": "County equivalents are included: Louisiana's parishes, Alaska's boroughs and census areas, independent cities, and Connecticut's nine planning regions, which replaced its counties in federal statistics in 2022.",
+  "licence": {
+    "name": "Public domain (U.S. government work)",
+    "url": "https://www.usa.gov/government-copyright"
+  },
+  "credit": "Source: U.S. Census Bureau, 2024 cartographic boundary files. Public domain.",
+  "short": "U.S. Census Bureau (public domain)",
+  "simplify": "interval=100",
+  "maxKB": 2000,
+  "download": {
+    "origin": "https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_county_5m.zip",
+    "extract": "cb_2024_us_county_5m",
+    "file": "us-census-county-2024-5m.geojson.gz",
+    "sha256": "4ebb16130f5cde0715886b3543ec6442e9aeced7cbe1621856e335fe538d9915"
+  },
+  "filter": {
+    "field": "STATEFP",
+    "notIn": [
+      "60",
+      "66",
+      "69",
+      "72",
+      "78"
+    ]
+  },
+  "fields": {
+    "code": "GEOID",
+    "name": "NAMELSAD",
+    "groups": {
+      "g": {
+        "field": "STATE_NAME"
+      }
+    }
+  }
+}
