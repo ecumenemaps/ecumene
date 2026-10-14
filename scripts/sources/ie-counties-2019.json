@@ -1,0 +1,34 @@
+{
+  "id": "ie-counties-2019",
+  "kind": "layer",
+  "order": 20,
+  "title": "Counties (Ireland, 2019 statutory boundaries)",
+  "menu": "Counties (26)",
+  "country": "Ireland",
+  "unit": "County",
+  "publisher": "Tailte Éireann",
+  "url": "https://data-osi.opendata.arcgis.com/datasets/7ef9c5102d61424295e98505a00251ea",
+  "edition": "2019 statutory boundaries; generalised (20 m)",
+  "licence": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "credit": "© Tailte Éireann, licensed under Creative Commons Attribution 4.0 (CC BY 4.0).",
+  "short": "Tailte Éireann (CC BY 4.0)",
+  "simplify": "interval=150",
+  "download": {
+    "origin": "https://services-eu1.arcgis.com/FH5XCsx8rYXqnjF5/arcgis/rest/services/Counties___OSi_National_Statutory_Boundaries___Generalised_20m/FeatureServer/0/query?where=1%3D1&outFields=CO_ID,COUNTY,PROVINCE&outSR=4326&f=geojson",
+    "file": "ie-counties-2019.geojson",
+    "sha256": "6a3c9df3fd678d0d903e76c862ef8dda5632dbc771da3c37f840c511aaa5cc10"
+  },
+  "fields": {
+    "code": "CO_ID",
+    "name": "COUNTY",
+    "case": "title",
+    "groups": {
+      "r": {
+        "field": "PROVINCE"
+      }
+    }
+  }
+}

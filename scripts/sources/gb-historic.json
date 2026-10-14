@@ -1,0 +1,58 @@
+{
+  "id": "gb-historic",
+  "kind": "layer",
+  "order": 13,
+  "title": "Historic counties (UK: England and Wales as in 1888, Scotland as in 1889, Northern Ireland's six counties)",
+  "menu": "Historic counties",
+  "country": "United Kingdom",
+  "unit": "Historic county",
+  "publisher": "Ordnance Survey, Boundary-Line; Ordnance Survey of Northern Ireland (Land & Property Services)",
+  "url": "https://www.ordnancesurvey.co.uk/products/boundary-line",
+  "edition": "Counties as in 1888 (England and Wales) and 1889 (Scotland), from OS Boundary-Line October 2026; Northern Ireland's six counties from OSNI 50K county boundaries",
+  "licence": {
+    "name": "Open Government Licence v3.0",
+    "url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "credit": "Contains OS data © Crown copyright and database right 2026. Contains LPS Intellectual Property © Crown copyright and database right 2025. Licensed under the Open Government Licence v3.0.",
+  "short": "OS, OSNI (OGL v3)",
+  "simplify": "interval=150",
+  "parts": [
+    {
+      "download": {
+        "origin": "https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=ESRI%C2%AE+Shapefile&redirect",
+        "extract": "Data/Supplementary_Historical/Boundary-line-historic-counties_region",
+        "file": "gb-os-historic-2026-10.geojson.gz",
+        "sha256": "2ca1015780cd98b8f710e7aa91ef530bbb5bb822194676c1dbe749a3ea46ba5b"
+      },
+      "fields": {
+        "code": "@slug",
+        "name": "NAME",
+        "dissolve": true,
+        "groups": {
+          "g": {
+            "from": "ne-admin1",
+            "field": "g"
+          }
+        }
+      }
+    },
+    {
+      "download": {
+        "origin": "https://admin.opendatani.gov.uk/dataset/1e70ee82-94ec-4adb-b78a-f1f1b44a2be3/resource/88369ae9-2726-4d49-84e5-f202043f9de2/download/osni_open_data_50k_boundaries_ni_counties.geojson",
+        "file": "ni-osni-counties-50k.geojson",
+        "sha256": "3ae25939a0b57083cdd7cc6dc2ef0d56543c784d5789ca89f31a95c16c959938"
+      },
+      "fields": {
+        "code": "@slug",
+        "name": "CountyName",
+        "case": "title",
+        "groups": {
+          "g": {
+            "from": "ne-admin1",
+            "field": "g"
+          }
+        }
+      }
+    }
+  ]
+}

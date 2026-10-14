@@ -13,7 +13,7 @@ import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
 // adds where no subdivision covers part of a country (an overseas part's file adds digits: NLD535+0)
 const UNIT_CODE = /^[A-Z]{3}[0-9]{0,3}[-+][0-9?]{1,6}$/;
 // a unit of another layer (layers/index.json): the layer id, a colon and the publisher's code, gb-wpc-2024:E14001063
-const LAYER_CODE = /^([a-z0-9-]{1,40}):([A-Za-z0-9_.+-]{1,32})$/;
+const LAYER_CODE = /^([a-z0-9-]{1,40}):([A-Za-z0-9_.+-]{1,64})$/;
 const unitCodeOk = (country, code) => {
   if (UNIT_CODE.test(code)) return !!geo.a1index[country];
   const m = LAYER_CODE.exec(code);

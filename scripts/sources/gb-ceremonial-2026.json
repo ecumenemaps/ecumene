@@ -1,0 +1,59 @@
+{
+  "id": "gb-ceremonial-2026",
+  "kind": "layer",
+  "order": 12,
+  "title": "Ceremonial counties (UK: England's ceremonial counties, Wales's preserved counties, Scotland's lieutenancy areas, Northern Ireland's counties)",
+  "menu": "Ceremonial counties",
+  "country": "United Kingdom",
+  "unit": "Ceremonial county",
+  "publisher": "Ordnance Survey, Boundary-Line; Ordnance Survey of Northern Ireland (Land & Property Services)",
+  "url": "https://www.ordnancesurvey.co.uk/products/boundary-line",
+  "edition": "OS Boundary-Line October 2026 (Great Britain); OSNI 50K county boundaries (Northern Ireland)",
+  "note": "Northern Ireland is shown as its six counties: its lieutenancy areas also include the county boroughs of Belfast and Londonderry, which are not in the open data.",
+  "licence": {
+    "name": "Open Government Licence v3.0",
+    "url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "credit": "Contains OS data © Crown copyright and database right 2026. Contains LPS Intellectual Property © Crown copyright and database right 2025. Licensed under the Open Government Licence v3.0.",
+  "short": "OS, OSNI (OGL v3)",
+  "simplify": "interval=150",
+  "parts": [
+    {
+      "download": {
+        "origin": "https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=ESRI%C2%AE+Shapefile&redirect",
+        "extract": "Data/Supplementary_Ceremonial/Boundary-line-ceremonial-counties_region",
+        "file": "gb-os-ceremonial-2026-10.geojson.gz",
+        "sha256": "bd639f00491c9bd00127e052ed59a5d2bf4ff1d53f0882fc4366dd02efde0438"
+      },
+      "fields": {
+        "code": "@slug",
+        "name": "NAME",
+        "dissolve": true,
+        "groups": {
+          "g": {
+            "from": "ne-admin1",
+            "field": "g"
+          }
+        }
+      }
+    },
+    {
+      "download": {
+        "origin": "https://admin.opendatani.gov.uk/dataset/1e70ee82-94ec-4adb-b78a-f1f1b44a2be3/resource/88369ae9-2726-4d49-84e5-f202043f9de2/download/osni_open_data_50k_boundaries_ni_counties.geojson",
+        "file": "ni-osni-counties-50k.geojson",
+        "sha256": "3ae25939a0b57083cdd7cc6dc2ef0d56543c784d5789ca89f31a95c16c959938"
+      },
+      "fields": {
+        "code": "@slug",
+        "name": "CountyName",
+        "case": "title",
+        "groups": {
+          "g": {
+            "from": "ne-admin1",
+            "field": "g"
+          }
+        }
+      }
+    }
+  ]
+}

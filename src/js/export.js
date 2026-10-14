@@ -60,7 +60,7 @@ export function sourceDetails(label, cuts) {
     L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
   const used = usedLayers();
   if (used.ne) L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
-  for (const x of used.other) L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + x.credit + ' Fitted to the Natural Earth coastline.');
+  for (const x of used.other) L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + (x.note ? x.note + ' ' : '') + x.credit + ' Fitted to the Natural Earth coastline.');
   if (cuts) {
     L.push('Country and subdivision shapes have ' + LAKE_SETS[cuts.set] + ' cut out, so they stop at the shore.');
     if (cuts.failed.size) L.push('Not cut, so their shapes still cover the water: ' + [...cuts.failed].join(', ') + '.');

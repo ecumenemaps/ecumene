@@ -1,14 +1,18 @@
 // Downloads the raw files of the data layers listed in scripts/sources/ into data/src/, checking each against its
 // recorded SHA-256. By default they come from the mirror (a GitHub release of this repo); the publishers' portals
 // change URLs between editions, the mirror does not.
-//   node scripts/fetch_sources.js            fetch from the mirror (what CI and `npm run fetch` do)
-//   node scripts/fetch_sources.js --origin   fetch from the publisher instead, record the new checksum in the source
-//                                            file and print the command that uploads it to the mirror
-//   node scripts/fetch_sources.js --readme   rewrite the README sources table from scripts/sources
+//   node scripts/fetch_sources.js [id...]            fetch from the mirror (what CI and `npm run fetch` do)
+//   node scripts/fetch_sources.js --origin [id...]   fetch from the publisher instead, record the new checksum in the
+//                                                    source file and stage the file in data/src/mirror/ for upload
+//   node scripts/fetch_sources.js --readme           rewrite the README sources table from scripts/sources
+// A download with `extract` names one Shapefile layer inside a zip archive (OS Boundary-Line is one 737 MB archive):
+// --origin keeps the archive in data/src/cache/, takes that layer out, converts it to longitude/latitude with
+// mapshaper and stores it as gzipped GeoJSON, so the mirror holds only what the build uses.
 const fs = require('fs'),
   path = require('path'),
-  crypto = require('crypto');
-const { layers, mirrorName, readmeTable, README_START, README_END, MIRROR } = require('./lib/sources.js');
+  crypto = require('crypto'),
+  zlib = require('zlib');
+const { layers, partsOf, mirrorName, readmeTable, README_START, README_END, MIRROR } = require('./lib/sources.js');
 const R = (p) => path.join(__dirname, '..', p);
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 
@@ -28,6 +32,37 @@ function writeReadme() {
   console.log('README sources table written');
 }
 
+/** The publisher's file for a download, after taking a Shapefile layer out of an archive if asked. */
+async function fromOrigin(d) {
+  if (!d.extract) return get(d.origin);
+  const cache = R('data/src/cache/' + sha(Buffer.from(d.origin)).slice(0, 12) + '.zip');
+  if (!fs.existsSync(cache)) {
+    fs.mkdirSync(path.dirname(cache), { recursive: true });
+    console.log('  downloading ' + d.origin + ' (kept in data/src/cache/)');
+    fs.writeFileSync(cache, await get(d.origin));
+  }
+  const { zipEntries } = require('./lib/unzip.js'),
+    entries = zipEntries(fs.readFileSync(cache)),
+    files = {};
+  for (const ext of ['shp', 'shx', 'dbf', 'prj']) {
+    const e = entries.find((x) => x.name === d.extract + '.' + ext);
+    if (!e) throw new Error(d.extract + '.' + ext + ' is not in the archive');
+    files['layer.' + ext] = e.data();
+  }
+  const ms = require('mapshaper'),
+    out = await ms.applyCommands('-i layer.shp -proj wgs84 -o format=geojson precision=0.000001 out.json', files);
+  // gzip with no timestamp, so the same layer gives the same bytes
+  return zlib.gzipSync(Buffer.from(out['out.json']), { level: 9 });
+}
+
+/** Record a new checksum for one download of a layer in its source file. */
+function recordSha(e, file, h) {
+  const src = fs.readdirSync(R('scripts/sources')).find((f) => f.endsWith('.json') && JSON.parse(fs.readFileSync(R('scripts/sources/' + f))).id === e.id),
+    j = JSON.parse(fs.readFileSync(R('scripts/sources/' + src)));
+  for (const p of partsOf(j)) if (p.download.file === file) p.download.sha256 = h;
+  fs.writeFileSync(R('scripts/sources/' + src), JSON.stringify(j, null, 2) + '\n');
+}
+
 (async () => {
   const args = process.argv.slice(2);
   if (args.includes('--readme')) return writeReadme();
@@ -37,34 +72,33 @@ function writeReadme() {
   const upload = [];
   for (const e of layers()) {
     if (only.length && !only.includes(e.id)) continue;
-    const out = R('data/src/' + e.download.file);
-    if (!origin && fs.existsSync(out) && sha(fs.readFileSync(out)) === e.download.sha256) {
-      console.log(e.id + ': up to date');
-      continue;
-    }
-    if (origin) {
-      const b = await get(e.download.origin),
-        h = sha(b);
+    for (const { download: d } of partsOf(e)) {
+      const out = R('data/src/' + d.file),
+        what = e.id + ' (' + d.file + ')';
+      if (!origin && fs.existsSync(out) && sha(fs.readFileSync(out)) === d.sha256) {
+        console.log(what + ': up to date');
+        continue;
+      }
+      if (origin) {
+        const b = await fromOrigin(d),
+          h = sha(b);
+        fs.writeFileSync(out, b);
+        if (h !== d.sha256) {
+          d.sha256 = h;
+          recordSha(e, d.file, h);
+          fs.mkdirSync(R('data/src/mirror'), { recursive: true });
+          fs.copyFileSync(out, R('data/src/mirror/' + mirrorName(d)));
+          upload.push(mirrorName(d));
+          console.log(what + ': new from the publisher, ' + (b.length / 1e6).toFixed(2) + ' MB, sha256 ' + h);
+        } else console.log(what + ': unchanged at the publisher');
+        continue;
+      }
+      if (!d.sha256) throw new Error(what + ': no checksum yet; run with --origin first');
+      const b = await get(MIRROR + mirrorName(d));
+      if (sha(b) !== d.sha256) throw new Error(what + ': the mirrored file does not match its checksum');
       fs.writeFileSync(out, b);
-      if (h !== e.download.sha256) {
-        // record the new checksum in the source file
-        const file = fs.readdirSync(R('scripts/sources')).find((f) => f.endsWith('.json') && JSON.parse(fs.readFileSync(R('scripts/sources/' + f))).id === e.id);
-        const j = JSON.parse(fs.readFileSync(R('scripts/sources/' + file)));
-        j.download.sha256 = h;
-        fs.writeFileSync(R('scripts/sources/' + file), JSON.stringify(j, null, 2) + '\n');
-        e.download.sha256 = h;
-        fs.mkdirSync(R('data/src/mirror'), { recursive: true });
-        fs.copyFileSync(out, R('data/src/mirror/' + mirrorName(e)));
-        upload.push(mirrorName(e));
-        console.log(e.id + ': new download from the publisher, ' + (b.length / 1e6).toFixed(2) + ' MB, sha256 ' + h);
-      } else console.log(e.id + ': unchanged at the publisher');
-      continue;
+      console.log(what + ': downloaded from the mirror');
     }
-    if (!e.download.sha256) throw new Error(e.id + ': no checksum yet; run with --origin first');
-    const b = await get(MIRROR + mirrorName(e));
-    if (sha(b) !== e.download.sha256) throw new Error(e.id + ': the mirrored file does not match its checksum');
-    fs.writeFileSync(out, b);
-    console.log(e.id + ': downloaded from the mirror');
   }
   if (upload.length) {
     console.log('\nNew files for the mirror are in data/src/mirror/. Upload them (needs write access to the repo):');

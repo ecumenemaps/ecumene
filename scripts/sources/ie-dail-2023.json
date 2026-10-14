@@ -1,0 +1,30 @@
+{
+  "id": "ie-dail-2023",
+  "kind": "layer",
+  "order": 22,
+  "title": "Dáil constituencies (Ireland, Electoral (Amendment) Act 2023)",
+  "menu": "Dáil constituencies (2023)",
+  "country": "Ireland",
+  "unit": "Constituency",
+  "publisher": "Tailte Éireann",
+  "url": "https://data-osi.opendata.arcgis.com/datasets/a37ad6a3a6ff47e4a5a0ff313b418448",
+  "edition": "43 constituencies of the Electoral (Amendment) Act 2023; published ungeneralised, simplified for the map",
+  "licence": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "credit": "© Tailte Éireann, licensed under Creative Commons Attribution 4.0 (CC BY 4.0).",
+  "short": "Tailte Éireann (CC BY 4.0)",
+  "simplify": "interval=150",
+  "download": {
+    "origin": "https://services-eu1.arcgis.com/FH5XCsx8rYXqnjF5/arcgis/rest/services/ConstituencyBoundariesUngeneralised_National_Electoral_Boundaries_2023/FeatureServer/0/query?where=1%3D1&outFields=ENG_NAME_VALUE&outSR=4326&f=geojson",
+    "file": "ie-dail-2023.geojson",
+    "sha256": "6f8acc4a2a028c8bc24bdb0486dadeaee18c1af2716a0e71ab9a545abe7bedd2"
+  },
+  "fields": {
+    "code": "@slug",
+    "name": "ENG_NAME_VALUE",
+    "dissolve": true,
+    "strip": " \\(\\d+\\)$"
+  }
+}

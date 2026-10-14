@@ -1,0 +1,35 @@
+{
+  "id": "ie-la-2019",
+  "kind": "layer",
+  "order": 21,
+  "title": "Local authority areas (Ireland: administrative counties and cities, 2019 statutory boundaries)",
+  "menu": "Local authority areas (31)",
+  "country": "Ireland",
+  "unit": "Local authority area",
+  "publisher": "Tailte Éireann",
+  "url": "https://data-osi.opendata.arcgis.com/datasets/7f508baddb9644d8ac3c3921df39303a",
+  "edition": "2019 statutory boundaries; generalised (20 m)",
+  "licence": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "credit": "© Tailte Éireann, licensed under Creative Commons Attribution 4.0 (CC BY 4.0).",
+  "short": "Tailte Éireann (CC BY 4.0)",
+  "simplify": "interval=150",
+  "download": {
+    "origin": "https://services-eu1.arcgis.com/FH5XCsx8rYXqnjF5/arcgis/rest/services/Administrative_Areas___OSi_National_Statutory_Boundaries___Generalised_20m/FeatureServer/0/query?where=1%3D1&outFields=CC_ID,ENGLISH,PROVINCE&outSR=4326&f=geojson",
+    "file": "ie-la-2019.geojson",
+    "sha256": "d22cce7f2f2e580012f39c4734366a38cf51269c0f942c870a604d04de89a120"
+  },
+  "fields": {
+    "code": "CC_ID",
+    "name": "ENGLISH",
+    "case": "title",
+    "strip": " Council$",
+    "groups": {
+      "r": {
+        "field": "PROVINCE"
+      }
+    }
+  }
+}
