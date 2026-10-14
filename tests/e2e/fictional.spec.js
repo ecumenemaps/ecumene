@@ -2,8 +2,6 @@
 const { test, expect } = require('@playwright/test');
 const { openApp, getCode, useCode } = require('./helpers');
 
-test.describe.configure({ mode: 'serial' });
-
 const NOTE = 'Fictional scenario: the regions, routes and events drawn on this map are invented';
 const open = async (page, name) => {
   await page.goto('/app/index.html?example=' + name, { waitUntil: 'domcontentloaded' });

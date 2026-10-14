@@ -1,12 +1,26 @@
 name: CI
+# once per pull request (and each push to it), and on main; a push to a branch without a pull request runs nothing
 on:
   push:
+    branches: [main]
   pull_request:
 
+# a newer push to the same pull request cancels the run it replaces
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # five machines at once: the unit tests on one, the browser tests split in four (they draw the globe in software,
+  # which is slow, so they take about four times as long as everything else)
   build-and-test:
+    name: build-and-test (${{ matrix.part }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [unit, 1/4, 2/4, 3/4, 4/4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,13 +44,16 @@ jobs:
           node scripts/fetch_sources.js
           [ -f data/tris.bin ] && [ -f data/phys.bin ] && [ -f data/admin1/index.json ] && [ -f data/layers/index.json ] || npm run data
       - run: npm run build
-      - run: npm run test:unit
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - if: matrix.part == 'unit'
+        run: npm run test:unit
+      - if: matrix.part != 'unit'
+        run: npx playwright install --with-deps chromium
+      - if: matrix.part != 'unit'
+        run: npx playwright test --shard=${{ matrix.part }}
         env:
           CI: '1'
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && matrix.part == 'unit'
         with:
           name: site
           path: dist
