@@ -74,6 +74,7 @@ export function getState() {
     })),
     lg: { t: L.title, p: L.pos, xy: L.xy, k: L.scale, s: L.show, n: L.note, o: L.order.filter((c) => used.has(c)) },
     sb: { s: app.seatbar.show, p: app.seatbar.pos, xy: app.seatbar.xy, k: app.seatbar.scale, e: app.seatbar.el },
+    sl: { s: app.sublines.on, c: app.sublines.col, w: app.sublines.w, g: app.sublines.gw },
     ps: app.paintSet,
     ...(app.fictional ? { fi: true } : {}),
     ds: Object.assign({}, app.data),
@@ -175,6 +176,13 @@ export function setState(o) {
   if (Number.isFinite(s.bw)) S.bw = clamp(s.bw, 0.5, 3);
   if (Number.isFinite(s.shade)) S.shade = clamp(s.shade, 0, 1);
   S.font = FONTS[s.font] ? s.font : 'sys';
+  // subdivision borders: off in maps saved before they existed
+  const sl = o.sl && typeof o.sl === 'object' ? o.sl : {},
+    SL = app.sublines;
+  SL.on = sl.s === true;
+  SL.col = hexOk(sl.c) ? sl.c.toLowerCase() : '#ffffff';
+  SL.w = Number.isFinite(sl.w) ? clamp(sl.w, 0.3, 4) : 0.6;
+  SL.gw = Number.isFinite(sl.g) ? clamp(sl.g, 0.3, 4) : 2;
   loadFont();
   if (o.L) {
     for (const k in app.layers) if (k !== 'lakes' && typeof o.L[k] === 'boolean') app.layers[k] = o.L[k];

@@ -100,6 +100,8 @@ export const app = {
   // pos: corner; xy: dragged position as fractions of the frame (null = use the corner); scale: size
   legend: { title: '', pos: 'bl', xy: null, scale: 1, show: true, note: true, order: [] },
   legendRect: null, // where the legend was last drawn on screen
+  // subdivision borders (units.js): shown, color, width between units, width between the layer's larger parts
+  sublines: { on: false, col: '#ffffff', w: 0.6, gw: 2 },
   // seat counter (seatbar.js): shown, pos 'tc' or 'bc' (top or bottom centre), xy dragged position as for the legend,
   // scale, el the election shown when the map has several (seats.js ids; '' = the first)
   seatbar: { show: true, pos: 'tc', xy: null, scale: 1, el: '' },

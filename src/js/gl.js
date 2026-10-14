@@ -102,7 +102,7 @@ const upal = new Uint8Array(1024 * UPAL_ROWS * 4),
 // pattern anchors (lon, lat) per country id and per unit id: patterns are laid out from them (see VS_FILL)
 const anc = new Float32Array(PAL_N * 2),
   uanc = new Float32Array(1024 * UPAL_ROWS * 2);
-let palTex, upalTex, patTex, upatTex, ancTex, uancTex, uancDirty = false, BL, HL, LO, LOM, SL, GRL, RV;
+let palTex, upalTex, patTex, upatTex, ancTex, uancTex, uancDirty = false, BL, HL, LO, LOM, SL, GRL, RV, UBL, UGL;
 /** Write a paint (hex color or pattern) into palette and pattern bytes at entry i. */
 export function putPaint(palette, patterns, i, paint) {
   const p = parsePaint(paint),
@@ -252,6 +252,8 @@ export function initGL(canvas) {
   LOM = lineSet();
   SL = lineSet();
   GRL = lineSet();
+  UBL = lineSet();
+  UGL = lineSet();
   RV = [lineSet(), lineSet(), lineSet()];
   TV.vao = gl.createVertexArray();
   LK.vao = gl.createVertexArray();
@@ -330,6 +332,11 @@ export function uploadPhys(p) {
 }
 export const setBorders = (arr) => setLines(BL, arr);
 export const setHoverOutline = (arr) => (arr ? setLines(HL, arr) : (HL.n = 0));
+/** Subdivision borders: lines between units, and between the larger parts a layer groups them into (units.js). */
+export function setUnitLines(units, groups) {
+  setLines(UBL, units);
+  setLines(UGL, groups);
+}
 
 /** Pattern anchors of the countries: [[id, lon, lat], ...]. */
 export function setAnchors(list) {
@@ -460,6 +467,12 @@ export function render(R) {
     RV.forEach((r, i) => {
       if (app.zoom >= RIVER_MIN_ZOOM[i]) lines(r, RIVER_WIDTH[i], S.river, 0.95);
     });
+  // subdivision borders under the country borders, the larger parts' lines over the units'
+  const SB = app.sublines;
+  if (SB.on) {
+    lines(UBL, SB.w, SB.col, 0.95);
+    lines(UGL, SB.gw, SB.col, 0.95);
+  }
   if (Ly.borders) {
     lines(BL, S.bw, S.border, 0.95);
     lines(SL, S.bw, S.border, 0.95);

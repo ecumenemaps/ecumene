@@ -5,7 +5,8 @@ import { ELECTORAL_VOTES, electoralName } from './stats.js';
 
 /**
  * Election maps: a country's units in one layer ('' is Natural Earth's admin-1), the seats each unit carries, the
- * total that the seats must add up to, and the majority. note says what the count leaves out.
+ * total that the seats must add up to, and the majority. note says what the count leaves out; hung (and tie, for an
+ * exact tie between two) what happens when every seat is called and no one has a majority.
  */
 export const ELECTIONS = [
   {
@@ -18,6 +19,9 @@ export const ELECTIONS = [
     majority: 270,
     seats: (p) => ELECTORAL_VOTES[electoralName(p)] || 0,
     note: 'Maine and Nebraska can split their electoral votes by district; this counts each state whole.',
+    // with every state called and no candidate at 270, the House chooses (12th Amendment)
+    tie: '269 to 269: no candidate has a majority, so the House of Representatives chooses the President, one vote per state delegation.',
+    hung: 'No candidate has 270: the House of Representatives chooses the President from the top three, one vote per state delegation.',
   },
   {
     id: 'us-house',
@@ -30,6 +34,7 @@ export const ELECTIONS = [
     // the District of Columbia's delegate (code 1198) does not vote
     seats: (p) => (/:1198$/.test(p.c) ? 0 : 1),
     note: 'The District of Columbia’s non-voting delegate is not counted.',
+    hung: 'No party has 218 seats.',
   },
   {
     id: 'gb-commons',
@@ -41,6 +46,7 @@ export const ELECTIONS = [
     majority: 326,
     seats: () => 1,
     note: '',
+    hung: 'Hung parliament: no party has 326 seats.',
   },
   {
     id: 'ie-dail',
@@ -52,6 +58,7 @@ export const ELECTIONS = [
     majority: 88,
     seats: (p) => p.s || 0,
     note: 'Each constituency elects 3 to 5 members; painting one gives all its seats to one color.',
+    hung: 'No party has 88 seats: a government needs the support of other parties or independents.',
   },
 ];
 export const electionById = (id) => ELECTIONS.find((e) => e.id === id) || null;
@@ -59,7 +66,8 @@ export const electionById = (id) => ELECTIONS.find((e) => e.id === id) || null;
 /**
  * The tally of one election. units are the layer's loaded units [{c: code, props}] and paintOf(code) their paint
  * (or null). order is the legend's colour order. Returns {total, counted, majority, parts: [{paint, seats}] in legend
- * order, uncalled, winner} where counted is the seats of all units (it must equal the election's total).
+ * order, uncalled, winner, outcome} where counted is the seats of all units (it must equal the election's total)
+ * and outcome is 'majority', 'open' (seats not called), 'tie' (two colors level) or 'hung' (no majority).
  */
 export function tally(el, units, paintOf, order) {
   const by = new Map();
@@ -78,8 +86,11 @@ export function tally(el, units, paintOf, order) {
     return i < 0 ? 1e9 : i;
   };
   const parts = [...by].map(([paint, seats]) => ({ paint, seats })).sort((a, b) => rank(a.paint) - rank(b.paint));
-  const winner = parts.find((x) => x.seats >= el.majority) || null;
-  return { total: el.total, counted, majority: el.majority, parts, uncalled: counted - called, winner };
+  const winner = parts.find((x) => x.seats >= el.majority) || null,
+    uncalled = counted - called;
+  // every seat called and no majority: an exact tie between two colors, or no majority
+  const outcome = winner ? 'majority' : uncalled ? 'open' : parts.length === 2 && parts[0].seats === parts[1].seats ? 'tie' : 'hung';
+  return { total: el.total, counted, majority: el.majority, parts, uncalled, winner, outcome };
 }
 
 /**

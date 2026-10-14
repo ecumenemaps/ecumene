@@ -7,7 +7,7 @@ import { render, RIVER_MIN_ZOOM, RIVER_WIDTH } from './gl.js';
 import { geo } from './data.js';
 import { Rb, withProjection, tinyMarkers, MARK_R } from './view.js';
 import { exportView } from './projections.js';
-import { unitByKey, splitKey, layerOfCode, loadPainted } from './units.js';
+import { unitByKey, splitKey, layerOfCode, loadPainted, shownUnitLines } from './units.js';
 import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
 import { fillWith, baseColor } from './patterns.js';
@@ -403,6 +403,29 @@ function drawSVG(v, cuts) {
     }
     c.globalAlpha = 1;
     c.lineCap = 'butt';
+    c.lineJoin = 'miter';
+    c.end();
+  }
+  // subdivision borders (the Style panel's setting): between units, then the wider lines between larger parts
+  const ul = shownUnitLines();
+  if (ul.length) {
+    const SB = app.sublines;
+    c.group('subdivision-borders');
+    c.strokeStyle = SB.col;
+    c.globalAlpha = 0.95;
+    c.lineJoin = 'round';
+    for (const [part, w] of [
+      ['u', SB.w],
+      ['g', SB.gw],
+    ]) {
+      const ms = ul.map((L) => L[part]).filter((m) => m.coordinates.length);
+      if (!ms.length) continue;
+      c.beginPath();
+      for (const m of ms) path(m);
+      c.lineWidth = w;
+      c.stroke();
+    }
+    c.globalAlpha = 1;
     c.lineJoin = 'miter';
     c.end();
   }

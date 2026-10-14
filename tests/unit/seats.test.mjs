@@ -57,6 +57,28 @@ test('the tally counts painted seats per colour, in legend order, and finds a wi
   assert.strictEqual(house.seats({ c: 'us-cd119:0601' }), 1);
 });
 
+test('outcomes: open, majority, a 269 to 269 tie, and no majority with three colors', () => {
+  const el = electionById('us-ec'),
+    units = unitsOf(el).filter((u) => el.seats(u.props));
+  // a set of states worth exactly 269 votes (subset sum over the states' votes)
+  const reach = new Map([[0, []]]);
+  for (const u of units)
+    for (const [sum, set] of [...reach])
+      if (sum + el.seats(u.props) <= 269 && !reach.has(sum + el.seats(u.props))) reach.set(sum + el.seats(u.props), [...set, u.c]);
+  const half = new Set(reach.get(269));
+  const tie = tally(el, units, (c) => (half.has(c) ? 'a' : 'b'), []);
+  assert.deepStrictEqual([tie.parts.map((x) => x.seats), tie.outcome], [[269, 269], 'tie']);
+  assert.match(el.tie, /^269 to 269/);
+  // one state moved to a third color: no one has 270
+  const third = [...half][0];
+  const hung = tally(el, units, (c) => (c === third ? 'c' : half.has(c) ? 'a' : 'b'), []);
+  assert.strictEqual(hung.outcome, 'hung');
+  assert.strictEqual(tally(el, units, (c) => (half.has(c) ? 'a' : null), []).outcome, 'open');
+  assert.strictEqual(tally(el, units, () => 'a', []).outcome, 'majority');
+  // every election says what happens without a majority
+  for (const e of ELECTIONS) assert.ok(e.hung, e.id);
+});
+
 test('the bar: first colour from the left, second from the right, not called in the middle', () => {
   const t = {
     counted: 100,
