@@ -9,6 +9,9 @@ function unwrapPoly(poly){const o=unwrapRing(poly[0]);return [o].concat(poly.sli
 async function triangulate(feats,earcut,STEP,tick,idOf){
  const LL=[],ID=[],IDX=[],PL=[];let nv=0;
  const addV=(x,y,id)=>{LL.push(x,y);ID.push(id);return nv++;};
+ // yield to the browser every 30 ms rather than every few features: each yield costs at least 4 ms, which for
+ // the 3,144 US counties added seconds
+ let lastYield=Date.now();
  for(let fi=0;fi<feats.length;fi++){
   const id=idOf?idOf[fi]:fi+1,g=feats[fi].geometry,polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
   for(const rp of polys){
@@ -32,7 +35,7 @@ async function triangulate(feats,earcut,STEP,tick,idOf){
     }
    }
   }
-  if(tick&&fi%8===7)await tick();
+  if(tick&&Date.now()-lastYield>30){await tick();lastYield=Date.now();}
  }
  return {ll:new Float32Array(LL),id:new Uint16Array(ID),idx:new Uint32Array(IDX),PL};
 }

@@ -41,7 +41,7 @@ const layers = () => loadSources().filter((e) => e.kind === 'layer');
  * A layer's parts: each its own download and fields (a UK layer can join Great Britain from OS and Northern Ireland
  * from OSNI). A layer with one source gives `download` and `fields` directly.
  */
-const partsOf = (e) => e.parts || [{ download: e.download, fields: e.fields }];
+const partsOf = (e) => e.parts || [{ download: e.download, fields: e.fields, filter: e.filter, lookup: e.lookup }];
 
 /** Mirror asset name for a download: the file name with the first 8 hex digits of its checksum, so an asset never changes. */
 function mirrorName(d) {

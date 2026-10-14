@@ -506,6 +506,60 @@ test('UK and Ireland pack: every layer offered, ceremonial and historic counties
   expect(errors).toEqual([]);
 });
 
+test('US pack: counties by state, congressional districts, Puerto Rico municipios', async ({ page }) => {
+  const errors = await openApp(page);
+  const view = (r, z) =>
+    page.evaluate(
+      ([r, z]) => {
+        const s = window.ecumene.getState();
+        Object.assign(s, { r, z, f: [], u: [] });
+        window.ecumene.setState(s);
+      },
+      [r, z],
+    );
+  await view([98, -39], 2.6);
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const box = await page.locator('#cv').boundingBox();
+  const rest = async (lon, lat) => {
+    const p = await page.evaluate((g) => window.ecumene.px(g), [lon, lat]);
+    await page.mouse.move(box.x + p[0], box.y + p[1]);
+    await page.mouse.move(box.x + p[0] + 1, box.y + p[1] + 1);
+    return [box.x + p[0] + 1, box.y + p[1] + 1];
+  };
+  const units = () => page.evaluate(() => window.ecumene.getState().u.flatMap((g) => g.k['United States of America'] || []));
+  await rest(-98.5, 38.5);
+  await expect(page.locator('#subl option')).toHaveText(['States and provinces (Natural Earth)', 'Counties (2024)', 'Congressional districts (119th Congress)']);
+  // 3,144 counties: the largest layer; note how long they take to load and triangulate
+  const t0 = Date.now();
+  await page.selectOption('#subl', 'us-counties-2024');
+  const ks = await rest(-98.5, 38.5);
+  await expect(page.locator('#tip')).toHaveText(/ County$/, { timeout: 60000 });
+  console.log('US counties ready in ' + (Date.now() - t0) + ' ms');
+  await expect(page.locator('#subls')).toContainText("Connecticut's nine planning regions");
+  await page.selectOption('#subd', 'g');
+  await rest(-98.5, 38.5);
+  await expect(page.locator('#tip')).toHaveText('Kansas');
+  await page.mouse.click(ks[0], ks[1]);
+  await expect.poll(async () => (await units()).length).toBe(105);
+  // districts: at-large states are named so
+  page.once('dialog', (d) => d.accept());
+  await page.selectOption('#subl', 'us-cd119');
+  await expect.poll(units).toEqual([]);
+  await page.selectOption('#subd', 'u');
+  await rest(-107.5, 43.0);
+  await expect(page.locator('#tip')).toHaveText('Wyoming (at-large)');
+  // Puerto Rico has one layer (no Natural Earth subdivisions), so no menu, but its municipios paint
+  await view([66.5, -18.2], 40);
+  const pr = await rest(-66.45, 18.2);
+  await expect(page.locator('#tip')).not.toHaveText(/Puerto Rico|^$/);
+  await page.mouse.click(pr[0], pr[1]);
+  await expect.poll(() => page.evaluate(() => window.ecumene.getState().u.flatMap((g) => g.k['Puerto Rico'] || []).length)).toBe(1);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('U.S. Census Bureau, 2024 cartographic boundary files. Public domain.');
+  expect(errors).toEqual([]);
+});
+
 test('areas the subdivision data leaves out paint as "Rest of" the country', async ({ page }) => {
   const errors = await openApp(page);
   await page.evaluate(() => {

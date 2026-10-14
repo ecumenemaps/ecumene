@@ -1,4 +1,4 @@
-// The source list (scripts/sources) and the subdivision layers built from it (scripts/build_layers.js). Every layer
+﻿// The source list (scripts/sources) and the subdivision layers built from it (scripts/build_layers.js). Every layer
 // gets the same checks, so adding one is mostly adding its source file.
 import test from 'node:test';
 import assert from 'node:assert';
@@ -45,7 +45,7 @@ for (const e of layers())
     for (const k of ['name', 'unit', 'ed', 'f', 'title', 'credit', 'short', 'url']) assert.ok(entry[k], 'index entry has ' + k);
     assert.strictEqual(entry.credit, e.credit);
     const kb = statSync(file('data/layers/' + entry.f)).size / 1024;
-    assert.ok(kb <= MAX_KB, entry.f + ' is ' + Math.round(kb) + ' KB, over ' + MAX_KB);
+    assert.ok(kb <= (e.maxKB || MAX_KB), entry.f + ' is ' + Math.round(kb) + ' KB, over ' + (e.maxKB || MAX_KB));
     const t = JSON.parse(readFileSync(file('data/layers/' + entry.f))),
       feats = feature(t, t.objects.u).features;
     assert.strictEqual(feats.length, entry.n);
@@ -68,7 +68,7 @@ for (const e of layers())
         area = U.reduce((s, P) => s + km2(P), 0),
         outside = pc.difference(U, ...C.map(snap)).reduce((s, P) => s + km2(P), 0);
       // the layer file's coordinates are rounded to about 1 m, which along a long fjord coast adds up to a little
-      assert.ok(outside < 1 + 0.001 * area, f.properties.n + ': ' + outside.toFixed(1) + ' km² outside ' + e.country);
+      assert.ok(outside < 1 + 0.001 * area, f.properties.n + ': ' + outside.toFixed(1) + ' kmÂ² outside ' + e.country);
       units += area;
     }
     // no two units overlap, so a click means one of them
@@ -87,7 +87,7 @@ for (const e of layers())
         const over = pc
           .intersection(polys(feats[i].geometry).map(snap), polys(feats[j].geometry).map(snap))
           .reduce((s, P) => s + km2(P), 0);
-        assert.ok(over < 1, feats[i].properties.n + ' and ' + feats[j].properties.n + ' overlap by ' + over.toFixed(1) + ' km²');
+        assert.ok(over < 1, feats[i].properties.n + ' and ' + feats[j].properties.n + ' overlap by ' + over.toFixed(1) + ' kmÂ²');
       }
     const country = C.reduce((s, P) => s + km2(P), 0);
     assert.ok(units / country > 0.95, 'units cover ' + ((100 * units) / country).toFixed(1) + '% of ' + e.country);
