@@ -1,7 +1,7 @@
 // Ecumene: entry point. Sets up rendering, loads data, wires the panels and input.
 import { mesh } from 'topojson-client';
 import { app, setRenderer, redraw, emit, VERSION } from './store.js';
-import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, segs, render } from './gl.js';
+import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, setAnchors, anchorOf, segs, render } from './gl.js';
 import { geo, loadBase, nameOf, setPhys } from './data.js';
 import { Rb, tinyMarkers, setProj, proj } from './view.js';
 import { loadUnits } from './units.js';
@@ -126,6 +126,16 @@ async function main() {
   fit();
   const { tris, phys } = await loadBase();
   uploadTris(tris);
+  // patterns are laid out from the centre of each country's largest part (labelPts are sorted largest first)
+  const anchored = new Set();
+  setAnchors(
+    geo.labelPts.flatMap((p) => {
+      const id = geo.nameId.get(p.n);
+      if (anchored.has(id)) return [];
+      anchored.add(id);
+      return [[id, p.c[0], p.c[1]]];
+    }),
+  );
   setBorders(segs(mesh(geo.topo, geo.topo.objects.countries, notSame).coordinates));
   configureEditing({ setCursor, closePicker });
   configurePicker({ setCursor, refreshTip });
@@ -165,6 +175,8 @@ async function main() {
     markers: () => tinyMarkers().map((m) => ({ n: m.n, x: m.p[0], y: m.p[1] })),
     // canvas pixel of a [lon, lat] in the current view
     px: (g) => (setProj(), proj(g)),
+    // where a country's pattern is laid out from: [lon, lat] on the Earth
+    patternAnchor: (name) => anchorOf(geo.nameId.get(name)),
     // load a country's subdivisions (as resting the pointer on it does); resolves when they can be painted
     loadUnits: (c) => loadUnits(c).then(() => true),
   };
