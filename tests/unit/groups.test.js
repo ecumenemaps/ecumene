@@ -65,6 +65,50 @@ test('the overseas split moves whole polygons and keeps every other country in p
   for (const p of OVERSEAS) moved += after.find((g) => g.properties.name === p.name).type === 'Polygon' ? 1 : n(p.name, after);
   assert.strictEqual(n('France', before) + n('Netherlands', before), n('France', after) + n('Netherlands', after) + moved);
 });
+test('the overseas parts hold exactly the islands of Natural Earth map units', () => {
+  // centres of the polygons of Natural Earth's admin-0 map units (public domain), printed by scripts/check_overseas.js
+  const UNITS = {
+    'French Guiana': [[-53.245, 3.922]],
+    Guadeloupe: [
+      [-61.263, 15.938],
+      [-61.038, 16.329],
+      [-61.674, 16.167],
+      [-61.418, 16.329],
+      [-61.627, 15.859],
+      [-61.579, 15.871],
+    ],
+    Martinique: [[-61.018, 14.656]],
+    Réunion: [[55.542, -21.119]],
+    Mayotte: [
+      [45.278, -12.774],
+      [45.137, -12.819],
+    ],
+    'Caribbean Netherlands': [
+      [-68.288, 12.186],
+      [-62.974, 17.489],
+      [-63.238, 17.631],
+    ],
+  };
+  const { geoCentroid, geoDistance } = require('d3-geo');
+  const feats = tj.feature(world, world.objects.countries).features,
+    centres = (name) => {
+      const g = feats.find((f) => f.properties.name === name).geometry;
+      return (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).map((c) => geoCentroid({ type: 'Polygon', coordinates: c }));
+    },
+    near = (a, b) => (geoDistance(a, b) * 180) / Math.PI < 0.05;
+  for (const p of OVERSEAS) {
+    const ours = centres(p.name),
+      theirs = UNITS[p.name];
+    assert.strictEqual(ours.length, theirs.length, p.name + ': number of islands');
+    for (const c of theirs)
+      assert.ok(
+        ours.some((o) => near(o, c)),
+        p.name + ': missing the island at ' + c,
+      );
+    // and nothing of it is left in the parent
+    for (const c of theirs) assert.ok(!centres(p.parent).some((o) => near(o, c)), p.parent + ' still holds the island at ' + c);
+  }
+});
 test('aliases resolve', () => {
   const cases = {
     USA: 'United States of America',
