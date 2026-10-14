@@ -8,6 +8,7 @@ import { FONTS, loadFont } from './fonts.js';
 import { hexOk, clamp } from './util.js';
 import { OVERSEAS } from '../overseas.js';
 import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
+import { SCALES, PAINT_SETS } from './schemes.js';
 
 // Natural Earth adm1_code, such as GBR-2083 (a few read like RUS+99?), or ALD+0 for the "Rest of" unit the build
 // adds where no subdivision covers part of a country (an overseas part's file adds digits: NLD535+0)
@@ -67,6 +68,8 @@ export function getState() {
       ref: r.ref,
     })),
     lg: { t: L.title, p: L.pos, xy: L.xy, k: L.scale, s: L.show, n: L.note, o: L.order.filter((c) => used.has(c)) },
+    ps: app.paintSet,
+    ds: Object.assign({}, app.data),
     r: [+app.rot[0].toFixed(2), +app.rot[1].toFixed(2)],
     z: +app.zoom.toFixed(2),
   };
@@ -193,6 +196,16 @@ export function setState(o) {
   L.xy = Array.isArray(lg.xy) && lg.xy.length === 2 && lg.xy.every(Number.isFinite) ? lg.xy.map((v) => clamp(v, 0, 1)) : null;
   L.scale = Number.isFinite(lg.k) ? clamp(lg.k, 0.5, 2.5) : 1;
   L.order = Array.isArray(lg.o) ? lg.o.filter(hexOk) : [];
+  // paint swatch set and color-by-data settings (maps saved before them get the defaults)
+  app.paintSet = PAINT_SETS[o.ps] ? o.ps : 'Default';
+  const ds = o.ds && typeof o.ds === 'object' ? o.ds : {};
+  Object.assign(app.data, {
+    scale: SCALES[ds.scale] ? ds.scale : 'Blues',
+    n: Number.isInteger(ds.n) ? clamp(ds.n, 2, 9) : 5,
+    m: ds.m === 'quantile' ? 'quantile' : 'equal',
+    c: typeof ds.c === 'string' && (ds.c === '' || Number.isFinite(+ds.c)) ? ds.c.slice(0, 30) : '',
+    rev: !!ds.rev,
+  });
   legendColours();
   if (Array.isArray(o.r) && o.r.length === 2 && o.r.every(Number.isFinite)) app.rot = [o.r[0], clamp(o.r[1], -90, 90)];
   if (Number.isFinite(o.z)) app.zoom = clamp(o.z, 0.8, 40);
