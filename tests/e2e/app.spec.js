@@ -421,7 +421,8 @@ test('subdivision layers: switch the UK to Westminster constituencies, paint, sa
   await page.selectOption('#subd', 'g');
   await page.click('#pal .sw >> nth=5');
   const sc = await rest(-4.2, 56.8);
-  await expect(page.locator('#tip')).toHaveText('Scotland');
+  // with a constituency painted the seat counter shows, and the tag adds up the seats a click paints
+  await expect(page.locator('#tip')).toHaveText('Scotland57 seats');
   await page.mouse.click(sc[0], sc[1]);
   await expect.poll(async () => (await units()).length).toBe(58);
   // a map code keeps the layer
@@ -654,7 +655,7 @@ test('color schemes: diverging scale, paint sets, color-vision preview and clash
   // the paint set and data settings are saved with the map
   const st = await page.evaluate(() => window.ecumene.getState());
   expect(st.ps).toBe('Okabe–Ito');
-  expect(st.ds).toEqual({ scale: 'Red-Blue', n: 4, m: 'equal', c: '', rev: true, nd: true });
+  expect(st.ds).toEqual({ scale: 'Red-Blue', n: 4, m: 'jenks', c: '', rev: true, nd: true });
   await page.evaluate(() => {
     const s = window.ecumene.getState();
     delete s.ps;

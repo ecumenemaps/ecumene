@@ -62,7 +62,9 @@ export function refreshTip() {
     (app.subHov ? app.subHov.label : '') ||
     (u ? u.f.properties.n : '') ||
     (app.hover ? nameOf(app.hover) : '');
-  const info = !name || pk || o ? '' : u ? unitInfo(u.country, u.f) : app.hover ? countryInfo(nameOf(app.hover)) : '';
+  const sh = app.subHov && app.subHov.feats.length ? app.subHov : null;
+  const info =
+    !name || pk || o ? '' : sh ? unitInfo(sh.country, sh.feats) : u ? unitInfo(u.country, [u.f]) : app.hover ? countryInfo(nameOf(app.hover)) : '';
   $('sr').textContent = info ? name + '. ' + info : name;
   if (app.hoverStyle.tip && name) {
     tip.replaceChildren(name, ...(info ? [el('span', { class: 'ti', textContent: info })] : []));

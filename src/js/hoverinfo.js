@@ -6,7 +6,7 @@ import { geo } from './data.js';
 import { isoOf, ELECTORAL_VOTES, electoralName, NO_DATA_PAINT, NO_DATA_LABEL } from './stats.js';
 import { indicatorOf } from './statsrc.js';
 import { unitKey, layerOfCode } from './units.js';
-import { ELECTIONS } from './seats.js';
+import { shownElection } from './seatbar.js';
 import { placeMatcher } from './table.js';
 import Ecu from '../groups.js';
 
@@ -50,18 +50,24 @@ export function countryInfo(name) {
   return label(paint);
 }
 
-/** What the map says about a subdivision (a loaded unit feature of a country), or ''. */
-export function unitInfo(country, f) {
-  const code = f.properties.c,
-    layer = layerOfCode(code);
+/**
+ * What the map says about subdivisions (loaded unit features of a country), or ''. feats is the unit under the
+ * pointer, or in Subdivisions mode the region or part a click paints: its seats add up, and its color label shows
+ * when every unit has the same paint.
+ */
+export function unitInfo(country, feats) {
+  const f = feats[0],
+    layer = layerOfCode(f.properties.c);
   // the electoral votes statistic colors the states by their votes
   if (app.stat && app.stat.k === 'ev' && country === 'United States of America' && !layer) {
-    const v = ELECTORAL_VOTES[electoralName(f.properties)];
+    const v = feats.reduce((s, x) => s + (ELECTORAL_VOTES[electoralName(x.properties)] || 0), 0);
     return v ? v + ' electoral vote' + (v === 1 ? '' : 's') : '';
   }
-  const name = label(app.units.get(unitKey(country, code))),
-    el = ELECTIONS.find((e) => e.country === country && e.layer === layer),
-    seats = el ? el.seats(f.properties) : 0;
-  const s = seats ? seats + ' ' + (el.id === 'us-ec' ? 'electoral vote' : 'seat') + (seats === 1 ? '' : 's') : '';
+  const paints = new Set(feats.map((x) => app.units.get(unitKey(country, x.properties.c))));
+  // the seats, while the seat counter shows this election
+  const name = paints.size === 1 ? label([...paints][0]) : '',
+    el = app.seatbar.show && !app.stat ? shownElection() : null,
+    seats = el && el.country === country && el.layer === layer ? feats.reduce((s, x) => s + el.seats(x.properties), 0) : 0;
+  const s = seats ? seats + ' ' + (seats === 1 ? el.unit.replace(/s$/, '') : el.unit) : '';
   return [name, s].filter(Boolean).join(' · ');
 }
