@@ -72,6 +72,7 @@ export function getState() {
     })),
     lg: { t: L.title, p: L.pos, xy: L.xy, k: L.scale, s: L.show, n: L.note, o: L.order.filter((c) => used.has(c)) },
     ps: app.paintSet,
+    ...(app.fictional ? { fi: true } : {}),
     ds: Object.assign({}, app.data),
     // the statistic and the numbers used, so the map never changes when it is reopened or shared
     ...(app.stat ? { st: app.stat } : {}),
@@ -203,6 +204,7 @@ export function setState(o) {
   L.order = Array.isArray(lg.o) ? lg.o.filter(paintOk).map((c) => c.toLowerCase()) : [];
   // paint swatch set and color-by-data settings (maps saved before them get the defaults)
   app.paintSet = PAINT_SETS[o.ps] ? o.ps : 'Default';
+  app.fictional = o.fi === true;
   const ds = o.ds && typeof o.ds === 'object' ? o.ds : {};
   Object.assign(app.data, {
     scale: SCALES[ds.scale] ? ds.scale : 'Blues',

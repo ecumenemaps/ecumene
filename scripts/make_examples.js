@@ -42,6 +42,7 @@ const EXAMPLES = {
     await page.evaluate(() => {
       const s = window.ecumene.getState();
       s.lg = { t: 'A restored Byzantium, 1453 (fictional)', p: 'bl', s: true };
+      s.fi = true; // exports say it is a fictional scenario (the Legend panel's checkbox)
       s.g = [
         { t: 'region', c: '#6a3d9a', o: 0.42, w: 2, l: 'Eastern Roman Empire', n: false, s: 15,
           p: [[19.6, 42.2], [22.4, 44.2], [28.6, 43.8], [29.2, 41.3], [31.8, 41.2], [31.6, 38.6], [30.5, 36.8], [28, 36.6], [26.3, 38.3], [24, 37.3], [21.6, 37], [19.9, 39.4]] },

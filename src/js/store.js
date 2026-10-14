@@ -97,6 +97,7 @@ export const app = {
   // pos: corner; xy: dragged position as fractions of the frame (null = use the corner); scale: size
   legend: { title: '', pos: 'bl', xy: null, scale: 1, show: true, note: true, order: [] },
   legendRect: null, // where the legend was last drawn on screen
+  fictional: false, // the map shows an invented scenario: exports say so (source line and SVG description)
 
   // export settings (projection key from projections.js, 'screen' or 'world', width in px or 0 = automatic)
   exportOpts: { proj: 'ortho', area: 'screen', width: 0 },
