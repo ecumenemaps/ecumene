@@ -99,6 +99,13 @@ select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6p
 summary{font-size:13px;font-weight:600;color:var(--mute);cursor:pointer;margin-bottom:8px}
 .cg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 2px}
 .cg label{display:flex;align-items:center;gap:8px;font-size:13px}
+.tbl{margin-top:8px;overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+.tbl table{border-collapse:collapse;font-size:12px;width:100%}
+.tbl td,.tbl th{padding:3px 6px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;font-weight:400}
+.tbl th{color:var(--mute)}
+.tbl .p{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.tbl .v{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.tbl .x{color:#c0392b}
 .cg input{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
 .rg{display:flex;flex-direction:column;gap:4px;font-size:13px;margin-top:10px;color:var(--mute)}
 .rg[hidden],label.sw2[hidden]{display:none}
@@ -178,17 +185,29 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <h2>Color by data</h2>
 <label class="rg" style="margin-top:0">Statistic<select id="dst" aria-label="Statistic"></select></label>
 <div id="dstw" hidden><select id="dyr" aria-label="Year" style="margin-top:8px"></select><div class="row" style="margin-top:8px"><button class="b" id="dstr" type="button" title="Fetch the numbers again from the World Bank">Fetch again</button></div></div>
-<label class="sw2" id="dndw" style="margin-top:8px" hidden title="Countries without a value get a grey dotted fill and a No data legend entry, so they never look like a low value"><input id="dnd" type="checkbox" checked> Mark countries with no data</label>
 <p id="dsti" class="hint"></p>
-<p class="hint" style="margin-top:12px">Or paste your own rows:</p>
-<textarea id="dd" rows="8"placeholder="One per line: country, value&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
+<p class="hint" style="margin-top:12px">Or use your own data: paste from a spreadsheet, open a file, or load a Google Sheet.</p>
+<textarea id="dd" rows="6" placeholder="Paste a table, or one per line:&#10;France, 68&#10;Germany, 83" spellcheck="false" aria-label="Data rows"></textarea>
+<div class="row" style="margin-top:8px"><button class="b" id="dfo" type="button">Open a file</button><input id="dfi" type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden aria-label="Data file"></div>
+<label class="rg">Google Sheets link<input id="dsu" type="url" placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="Google Sheets link"></label>
+<div class="row" style="margin-top:6px"><button class="b" id="dsl" type="button" title="Reads the sheet from Google: share it as anyone with the link, or publish it">Load the sheet</button></div>
+<div id="dpv" hidden style="margin-top:10px">
+<select id="dsh" aria-label="Sheet" hidden style="margin-bottom:6px"></select>
+<label class="rg" style="margin-top:0">Column of places<select id="dpc" aria-label="Column of places"></select></label>
+<label class="rg" style="margin-top:6px">Column of values<select id="dvc" aria-label="Column of values"></select></label>
+<label class="sw2" style="margin-top:6px"><input id="dhd" type="checkbox"> First row is a header</label>
+<div id="dtb" class="tbl" aria-label="First rows of the table"></div>
+<p id="dpi" class="hint"></p>
+</div>
+<label class="rg">Source, shown in exports<input id="dsrc" type="text" maxlength="200" placeholder="Who published these numbers, and when" aria-label="Source of your data"></label>
 <div class="cg" style="margin-top:8px"><select id="dpal" aria-label="Color scale"></select><select id="dn" aria-label="Number of classes"></select></div>
 <select id="dm" aria-label="Class method"><option value="equal">Equal intervals</option><option value="quantile">Quantiles (equal counts)</option></select>
 <label class="rg" id="dcw" hidden>Centre on (equal steps either side)<input id="dc" type="number" step="any" placeholder="0, or the average if all values are on one side" aria-label="Centre value"></label>
 <label class="sw2" style="margin-top:8px"><input id="drev" type="checkbox"> Reverse colors</label>
+<label class="sw2" style="margin-top:8px" title="Countries without a value get a grey dotted fill and a No data legend entry, so they never look like a low value"><input id="dnd" type="checkbox" checked> Mark countries with no data</label>
 <p id="dpaln" class="hint" style="margin-top:4px"></p>
 <div class="row" style="margin-top:8px"><button class="b" id="dgo">Color the map</button></div>
-<p class="hint">Pasted rows color only the listed countries. Each class becomes a legend entry you can rename in Legend.</p>
+<p class="hint">Coloring replaces the map's colors (Undo brings them back). Numbers become classes, colors (#e4572e) are used as they are, and words become categories in the paint colors. Each becomes a legend entry you can rename in Legend.</p>
 </section>
 </div>
 <div class="mode" data-mode="draw">
