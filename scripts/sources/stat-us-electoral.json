@@ -1,0 +1,21 @@
+{
+  "id": "stat-us-electoral",
+  "kind": "statistic",
+  "order": 61,
+  "title": "Electoral votes per US state (Data panel), 2024 and 2028 elections",
+  "publisher": "U.S. Census Bureau, 2020 Census apportionment of the U.S. House of Representatives",
+  "url": "https://www.census.gov/data/tables/2020/dec/2020-apportionment-data.html",
+  "licence": { "name": "Public domain (U.S. government work)", "url": "https://www.usa.gov/government-copyright" },
+  "note": "Bundled with the editor, not fetched. A state's electors are its seats in the House plus its two senators; the District of Columbia has 3 (23rd Amendment). Maine and Nebraska split their votes by congressional district; the map shows each state's total.",
+  "credit": "U.S. Census Bureau, 2020 Census apportionment; electors = House seats + 2 (the District of Columbia has 3). Public domain.",
+  "verified": {
+    "date": "2026-10-14",
+    "by": "node scripts/check_electoral.js",
+    "file": "apportionment-2020-table01.xlsx (Table 1, apportionment population and number of representatives by state)",
+    "origin": "https://www2.census.gov/programs-surveys/decennial/2020/data/apportionment/apportionment-2020-table01.xlsx",
+    "sha256": "93e7e77a222f078c0af32457af2ecc7bcae2bcb9db0cedca4ad93ff3f99b55bf",
+    "result": "all 50 states match; 435 representatives",
+    "rule": "That electors are the House seats plus two senators, with 3 for the District of Columbia and 538 in all, is confirmed by https://www.usa.gov/electoral-college. The National Archives page on the allocation could not be reached from the machine used to check, so the per-state electoral counts are the Census seats plus 2 and have no second per-state source.",
+    "years": "The 2020 apportionment gives the electors for the 2024 and 2028 presidential elections; the 2030 census apportionment applies from 2032."
+  }
+}

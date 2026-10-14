@@ -31,12 +31,17 @@ function loadSources() {
         if (!p.download || !p.download.origin || !p.download.file) bad('a part has no download');
         if (!p.fields || !p.fields.code || !p.fields.name) bad('a part has no code and name fields');
       }
-    } else if (e.kind !== 'reference') bad('kind must be "layer" or "reference"');
+    } else if (e.kind === 'statistic') {
+      for (const k of ['publisher', 'url', 'credit', 'note']) if (!e[k]) bad('no ' + k);
+      if (!e.licence.url) bad('no licence url');
+      for (const i of e.indicators || []) for (const k of ['code', 'menu', 'title', 'origin']) if (!i[k]) bad('an indicator has no ' + k);
+    } else if (e.kind !== 'reference') bad('kind must be "layer", "statistic" or "reference"');
     else if (!e.source) bad('no source');
   }
   return all.sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.id.localeCompare(b.id));
 }
 const layers = () => loadSources().filter((e) => e.kind === 'layer');
+const statistics = () => loadSources().filter((e) => e.kind === 'statistic');
 /**
  * A layer's parts: each its own download and fields (a UK layer can join Great Britain from OS and Northern Ireland
  * from OSNI). A layer with one source gives `download` and `fields` directly.
@@ -53,7 +58,8 @@ function mirrorName(d) {
 /** The README sources table (Markdown). */
 function readmeTable() {
   const rows = loadSources().map((e) => {
-    const src = e.kind === 'layer' ? '[' + e.publisher + '](' + e.url + '), ' + e.edition.split(';')[0] : e.source,
+    const src =
+        e.kind === 'layer' ? '[' + e.publisher + '](' + e.url + '), ' + e.edition.split(';')[0] : e.kind === 'statistic' ? '[' + e.publisher + '](' + e.url + ')' : e.source,
       lic = e.licence.url ? '[' + e.licence.name + '](' + e.licence.url + ')' : e.licence.name;
     return '| ' + e.title + ' | ' + src + ' | ' + lic + ' |';
   });
@@ -62,4 +68,4 @@ function readmeTable() {
 const README_START = '<!-- sources:start (generated from scripts/sources by `node scripts/fetch_sources.js --readme`) -->',
   README_END = '<!-- sources:end -->';
 
-module.exports = { loadSources, layers, partsOf, mirrorName, readmeTable, README_START, README_END, MIRROR };
+module.exports = { loadSources, layers, statistics, partsOf, mirrorName, readmeTable, README_START, README_END, MIRROR };

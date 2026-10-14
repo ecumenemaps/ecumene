@@ -11,6 +11,7 @@ import { unitByKey, splitKey, layerOfCode, loadPainted } from './units.js';
 import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
 import { fillWith, baseColor } from './patterns.js';
+import { statCredit } from './statsrc.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
 let canvas = null;
@@ -44,8 +45,20 @@ function usedLayers() {
 }
 /** One line printed on the map. */
 export function sourceLine(label) {
-  const more = [...new Set(usedLayers().other.map((x) => x.short))];
-  return 'Data: Natural Earth (public domain)' + more.map((s) => ', ' + s).join('') + (app.fictional ? ' · Fictional scenario' : '') + ' · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
+  const more = [...new Set(usedLayers().other.map((x) => x.short))],
+    st = statCredit(app.stat);
+  return (
+    'Data: Natural Earth (public domain)' +
+    more.map((s) => ', ' + s).join('') +
+    (st ? '; statistic: ' + st.short : '') +
+    (app.fictional ? ' · Fictional scenario' : '') +
+    ' · ' +
+    cap(label) +
+    ' · Ecumene ' +
+    VERSION +
+    ' · ' +
+    today()
+  );
 }
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // printed in the SVG description of a map marked as a fictional scenario (the checkbox in the Legend panel)
@@ -66,6 +79,8 @@ export function sourceDetails(label, cuts) {
   const used = usedLayers();
   if (used.ne) L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
   for (const x of used.other) L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + (x.note ? x.note + ' ' : '') + x.credit + ' Fitted to the Natural Earth coastline.');
+  const st = statCredit(app.stat);
+  if (st) L.push(st.detail);
   if (cuts) {
     L.push('Country and subdivision shapes have ' + LAKE_SETS[cuts.set] + ' cut out, so they stop at the shore.');
     if (cuts.failed.size) L.push('Not cut, so their shapes still cover the water: ' + [...cuts.failed].join(', ') + '.');
