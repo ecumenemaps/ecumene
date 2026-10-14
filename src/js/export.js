@@ -12,7 +12,8 @@ import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountr
 import { SvgContext, esc } from './svgctx.js';
 import { fillWith, baseColor } from './patterns.js';
 import { statCredit } from './statsrc.js';
-import { drawSeatBar } from './seatbar.js';
+import { drawSeatBar, currentTally } from './seatbar.js';
+import { seatCredit } from './seatsrc.js';
 import { importCredit } from './table.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
@@ -45,16 +46,23 @@ function usedLayers() {
   }
   return { ne, other: [...other.values()] };
 }
+// the data behind the seat counter, when it is drawn
+function counterCredit() {
+  const cur = app.seatbar.show ? currentTally() : null;
+  return cur ? seatCredit(cur.el) : null;
+}
 /** One line printed on the map. */
 export function sourceLine(label) {
   const more = [...new Set(usedLayers().other.map((x) => x.short))],
     st = statCredit(app.stat),
-    im = importCredit(app.imported);
+    im = importCredit(app.imported),
+    sc = counterCredit();
   return (
     'Data: Natural Earth (public domain)' +
     more.map((s) => ', ' + s).join('') +
     (st ? '; statistic: ' + st.short : '') +
     (im ? '; data: ' + im.short : '') +
+    (sc ? '; ' + sc.short : '') +
     (isFictional() ? ' · Fictional scenario' : '') +
     ' · ' +
     cap(label) +
@@ -90,6 +98,8 @@ export function sourceDetails(label, cuts) {
     im = importCredit(app.imported);
   if (st) L.push(st.detail);
   if (im) L.push(im.detail);
+  const sc = counterCredit();
+  if (sc) L.push(sc.detail);
   if (cuts) {
     L.push('Country and subdivision shapes have ' + LAKE_SETS[cuts.set] + ' cut out, so they stop at the shore.');
     if (cuts.failed.size) L.push('Not cut, so their shapes still cover the water: ' + [...cuts.failed].join(', ') + '.');

@@ -12,6 +12,7 @@ import { DETAIL, clearUnits, layersOf, activeLayer, setLayer } from './units.js'
 import { refreshSub } from './input.js';
 import { initStats, statChosen, colourStat } from './ui-stats.js';
 import { initImport, colourImport } from './ui-import.js';
+import { initElections } from './ui-elections.js';
 import { $, el, note } from './util.js';
 import Ecu from '../groups.js';
 
@@ -241,6 +242,8 @@ function initSubdivisions() {
     det.value = app.sub.detail;
     det.disabled = !app.sub.on;
   };
+  // the Election picker switches Subdivisions on
+  on('style', sync);
   box.onchange = () => {
     app.sub.on = box.checked;
     sync();
@@ -287,6 +290,7 @@ function initLayerMenu() {
 export function initPaintPanel() {
   const resolve = Ecu.matcher(geo.names);
   initPalette();
+  initElections();
   initSubdivisions();
   initSearch();
   initLists(resolve);
