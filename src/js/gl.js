@@ -42,27 +42,32 @@ void main(){float hw=uW*.5;float al=1.-smoothstep(hw-.5,hw+.5,abs(vD));o=vec4(uC
 // holds pattern fills (patterns.js): rgb the pattern colour, alpha the pattern type (0 none); the fragment shader
 // draws the pattern in CSS pixels (uPx device pixels each), the same shapes as the SVG and canvas tiles. The pattern is
 // laid out from an anchor on the Earth (uAnc: lon/lat per id, the centre of the country's largest part), projected
-// each frame, so it moves with the country when the globe turns instead of staying still on the screen.
+// each frame, so it moves with the country when the globe turns instead of staying still on the screen. It is also
+// turned to follow the country: its "up" is the direction of north at the anchor as drawn on the screen (vNor), so a
+// country that tilts as it moves away from the centre of the globe takes its pattern with it.
 const VS_FILL = `#version 300 es
 precision highp float;precision highp int;precision highp sampler2D;
 in vec2 aLL;in uint aId;uniform vec2 uRes;uniform float uR;uniform vec3 uC,uE,uN,uLand;uniform sampler2D uPal,uPat,uAnc;uniform int uHover;uniform float uDark;uniform vec4 uFlat;uniform int uSkip;
-flat out vec3 vCol;flat out vec4 vPat;flat out float vA;flat out vec2 vAnc;out float vZ;
+flat out vec3 vCol;flat out vec4 vPat;flat out float vA;flat out vec2 vAnc;flat out vec2 vNor;out float vZ;
 vec3 shade(vec3 cc){float lu=dot(cc,vec3(.299,.587,.114));return lu>.45?cc*(1.-uDark):mix(cc,vec3(1.),uDark);}
 vec3 sphere(vec2 ll){float lo=ll.x*0.017453292,la=ll.y*0.017453292;float c=cos(la);return vec3(c*cos(lo),c*sin(lo),sin(la));}
 void main(){
  vec3 P=sphere(aLL);
  vec3 v=vec3(dot(P,uE),dot(P,uN),dot(P,uC));
- vAnc=vec2(0.);
+ vAnc=vec2(0.);vNor=vec2(0.,1.);
  vec3 cc=uFlat.rgb;vA=1.;vPat=vec4(0.);
  if(uFlat.a<.5){int id=int(aId);ivec2 at=ivec2(id&1023,id>>10);vec4 pc=texelFetch(uPal,at,0);cc=pc.a>.5?pc.rgb:uLand;
-  if(pc.a>.5){vPat=texelFetch(uPat,at,0);vec3 A=sphere(texelFetch(uAnc,at,0).rg);vAnc=uRes*.5+vec2(dot(A,uE),dot(A,uN))*uR;}
+  if(pc.a>.5){vPat=texelFetch(uPat,at,0);vec2 ll=texelFetch(uAnc,at,0).rg;vec3 A=sphere(ll);vAnc=uRes*.5+vec2(dot(A,uE),dot(A,uN))*uR;
+   // north at the anchor (the derivative of the point by latitude), as drawn on the screen, y up
+   float lo=ll.x*0.017453292,la=ll.y*0.017453292;vec3 Nl=vec3(-sin(la)*cos(lo),-sin(la)*sin(lo),cos(la));
+   vec2 n2=vec2(dot(Nl,uE),dot(Nl,uN));if(length(n2)>1e-4)vNor=normalize(n2);}
   if(uSkip==1&&pc.a<.5)vA=0.;
   if(id==uHover){cc=shade(cc);vPat.rgb=shade(vPat.rgb);}}
  vCol=cc;vZ=v.z;
  gl_Position=vec4(((uRes*.5+v.xy*uR)/uRes)*2.-1.,0.,1.);
 }`;
 const FS_FILL = `#version 300 es
-precision highp float;flat in vec3 vCol;flat in vec4 vPat;flat in float vA;flat in vec2 vAnc;in float vZ;uniform vec2 uRes;uniform float uPx;out vec4 o;
+precision highp float;flat in vec3 vCol;flat in vec4 vPat;flat in float vA;flat in vec2 vAnc;flat in vec2 vNor;in float vZ;uniform vec2 uRes;uniform float uPx;out vec4 o;
 // 1 when the pattern's ink covers point q (CSS pixels, y down), with a soft edge of about a device pixel
 float band(float d,float w,float aa){return 1.-smoothstep(w*.5-aa,w*.5+aa,d);}
 float diag(float s,float T,float w,float aa){float d=mod(s,T);return band(min(d,T-d)*.70710678,w,aa);}
@@ -78,8 +83,8 @@ float mask(int t,vec2 q,float aa){
  return 0.;}
 void main(){if(vZ<0.||vA<.5)discard;
  int t=int(vPat.a*255.+.5);vec3 col=vCol;
- // q: CSS pixels from the projected anchor, y down
- if(t>0){vec2 q=vec2(gl_FragCoord.x-vAnc.x,vAnc.y-gl_FragCoord.y)/uPx;col=mix(vCol,vPat.rgb,mask(t,q,.6/uPx));}
+ // q: CSS pixels from the projected anchor, along the country's east (x) and south (y) as drawn on the screen
+ if(t>0){vec2 d=gl_FragCoord.xy-vAnc;vec2 e=vec2(vNor.y,-vNor.x);vec2 q=vec2(dot(d,e),-dot(d,vNor))/uPx;col=mix(vCol,vPat.rgb,mask(t,q,.6/uPx));}
  o=vec4(col,1.);}`;
 
 let gl, cv, pFull, pLine, pFill;
