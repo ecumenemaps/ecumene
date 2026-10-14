@@ -145,7 +145,7 @@ function initLists(resolve) {
     el('optgroup', { label: 'Groups' }, ...opts(Object.keys(Ecu.GROUPS).filter((k) => !Ecu.CONTINENTS[k]))),
     el('optgroup', { label: 'Continents' }, ...opts(Object.keys(Ecu.CONTINENTS))),
   );
-  const showNote = () => ($('grpn').textContent = Ecu.GROUP_NOTES[grp.value] || '');
+  const showNote = () => ($('grpn').textContent = Ecu.groupNote(grp.value));
   grp.onchange = showNote;
   showNote();
   $('grpp').onclick = () => {
