@@ -13,6 +13,7 @@ import { SvgContext, esc } from './svgctx.js';
 import { fillWith, baseColor } from './patterns.js';
 import { statCredit } from './statsrc.js';
 import { drawSeatBar } from './seatbar.js';
+import { importCredit } from './table.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
 let canvas = null;
@@ -47,11 +48,13 @@ function usedLayers() {
 /** One line printed on the map. */
 export function sourceLine(label) {
   const more = [...new Set(usedLayers().other.map((x) => x.short))],
-    st = statCredit(app.stat);
+    st = statCredit(app.stat),
+    im = importCredit(app.imported);
   return (
     'Data: Natural Earth (public domain)' +
     more.map((s) => ', ' + s).join('') +
     (st ? '; statistic: ' + st.short : '') +
+    (im ? '; data: ' + im.short : '') +
     (isFictional() ? ' · Fictional scenario' : '') +
     ' · ' +
     cap(label) +
@@ -83,8 +86,10 @@ export function sourceDetails(label, cuts) {
   const used = usedLayers();
   if (used.ne) L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
   for (const x of used.other) L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + (x.note ? x.note + ' ' : '') + x.credit + ' Fitted to the Natural Earth coastline.');
-  const st = statCredit(app.stat);
+  const st = statCredit(app.stat),
+    im = importCredit(app.imported);
   if (st) L.push(st.detail);
+  if (im) L.push(im.detail);
   if (cuts) {
     L.push('Country and subdivision shapes have ' + LAKE_SETS[cuts.set] + ' cut out, so they stop at the shore.');
     if (cuts.failed.size) L.push('Not cut, so their shapes still cover the water: ' + [...cuts.failed].join(', ') + '.');

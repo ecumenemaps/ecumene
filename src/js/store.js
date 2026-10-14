@@ -85,6 +85,8 @@ export const app = {
   data: { scale: 'Blues', n: 5, m: 'equal', c: '', rev: false, nd: true }, // nd: mark countries without data
   // the statistic the map was colored with, saved with it (stats.js validRecord): {k:'wb', c, y, t, v, ys?} or {k:'ev'}
   stat: null,
+  // or the table of your own data it was colored with (table.js importRecord): {k:'im', src, t, rows, credit, ...}
+  imported: null,
   cvd: '', // color-vision preview on screen ('' = normal)
   // country fills: name -> hex, and legend labels per colour
   fills: new Map(),

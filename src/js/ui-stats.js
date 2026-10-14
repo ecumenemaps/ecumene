@@ -69,7 +69,7 @@ const code = () => ($('dst').value.startsWith('wb:') ? $('dst').value.slice(3) :
 function choose() {
   token++;
   const v = $('dst').value;
-  $('dstw').hidden = $('dndw').hidden = !code();
+  $('dstw').hidden = !code();
   if (code()) load(code(), false);
   else
     info(
@@ -104,7 +104,7 @@ function sync() {
   }
   if (!indicatorOf(r.c)) return;
   $('dst').value = key;
-  $('dstw').hidden = $('dndw').hidden = false;
+  $('dstw').hidden = false;
   const [a, b] = yearSpan(r);
   $('dyr').replaceChildren(
     el('option', { value: 'saved', textContent: 'Saved with this map: ' + (r.y === 'latest' ? 'most recent, ' + a + '–' + b : r.y) }),
@@ -236,6 +236,8 @@ function clearAll() {
   for (const k in app.labels) delete app.labels[k];
 }
 function done() {
+  // a statistic replaces a table of your own data, and its credit
+  app.imported = null;
   emit('stat');
   emit('legend');
   redraw();

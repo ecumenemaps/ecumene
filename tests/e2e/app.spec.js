@@ -597,8 +597,12 @@ test('colour by data builds classed legend', async ({ page }) => {
   await page.fill('#dd', 'France, 68\nGermany, 83\nSpain, 47\nItaly, 59\nBrazil, 12\nIndia, 30\nChina, 90\nKenya, 5\nAtlantis, 3');
   await page.click('#dgo');
   await expect(status(page)).toContainText('8 countries colored in 5 classes');
-  await expect(page.locator('#lgd .lg')).toHaveCount(5);
+  await expect(status(page)).toContainText('Not recognised: Atlantis');
+  // five classes, then the countries without a value
+  await mode(page, 'legend');
+  await expect(page.locator('#lgd .lg')).toHaveCount(6);
   await expect(page.locator('#lgd .lg input[type=text]').first()).toHaveValue(/ to /);
+  await expect(page.locator('#lgd .lg input[type=text]').last()).toHaveValue('No data');
   expect(errors).toEqual([]);
 });
 
