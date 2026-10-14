@@ -10,6 +10,7 @@ import { OVERSEAS } from '../overseas.js';
 import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
 import { SCALES, PAINT_SETS } from './schemes.js';
 import { validRecord } from './stats.js';
+import { electionById } from './seats.js';
 import { validImport } from './table.js';
 // a paint is a hex color or a pattern (patterns.js)
 import { paintOk } from './patterns.js';
@@ -72,6 +73,7 @@ export function getState() {
       ref: r.ref,
     })),
     lg: { t: L.title, p: L.pos, xy: L.xy, k: L.scale, s: L.show, n: L.note, o: L.order.filter((c) => used.has(c)) },
+    sb: { s: app.seatbar.show, p: app.seatbar.pos, xy: app.seatbar.xy, k: app.seatbar.scale, e: app.seatbar.el },
     ps: app.paintSet,
     ...(app.fictional ? { fi: true } : {}),
     ds: Object.assign({}, app.data),
@@ -205,6 +207,14 @@ export function setState(o) {
   L.xy = Array.isArray(lg.xy) && lg.xy.length === 2 && lg.xy.every(Number.isFinite) ? lg.xy.map((v) => clamp(v, 0, 1)) : null;
   L.scale = Number.isFinite(lg.k) ? clamp(lg.k, 0.5, 2.5) : 1;
   L.order = Array.isArray(lg.o) ? lg.o.filter(paintOk).map((c) => c.toLowerCase()) : [];
+  // the seat counter (maps saved before it get the defaults)
+  const sb = o.sb && typeof o.sb === 'object' ? o.sb : {},
+    B = app.seatbar;
+  B.show = sb.s !== false;
+  B.pos = sb.p === 'bc' ? 'bc' : 'tc';
+  B.xy = Array.isArray(sb.xy) && sb.xy.length === 2 && sb.xy.every(Number.isFinite) ? sb.xy.map((v) => clamp(v, 0, 1)) : null;
+  B.scale = Number.isFinite(sb.k) ? clamp(sb.k, 0.5, 2.5) : 1;
+  B.el = typeof sb.e === 'string' && electionById(sb.e) ? sb.e : '';
   // paint swatch set and color-by-data settings (maps saved before them get the defaults)
   app.paintSet = PAINT_SETS[o.ps] ? o.ps : 'Default';
   app.fictional = o.fi === true;

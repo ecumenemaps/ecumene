@@ -12,6 +12,7 @@ import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountr
 import { SvgContext, esc } from './svgctx.js';
 import { fillWith, baseColor } from './patterns.js';
 import { statCredit } from './statsrc.js';
+import { drawSeatBar } from './seatbar.js';
 import { importCredit } from './table.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
@@ -103,6 +104,7 @@ function drawTopLayers(c, W, H, label) {
   if (app.layers.names) drawCountryNames(c);
   drawObjectLabels(c);
   const lg = drawLegend(c, W, H);
+  drawSeatBar(c, W, H);
   if (app.legend.note) drawSourceNote(c, W, H, sourceLine(label), lg);
 }
 
@@ -469,6 +471,9 @@ function drawSVG(v, cuts) {
   c.end();
   c.group('legend');
   const lg = drawLegend(c, W, H);
+  c.end();
+  c.group('seat-counter');
+  drawSeatBar(c, W, H);
   c.end();
   if (app.legend.note) {
     c.group('source-note');
