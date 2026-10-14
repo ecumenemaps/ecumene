@@ -51,7 +51,7 @@ export function sourceLine(label) {
     'Data: Natural Earth (public domain)' +
     more.map((s) => ', ' + s).join('') +
     (st ? '; statistic: ' + st.short : '') +
-    (app.fictional ? ' · Fictional scenario' : '') +
+    (isFictional() ? ' · Fictional scenario' : '') +
     ' · ' +
     cap(label) +
     ' · Ecumene ' +
@@ -61,14 +61,17 @@ export function sourceLine(label) {
   );
 }
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-// printed in the SVG description of a map marked as a fictional scenario (the checkbox in the Legend panel)
+// A map marked as a fictional scenario (app.fictional, set only by the Byzantium example) says so in its exports, while
+// it still has drawn regions, routes or markers; with those deleted the statement would no longer be true.
+const isFictional = () => app.fictional && app.objects.length > 0;
+// printed at the start of the SVG description of a fictional scenario
 const FICTIONAL_NOTE =
   'Fictional scenario: the regions, routes and events drawn on this map are invented and are not historical borders or events. The country borders and coastlines underneath are Natural Earth’s present-day ones.';
 const LAKE_SETS = { none: 'the IJsselmeer', major: 'the IJsselmeer and the major lakes', all: 'every lake' };
 /** Fuller description embedded in SVG metadata; cuts says which lakes were cut out of the shapes (see cutShapes). */
 export function sourceDetails(label, cuts) {
   const L = [
-    ...(app.fictional ? [FICTIONAL_NOTE] : []),
+    ...(isFictional() ? [FICTIONAL_NOTE] : []),
     'Made with Ecumene ' + VERSION + ' (https://ecumenemaps.github.io/ecumene/) on ' + today() + '.',
     'Projection: ' + label + '.',
     'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain. French Guiana, Guadeloupe, Martinique, Mayotte, Réunion and the Caribbean Netherlands are shown apart from France and the Netherlands.',

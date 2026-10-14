@@ -83,7 +83,6 @@ export function initLegendPanel() {
     L.show = e.target.checked;
     redraw();
   };
-  $('fic').onchange = (e) => (app.fictional = e.target.checked);
   $('lk').oninput = (e) => {
     L.scale = +e.target.value / 100;
     redraw();
@@ -99,7 +98,6 @@ export function initLegendPanel() {
     $('lt').value = L.title;
     syncPos();
     $('ls').checked = L.show;
-    $('fic').checked = app.fictional;
     $('lk').value = Math.round(L.scale * 100);
   });
   render();
