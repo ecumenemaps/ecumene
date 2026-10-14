@@ -88,6 +88,7 @@ details{margin:0}
 .rg-row .src{font-size:12px;color:var(--mute);margin:-2px 0 4px 22px}
 .lg .kind{flex:none;width:14px;text-align:center;color:var(--mute);font-size:13px}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
+#tip .ti{display:block;font-weight:400;color:var(--mute)}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
@@ -201,7 +202,7 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 </div>
 <label class="rg">Source, shown in exports<input id="dsrc" type="text" maxlength="200" placeholder="Who published these numbers, and when" aria-label="Source of your data"></label>
 <div class="cg" style="margin-top:8px"><select id="dpal" aria-label="Color scale"></select><select id="dn" aria-label="Number of classes"></select></div>
-<select id="dm" aria-label="Class method"><option value="equal">Equal intervals</option><option value="quantile">Quantiles (equal counts)</option></select>
+<select id="dm" aria-label="Class method" title="Natural breaks put class edges at the gaps in the data, so each class holds places that are alike"><option value="jenks">Natural breaks (Jenks)</option><option value="quantile">Quantiles (equal counts)</option><option value="equal">Equal intervals</option></select>
 <label class="rg" id="dcw" hidden>Centre on (equal steps either side)<input id="dc" type="number" step="any" placeholder="0, or the average if all values are on one side" aria-label="Centre value"></label>
 <label class="sw2" style="margin-top:8px"><input id="drev" type="checkbox"> Reverse colors</label>
 <p id="dpaln" class="hint" style="margin-top:4px"></p>
