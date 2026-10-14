@@ -5,15 +5,27 @@ import { app } from './store.js';
 import { legendColours } from './paint.js';
 import { unitsOf, unitKey, splitKey, layerOfCode } from './units.js';
 import { font } from './fonts.js';
-import { fillWith } from './patterns.js';
-import { electionById, tally, arrange, paintedElections } from './seats.js';
+import { fillWith, parsePaint } from './patterns.js';
+import { electionById, tally, arrange, paintedElections, partyOf } from './seats.js';
+import './seatsrc.js'; // registers the elections built from bundled data
 
 const INK = '#1b2430',
   MUTE = '#5b6672',
   UNCALLED = '#d9dde2';
 
-/** The elections the map has painted, as ids; the one shown is app.seatbar.el when painted, else the first. */
-export const seatElections = () => paintedElections(app.units.keys(), splitKey, layerOfCode);
+/**
+ * The elections the map has painted, as ids, and the one chosen in the Election picker (app.seatbar.el) once its
+ * units are loaded, so a new election map shows its counter before anything is painted. The one shown is
+ * app.seatbar.el when it is among them, else the first.
+ */
+export function seatElections() {
+  const ids = paintedElections(app.units.keys(), splitKey, layerOfCode),
+    ch = electionById(app.seatbar.el);
+  if (ch && !ids.includes(ch.id) && unitsOf(ch.country, ch.layer) && !paintedOther(ch)) ids.unshift(ch.id);
+  return ids;
+}
+// the country is painted with another layer than the chosen election's
+const paintedOther = (el) => [...app.units.keys()].some((k) => splitKey(k)[0] === el.country && layerOfCode(splitKey(k)[1]) !== el.layer);
 export function shownElection() {
   const ids = seatElections();
   return ids.length ? electionById(ids.includes(app.seatbar.el) ? app.seatbar.el : ids[0]) : null;
@@ -31,6 +43,17 @@ export function currentTally() {
     U.feats.map((f) => ({ c: f.properties.c, props: f.properties })),
     (c) => app.units.get(unitKey(el.country, c)) || null,
     legendColours(),
+    {
+      // a US party's shades count together; a two-color pattern is a state with one senator of each color
+      groupOf: (paint) => {
+        const P = partyOf(paint);
+        return P ? { key: P.key, name: P.name, tossup: P.tossup } : null;
+      },
+      splitOf: (paint) => {
+        const q = parsePaint(paint);
+        return q ? [q.bg, q.fg] : null;
+      },
+    },
   );
   return { el, t };
 }
@@ -47,10 +70,12 @@ export function drawSeatBar(c, w, h) {
     bw = Math.min(460, Math.max(300, w / k - 32)),
     barW = bw - 2 * p;
   const label = (paint) => (app.labels[paint] || '').trim();
-  // the list under the bar: each colour with its name and seats, then the seats not called; wrapped into rows
+  // a group's name: the party, else its color's legend name
+  const gname = (g) => g.name || label(g.parts[0].paint);
+  // the list under the bar: each group with its name and seats (and those held over), then the seats not called
   c.font = font('400', 12);
-  const items = t.parts
-    .map((x) => ({ paint: x.paint, text: (label(x.paint) ? label(x.paint) + ' ' : '') + x.seats }))
+  const items = t.groups
+    .map((g) => ({ paint: g.parts[0].paint, text: (gname(g) ? gname(g) + ' ' : '') + g.seats + (g.held ? ' (' + g.held + ' not up)' : '') }))
     .concat(t.uncalled ? [{ paint: null, text: 'Not called ' + t.uncalled }] : []);
   const rows = [[]];
   let rw = 0;
@@ -112,30 +137,34 @@ export function drawSeatBar(c, w, h) {
   c.font = font('400', 12);
   c.fillStyle = MUTE;
   const head = {
-    majority: t.winner && (label(t.winner.paint) || 'One color') + ' has a majority',
+    majority: t.winner && ((t.winner.name || label(t.winner.paint || t.winner.parts[0].paint)) || 'One color') + ' has a majority',
     tie: 'Tie',
     hung: 'No majority',
   }[t.outcome];
   c.fillText(head || t.majority + ' for a majority', bw - p, p + 8);
-  // the two leading totals at the ends
+  // the totals of the groups at the two ends
   const bar = arrange(t),
-    yNum = p + 18 + 12;
-  const lead = (part, align) => {
-    if (!part || !part.paint) return;
+    yNum = p + 18 + 12,
+    sides = t.groups.filter((g) => !g.tossup);
+  const lead = (g, align) => {
+    if (!g) return;
     c.textAlign = align;
     c.font = font('700', 20);
     c.fillStyle = INK;
-    c.fillText(String(part.seats), align === 'left' ? p : bw - p, yNum);
+    c.fillText(String(g.seats), align === 'left' ? p : bw - p, yNum);
   };
-  lead(bar[0].paint ? bar[0] : null, 'left');
-  lead(bar[bar.length - 1].paint ? bar[bar.length - 1] : null, 'right');
+  lead(sides[0], 'left');
+  lead(sides[1], 'right');
   // the bar
   const yb = p + 18 + 26;
   for (const s of bar) {
     if (!s.w) continue;
     if (s.paint) fillWith(c, s.paint, app.dpr * k);
     else c.fillStyle = UNCALLED;
+    // seats held over are drawn paler than those painted
+    c.globalAlpha = s.held ? 0.55 : 1;
     c.fillRect(p + s.x * barW, yb, Math.max(0.5, s.w * barW), 18);
+    c.globalAlpha = 1;
   }
   // the majority line
   const xm = p + (t.majority / Math.max(1, t.counted)) * barW;

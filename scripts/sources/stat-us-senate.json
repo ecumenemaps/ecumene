@@ -1,0 +1,91 @@
+{
+  "id": "stat-us-senate",
+  "kind": "statistic",
+  "order": 62,
+  "title": "US Senate seats: who holds each and which are up in 2026 (election maps)",
+  "publisher": "@unitedstates congress-legislators, current legislators",
+  "url": "https://github.com/unitedstates/congress-legislators",
+  "licence": {
+    "name": "Public domain (CC0 1.0)",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "note": "Bundled with the editor, not fetched. Each state's two seats by class, the party holding each, and which are up at the 2026 election (class II and special elections). Written by node scripts/fetch_senate.js, which keeps parties, not names. The Senate changes between elections (deaths, resignations, appointments): the counter says the date the table was read.",
+  "credit": "Senate seats: @unitedstates congress-legislators (CC0), read on {date}.",
+  "election": {
+    "year": 2026,
+    "day": "2026-11-03",
+    "cls": 2,
+    "termsEnd": "2027-01-03"
+  },
+  "verified": {
+    "date": "2026-10-14",
+    "by": "node scripts/fetch_senate.js",
+    "origin": "https://unitedstates.github.io/congress-legislators/legislators-current.json",
+    "sha256": "ae8cb9477c48715df71a7d860854229d799dc90a254d61badc1efb770f892b2c",
+    "result": {
+      "all": {
+        "R": 53,
+        "D": 45,
+        "I": 2
+      },
+      "up": 35,
+      "held": {
+        "R": 31,
+        "D": 32,
+        "I": 2
+      }
+    }
+  },
+  "states": {
+    "Alabama": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Alaska": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Arizona": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "Arkansas": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "California": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "Colorado": [{"cls":2,"party":"D","up":true},{"cls":3,"party":"D","up":false}],
+    "Connecticut": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "Delaware": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "Florida": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"R","up":true,"special":true}],
+    "Georgia": [{"cls":2,"party":"D","up":true},{"cls":3,"party":"D","up":false}],
+    "Hawaii": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "Idaho": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Illinois": [{"cls":2,"party":"D","up":true},{"cls":3,"party":"D","up":false}],
+    "Indiana": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"R","up":false}],
+    "Iowa": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Kansas": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Kentucky": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Louisiana": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Maine": [{"cls":1,"party":"I","up":false,"caucus":"D"},{"cls":2,"party":"R","up":true}],
+    "Maryland": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "Massachusetts": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "Michigan": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "Minnesota": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "Mississippi": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}],
+    "Missouri": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"R","up":false}],
+    "Montana": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}],
+    "Nebraska": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}],
+    "Nevada": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "New Hampshire": [{"cls":2,"party":"D","up":true},{"cls":3,"party":"D","up":false}],
+    "New Jersey": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "New Mexico": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "New York": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "North Carolina": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "North Dakota": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"R","up":false}],
+    "Ohio": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"R","up":true,"special":true}],
+    "Oklahoma": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Oregon": [{"cls":2,"party":"D","up":true},{"cls":3,"party":"D","up":false}],
+    "Pennsylvania": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"D","up":false}],
+    "Rhode Island": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "South Carolina": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "South Dakota": [{"cls":2,"party":"R","up":true},{"cls":3,"party":"R","up":false}],
+    "Tennessee": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}],
+    "Texas": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}],
+    "Utah": [{"cls":1,"party":"R","up":false},{"cls":3,"party":"R","up":false}],
+    "Vermont": [{"cls":1,"party":"I","up":false,"caucus":"D"},{"cls":3,"party":"D","up":false}],
+    "Virginia": [{"cls":1,"party":"D","up":false},{"cls":2,"party":"D","up":true}],
+    "Washington": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"D","up":false}],
+    "West Virginia": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}],
+    "Wisconsin": [{"cls":1,"party":"D","up":false},{"cls":3,"party":"R","up":false}],
+    "Wyoming": [{"cls":1,"party":"R","up":false},{"cls":2,"party":"R","up":true}]
+  }
+}

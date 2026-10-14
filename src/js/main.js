@@ -178,7 +178,7 @@ async function main() {
     seatRect: () => app.seatRect,
     seats: () => {
       const r = currentTally();
-      return r && { el: r.el.id, total: r.t.total, counted: r.t.counted, uncalled: r.t.uncalled, parts: r.t.parts, winner: r.t.winner, outcome: r.t.outcome };
+      return r && { el: r.el.id, total: r.t.total, counted: r.t.counted, uncalled: r.t.uncalled, parts: r.t.parts, groups: r.t.groups.map((g) => ({ key: g.key, seats: g.seats, held: g.held })), winner: r.t.winner && { seats: r.t.winner.seats, ...(r.t.winner.paint ? { paint: r.t.winner.paint } : { key: r.t.winner.key }) }, outcome: r.t.outcome };
     },
     // the electoral votes of a Natural Earth US unit's properties (0 for units that are not a state or DC)
     electoralVotes: (p) => electionById('us-ec').seats(p),

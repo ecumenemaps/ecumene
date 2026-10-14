@@ -60,6 +60,7 @@ export const PAINT_SETS = {
 
 /** A plain-language note on a scale's or set's safety, for the panel. */
 export function safetyNote(x) {
+  if (x.note) return x.note;
   const p = [];
   if (x.cb === true) p.push('Color-blind safe');
   else if (x.cb) p.push('Color-blind safe for up to ' + x.cb + ' colors');
