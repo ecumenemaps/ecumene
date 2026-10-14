@@ -1,6 +1,7 @@
 // Panel: paint colour, find a country, fill from a list or group, colour by data.
 import { geoCentroid } from 'd3-geo';
 import { SCALES, PAINT_SETS, safetyNote, classColors, divergingBreaks } from './schemes.js';
+import { PATTERNS, PATTERN_TYPES, patternPaint, parsePaint, previewURL } from './patterns.js';
 import { app, on, emit, redraw } from './store.js';
 import { geo } from './data.js';
 import { setFill, paintMany } from './paint.js';
@@ -15,9 +16,41 @@ const listOf = (items, n) => items.slice(0, n).join(', ') + (items.length > n ? 
 
 function initPalette() {
   const box = $('pal'),
-    set = $('pset');
-  const custom = el('input', { type: 'color', id: 'cc', value: app.active, title: 'Custom color', aria: { label: 'Custom color' } });
-  const mark = () => box.querySelectorAll('.sw').forEach((b) => b.classList.toggle('on', b.dataset.c === app.active));
+    set = $('pset'),
+    pbox = $('ptn'),
+    ink = $('pink');
+  const custom = el('input', { type: 'color', id: 'cc', value: app.solid, title: 'Custom color', aria: { label: 'Custom color' } });
+  const mark = () => {
+    for (const b of [...box.querySelectorAll('.sw'), ...pbox.querySelectorAll('.sw')]) b.classList.toggle('on', b.dataset.c === app.active);
+  };
+  // a plain color is painted with as is and becomes the background of the patterns
+  const pickSolid = (col) => {
+    app.active = app.solid = col;
+    custom.value = col;
+    patterns();
+  };
+  // the pattern buttons show each pattern on the current plain color, in the pattern color
+  const patterns = () => {
+    pbox.replaceChildren(
+      ...PATTERN_TYPES.map((t) => {
+        const v = patternPaint(t, app.solid, app.ink),
+          b = el('button', {
+            class: 'sw',
+            title: PATTERNS[t].name,
+            aria: { label: 'Paint with ' + PATTERNS[t].name.toLowerCase() },
+            onclick: () => {
+              app.active = v;
+              mark();
+            },
+          });
+        b.dataset.c = v;
+        b.style.backgroundImage = 'url(' + previewURL(v) + ')';
+        b.style.backgroundSize = PATTERNS[t].T + 'px';
+        return b;
+      }),
+    );
+    mark();
+  };
   set.replaceChildren(...Object.keys(PAINT_SETS).map((k) => el('option', { value: k, textContent: k === 'Default' ? 'Default colors' : k })));
   // the swatches of the chosen set, then the custom color
   const fill = () => {
@@ -26,15 +59,7 @@ function initPalette() {
     const S = PAINT_SETS[app.paintSet];
     box.replaceChildren(
       ...S.c.map((col) => {
-        const b = el('button', {
-          class: 'sw',
-          aria: { label: 'Paint with ' + col },
-          onclick: () => {
-            app.active = col;
-            custom.value = col;
-            mark();
-          },
-        });
+        const b = el('button', { class: 'sw', aria: { label: 'Paint with ' + col }, onclick: () => pickSolid(col) });
         b.dataset.c = col;
         b.style.background = col;
         return b;
@@ -42,20 +67,26 @@ function initPalette() {
       custom,
     );
     $('psetn').textContent = safetyNote(S);
-    mark();
+    patterns();
   };
   set.onchange = () => {
     app.paintSet = set.value;
     fill();
   };
-  custom.oninput = () => {
-    app.active = custom.value;
-    mark();
+  custom.oninput = () => pickSolid(custom.value);
+  ink.oninput = () => {
+    app.ink = ink.value;
+    // a pattern in use switches to the new pattern color
+    const p = parsePaint(app.active);
+    if (p) app.active = patternPaint(p.type, p.bg, app.ink);
+    patterns();
   };
   fill();
   on('palette', () => {
-    custom.value = app.active;
-    mark();
+    const p = parsePaint(app.active);
+    app.solid = p ? p.bg : app.active;
+    custom.value = app.solid;
+    patterns();
   });
   on('style', fill);
 }

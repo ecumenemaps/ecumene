@@ -77,7 +77,9 @@ export const app = {
   // country under the pointer (1-based id, 0 = none)
   hover: 0,
   // current paint colour
-  active: '#e4572e',
+  active: '#e4572e', // the paint clicks apply: a hex color or a pattern (patterns.js)
+  solid: '#e4572e', // the last plain color chosen: patterns are drawn on it
+  ink: '#222222', // pattern color
   paintSet: 'Default', // swatch set in the paint panel (schemes.js PAINT_SETS)
   // color by data: scale (schemes.js SCALES), classes, method, centre for diverging scales ('' = automatic), reversed
   data: { scale: 'Blues', n: 5, m: 'equal', c: '', rev: false },

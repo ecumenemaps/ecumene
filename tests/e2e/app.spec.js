@@ -661,6 +661,78 @@ test('color schemes: diverging scale, paint sets, color-vision preview and clash
   expect(errors).toEqual([]);
 });
 
+test('pattern fills: paint, draw on the globe, legend, SVG patterns, subdivisions and map codes', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    Object.assign(s, { r: [-2.5, -46.5], z: 9, f: [], u: [] });
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'paint');
+  // a plain color, then a pattern drawn on it
+  await page.click('#pal .sw >> nth=3');
+  await expect(page.locator('#ptn .sw')).toHaveCount(8);
+  await page.click('#ptn .sw >> nth=0');
+  const c = await globeCentre(page);
+  await page.mouse.click(c.x, c.y);
+  const fills = () => page.evaluate(() => window.ecumene.getState().f);
+  await expect.poll(fills).toEqual([{ c: 'p:diag:#7cc06b:#222222', n: ['France'], l: '' }]);
+  // the globe draws both the background and the ink around the centre of France (pointer away, so not hover-shaded)
+  await page.mouse.move(2, 2);
+  await page.waitForTimeout(600);
+  const share = await page.evaluate(() => {
+    const cv = document.getElementById('cv'),
+      t = document.createElement('canvas');
+    t.width = 60;
+    t.height = 60;
+    const x = t.getContext('2d');
+    x.drawImage(cv, cv.width / 2 - 30, cv.height / 2 - 30, 60, 60, 0, 0, 60, 60);
+    const d = x.getImageData(0, 0, 60, 60).data;
+    let bg = 0,
+      ink = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (Math.abs(d[i] - 0x7c) + Math.abs(d[i + 1] - 0xc0) + Math.abs(d[i + 2] - 0x6b) < 40) bg++;
+      if (d[i] + d[i + 1] + d[i + 2] < 150) ink++;
+    }
+    return { bg: bg / 3600, ink: ink / 3600 };
+  });
+  expect(share.bg).toBeGreaterThan(0.4);
+  expect(share.ink).toBeGreaterThan(0.08);
+  // the pattern color changes the active pattern
+  await page.locator('#pink').evaluate((e) => {
+    e.value = '#ffffff';
+    e.dispatchEvent(new Event('input'));
+  });
+  await expect(page.locator('#ptn .sw.on')).toHaveCount(1);
+  expect(await page.locator('#ptn .sw.on').getAttribute('data-c')).toBe('p:diag:#7cc06b:#ffffff');
+  // legend: a preview of the pattern; a patterned subdivision too
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    s.f[0].l = 'Hatched';
+    s.u = [{ c: 'p:dots:#3d8bd9:#222222', k: { 'United Kingdom': ['GBR-2120'] }, l: 'Dotted' }];
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'legend');
+  await expect(page.locator('#lgd .lgp')).toHaveCount(2);
+  await expect.poll(() => page.evaluate(async () => (await window.ecumene.svg()).includes('data-name="York"'))).toBe(true);
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('<pattern id="pat-diag-7cc06b-222222" patternUnits="userSpaceOnUse" width="8" height="8">');
+  expect(svg).toMatch(/<path id="country-France" data-name="France"[^>]*fill="url\(#pat-diag-7cc06b-222222\)"/);
+  expect(svg).toMatch(/data-name="York"[^>]*fill="url\(#pat-dots-3d8bd9-222222\)"/);
+  // a map code keeps patterns; a broken pattern is ignored
+  const code = await getCode(page);
+  await page.evaluate(() => window.ecumene.setState(Object.assign(window.ecumene.getState(), { f: [], u: [] })));
+  await useCode(page, code);
+  expect((await fills())[0].c).toBe('p:diag:#7cc06b:#222222');
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    s.f = [{ c: 'p:zigzag:#7cc06b:#222222', n: ['Spain'], l: '' }];
+    window.ecumene.setState(s);
+  });
+  expect(await fills()).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test('legend editor: reorder, remove, title survive a map code', async ({ page }) => {
   const errors = await openApp(page);
   await mode(page, 'paint');

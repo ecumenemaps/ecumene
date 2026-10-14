@@ -12,8 +12,7 @@ import { app, emit, redraw } from './store.js';
 import { geo, inSea } from './data.js';
 import { loadSubdivisions } from './objects.js';
 import { commit } from './history.js';
-import { uploadUnitMesh, setUnitPainter, UPAL_ROWS } from './gl.js';
-import { hx } from './util.js';
+import { uploadUnitMesh, setUnitPainter, putPaint, UPAL_ROWS } from './gl.js';
 
 /** How long the pointer rests on a country before its units load. */
 export const LOAD_DELAY = 75;
@@ -106,15 +105,15 @@ function uploadMeshes() {
   }
   uploadUnitMesh(ll, idx, ids);
 }
-/** Fill the subdivision palette from app.units before a frame; returns false when nothing is painted. */
-function paintPalette(pal) {
+/** Fill the subdivision palette and pattern bytes from app.units before a frame; returns false when nothing is painted. */
+function paintPalette(pal, pat) {
   pal.fill(0);
+  pat.fill(0);
   let any = false;
   app.units.forEach((col, k) => {
     const f = unitByKey(k);
     if (!f) return;
-    pal.set(hx(col), f.gid * 4);
-    pal[f.gid * 4 + 3] = 255;
+    putPaint(pal, pat, f.gid, col);
     any = true;
   });
   return any;

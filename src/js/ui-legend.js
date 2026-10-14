@@ -3,6 +3,7 @@ import { app, on, redraw } from './store.js';
 import { recolor, removeColour, colourCounts, legendColours } from './paint.js';
 import { commit } from './history.js';
 import { $, el } from './util.js';
+import { PATTERNS, isPattern, parsePaint, baseColor, withBackground, previewURL } from './patterns.js';
 
 function render() {
   const box = $('lgd'),
@@ -17,12 +18,14 @@ function render() {
   const btn = (t, label, fn, disabled) =>
     el('button', { type: 'button', textContent: t, aria: { label }, disabled: !!disabled, onclick: fn });
   cols.forEach((col, i) => {
+    // a pattern's color input changes its background; a preview shows the pattern itself
+    const pat = isPattern(col);
     const sw = el('input', {
       type: 'color',
-      value: col,
-      aria: { label: 'Change color ' + col },
+      value: baseColor(col),
+      aria: { label: (pat ? 'Change the background of ' : 'Change color ') + col },
       onchange: () => {
-        recolor(col, sw.value.toLowerCase());
+        recolor(col, withBackground(col, sw.value.toLowerCase()));
         render();
         redraw();
         commit();
@@ -51,6 +54,7 @@ function render() {
       el(
         'div',
         { class: 'lg' },
+        pat ? el('span', { class: 'lgp', style: 'background-image:url(' + previewURL(col) + ');background-size:' + PATTERNS[parsePaint(col).type].T + 'px' }) : null,
         sw,
         name,
         el('small', { textContent: counts[col] }),
