@@ -6,6 +6,7 @@ import { geo, loadBase, nameOf, setPhys } from './data.js';
 import { Rb, tinyMarkers, setProj, proj } from './view.js';
 import { loadUnits } from './units.js';
 import { drawUnitHover, drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
+import { drawSeatBar, currentTally } from './seatbar.js';
 import { configureEditing } from './editing.js';
 import { configurePicker, closePicker, initPicker } from './picker.js';
 import { initInput, setCursor, refreshTip } from './input.js';
@@ -39,6 +40,7 @@ function frame() {
   drawObjectLabels(oc);
   // the legend is shown on the map too; its box is kept for dragging
   app.legendRect = drawLegend(oc, app.W, app.H);
+  app.seatRect = drawSeatBar(oc, app.W, app.H);
 }
 function fit() {
   app.W = stage.clientWidth;
@@ -171,6 +173,12 @@ async function main() {
     svg: buildSVG,
     mode: setMode,
     legendRect: () => app.legendRect,
+    // the seat counter: where it is drawn, and what it counts
+    seatRect: () => app.seatRect,
+    seats: () => {
+      const r = currentTally();
+      return r && { el: r.el.id, total: r.t.total, counted: r.t.counted, uncalled: r.t.uncalled, parts: r.t.parts, winner: r.t.winner };
+    },
     // small-country markers on screen, in canvas pixels
     markers: () => tinyMarkers().map((m) => ({ n: m.n, x: m.p[0], y: m.p[1] })),
     // canvas pixel of a [lon, lat] in the current view
