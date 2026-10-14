@@ -45,13 +45,17 @@ function usedLayers() {
 /** One line printed on the map. */
 export function sourceLine(label) {
   const more = [...new Set(usedLayers().other.map((x) => x.short))];
-  return 'Data: Natural Earth (public domain)' + more.map((s) => ', ' + s).join('') + ' · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
+  return 'Data: Natural Earth (public domain)' + more.map((s) => ', ' + s).join('') + (app.fictional ? ' · Fictional scenario' : '') + ' · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
 }
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// printed in the SVG description of a map marked as a fictional scenario (the checkbox in the Legend panel)
+const FICTIONAL_NOTE =
+  'Fictional scenario: the regions, routes and events drawn on this map are invented and are not historical borders or events. The country borders and coastlines underneath are Natural Earth’s present-day ones.';
 const LAKE_SETS = { none: 'the IJsselmeer', major: 'the IJsselmeer and the major lakes', all: 'every lake' };
 /** Fuller description embedded in SVG metadata; cuts says which lakes were cut out of the shapes (see cutShapes). */
 export function sourceDetails(label, cuts) {
   const L = [
+    ...(app.fictional ? [FICTIONAL_NOTE] : []),
     'Made with Ecumene ' + VERSION + ' (https://ecumenemaps.github.io/ecumene/) on ' + today() + '.',
     'Projection: ' + label + '.',
     'Country borders: Natural Earth 1:10m Admin 0 countries, version 4.1.0, via world-atlas 2.0.2. Public domain. French Guiana, Guadeloupe, Martinique, Mayotte, Réunion and the Caribbean Netherlands are shown apart from France and the Netherlands.',
