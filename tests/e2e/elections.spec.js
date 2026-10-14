@@ -1,7 +1,7 @@
 // Election maps (Paint panel): the picker sets up a blank map of an election with party colors, white borders and the
 // seat counter; the 2026 Senate map counts the seats not up for the party holding them; exports credit the data.
 const { test, expect } = require('@playwright/test');
-const { openApp, mode } = require('./helpers');
+const { openApp, mode, sourceNote } = require('./helpers');
 
 const US = 'United States of America';
 async function start(page, id) {
@@ -46,7 +46,8 @@ test('2026 Senate: 35 seats to paint, the others counted for the party holding t
   expect([s.uncalled, s.outcome]).toEqual([33, 'open']);
   // the export credits the table and says how old it is
   const svg = await page.evaluate(() => window.ecumene.svg());
-  expect(svg).toContain('Senate seats: congress-legislators (CC0),');
+  // the note on the image wraps where it fits, so read it as one line
+  expect(sourceNote(svg)).toMatch(/Senate seats: congress-legislators \(CC0\), 2026-\d\d-\d\d/);
   expect(svg).toMatch(/<desc>[\s\S]*congress-legislators \(CC0\), read on 2026-\d\d-\d\d/);
   expect(svg).toContain('2 independents caucus with the Democrats');
   expect(svg).toMatch(/<g id="seat-counter">[\s\S]*Republican 32 \(31 not up\)/);
@@ -73,7 +74,7 @@ test('starting over asks first; the Electoral College map credits the Census', a
   const s = await seats(page);
   expect([s.counted, s.uncalled]).toEqual([538, 538]);
   const svg = await page.evaluate(() => window.ecumene.svg());
-  expect(svg).toContain('electoral votes: U.S. Census Bureau 2020 apportionment');
+  expect(sourceNote(svg)).toContain('electoral votes: U.S. Census Bureau 2020 apportionment');
   // undo brings France back
   await page.keyboard.press('Control+z');
   await expect.poll(async () => (await page.evaluate(() => window.ecumene.getState())).f.length).toBe(1);
