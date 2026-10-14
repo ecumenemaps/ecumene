@@ -44,21 +44,29 @@ export function newObj(t, pts, col, props) {
 // ---- exact outlines: geometry is rebuilt from a reference and cached
 const subdivisions = new Map(),
   shapeCache = new Map();
-/** Load one country's subdivision topology (cached; returns a promise). */
-export function loadSubdivisions(country) {
-  const info = geo.a1index[country];
-  if (!info) return Promise.reject(new Error('No subdivisions for ' + country));
-  if (!subdivisions.has(country)) {
-    const p = fetchJSON('admin1/' + info.f).then(
-      (t) => (subdivisions.set(country, t), t),
+/** Path of a country's subdivision file in a layer ('' is Natural Earth's admin-1), or null if it has none. */
+function subdivisionFile(country, layer) {
+  if (!layer) return geo.a1index[country] ? 'admin1/' + geo.a1index[country].f : null;
+  const x = (geo.layers[country] || []).find((l) => l.id === layer);
+  return x ? 'layers/' + x.f : null;
+}
+const subKey = (country, layer) => country + '|' + (layer || '');
+/** Load one country's subdivision topology in a layer (cached; returns a promise). */
+export function loadSubdivisions(country, layer = '') {
+  const file = subdivisionFile(country, layer),
+    key = subKey(country, layer);
+  if (!file) return Promise.reject(new Error('No subdivisions for ' + country));
+  if (!subdivisions.has(key)) {
+    const p = fetchJSON(file).then(
+      (t) => (subdivisions.set(key, t), t),
       (e) => {
-        subdivisions.delete(country);
+        subdivisions.delete(key);
         throw e;
       },
     );
-    subdivisions.set(country, p);
+    subdivisions.set(key, p);
   }
-  return Promise.resolve(subdivisions.get(country));
+  return Promise.resolve(subdivisions.get(key));
 }
 function shapeEntry(r) {
   const key = JSON.stringify(r.ref);
@@ -72,10 +80,11 @@ function shapeEntry(r) {
       geo.topo.objects.countries.geometries.filter((x) => x.properties && set.has(ALIAS[x.properties.name] || x.properties.name)),
     );
   } else if (ref.k === 'a1') {
-    const t = subdivisions.get(ref.c);
+    // ref.y is the layer (absent for Natural Earth's admin-1)
+    const t = subdivisions.get(subKey(ref.c, ref.y));
     if (!t || t instanceof Promise) {
       if (!t)
-        loadSubdivisions(ref.c).then(
+        loadSubdivisions(ref.c, ref.y || '').then(
           () => {
             emit('objects');
             redraw();

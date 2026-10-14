@@ -137,9 +137,10 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 </section>
 <section>
 <h2>Subdivisions</h2>
-<label class="sw2"><input id="sub" type="checkbox"> Paint states and provinces</label>
+<label class="sw2"><input id="sub" type="checkbox"> Paint subdivisions</label>
 <select id="subd" aria-label="Subdivision detail" style="margin-top:8px" disabled></select>
-<p class="hint">Point at a country to load its subdivisions, then click to paint them. Regions and constituent parts (such as Scotland) paint all their units at once where the country has them. Painting a whole country again clears its subdivisions.</p>
+<div id="sublw" hidden style="margin-top:8px"><label for="subl" class="hint" style="display:block;margin:0 0 4px">Layer for <b id="subln"></b></label><select id="subl"></select><p id="subls" class="hint" style="margin-top:4px"></p></div>
+<p class="hint">Point at a country to load its subdivisions, then click to paint them. Regions and constituent parts (such as Scotland) paint all their units at once where the country has them. Some countries offer more than one layer (such as constituencies); a country is painted with one layer at a time. Painting a whole country again clears its subdivisions.</p>
 </section>
 <section>
 <h2>Find a country</h2>
@@ -183,6 +184,7 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <div id="a1p" class="a1p" hidden>
 <input id="a1c" type="search" list="a1names" placeholder="Country, e.g. United Kingdom" autocomplete="off" aria-label="Country">
 <datalist id="a1names"></datalist>
+<select id="a1y" aria-label="Subdivision layer" style="margin-top:8px" hidden></select>
 <div id="a1g"></div>
 <input id="a1f" type="search" placeholder="Filter, e.g. Cornwall" autocomplete="off" aria-label="Filter subdivisions" style="margin-top:8px">
 <div id="a1l" class="a1l"></div>

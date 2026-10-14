@@ -12,6 +12,13 @@ import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
 // Natural Earth adm1_code, such as GBR-2083 (a few read like RUS+99?), or ALD+0 for the "Rest of" unit the build
 // adds where no subdivision covers part of a country (an overseas part's file adds digits: NLD535+0)
 const UNIT_CODE = /^[A-Z]{3}[0-9]{0,3}[-+][0-9?]{1,6}$/;
+// a unit of another layer (layers/index.json): the layer id, a colon and the publisher's code, gb-wpc-2024:E14001063
+const LAYER_CODE = /^([a-z0-9-]{1,40}):([A-Za-z0-9_.+-]{1,32})$/;
+const unitCodeOk = (country, code) => {
+  if (UNIT_CODE.test(code)) return !!geo.a1index[country];
+  const m = LAYER_CODE.exec(code);
+  return !!m && (geo.layers[country] || []).some((x) => x.id === m[1]);
+};
 
 const AUTOSAVE_KEY = 'globeMap1';
 // Map data version. 'ne10m' maps were saved before French Guiana, Réunion, the Caribbean Netherlands and the
@@ -80,10 +87,13 @@ function parseObject(g, preSplit) {
       if (!names.length) return null;
       if (preSplit) names.push(...splitParts(names));
       ref = { k: 'c', names };
-    } else if (f.k === 'a1' && typeof f.c === 'string' && geo.a1index[f.c] && Array.isArray(f.ids)) {
+    } else if (f.k === 'a1' && typeof f.c === 'string' && Array.isArray(f.ids)) {
+      // y: the layer of the units (absent for Natural Earth's admin-1)
+      const y = typeof f.y === 'string' ? f.y : '';
+      if (y ? !(geo.layers[f.c] || []).some((x) => x.id === y) : !geo.a1index[f.c]) return null;
       const ids = f.ids.filter(Number.isInteger);
       if (!ids.length) return null;
-      ref = { k: 'a1', c: f.c, ids };
+      ref = y ? { k: 'a1', c: f.c, y, ids } : { k: 'a1', c: f.c, ids };
     } else return null;
   } else if (pts.length < (t === 'region' ? 3 : t === 'arrow' ? 2 : 1)) return null;
   return newObj(t, t === 'text' || t === 'marker' ? pts.slice(0, 1) : pts, g.c.toLowerCase(), {
@@ -121,6 +131,8 @@ export function setState(o) {
     }
   }
   app.units.clear();
+  // each country is painted with the layer of its saved paint
+  for (const k in app.sub.layer) delete app.sub.layer[k];
   if (Array.isArray(o.u))
     for (const g of o.u) {
       if (!g || !hexOk(g.c) || !g.k || typeof g.k !== 'object') continue;
@@ -131,7 +143,7 @@ export function setState(o) {
           skipped++;
           continue;
         }
-        for (const code of g.k[n]) if (typeof code === 'string' && UNIT_CODE.test(code)) setUnit(n, code, c);
+        for (const code of g.k[n]) if (typeof code === 'string' && unitCodeOk(n, code)) setUnit(n, code, c);
       }
     }
   // their outlines arrive after the first frame

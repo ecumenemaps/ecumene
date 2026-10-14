@@ -1,0 +1,26 @@
+[
+  {
+    "id": "d3-geo-projection",
+    "kind": "reference",
+    "order": 90,
+    "title": "Robinson and Winkel tripel projections",
+    "source": "`d3-geo-projection`",
+    "licence": { "name": "ISC" }
+  },
+  {
+    "id": "source-serif-4",
+    "kind": "reference",
+    "order": 91,
+    "title": "Home-page typeface: Source Serif 4",
+    "source": "Adobe, via `@fontsource-variable/source-serif-4` (self-hosted)",
+    "licence": { "name": "SIL OFL 1.1" }
+  },
+  {
+    "id": "gdp-example",
+    "kind": "reference",
+    "order": 92,
+    "title": "GDP per capita example",
+    "source": "World Bank (NY.GDP.MKTP.CD ÷ SP.POP.TOTL, 2022) via github.com/datasets",
+    "licence": { "name": "CC BY 4.0" }
+  }
+]

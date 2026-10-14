@@ -84,7 +84,7 @@ export const app = {
   // painted subdivisions: 'Country|adm1_code' -> hex (see units.js)
   units: new Map(),
   // Subdivisions setting: on, and detail ('u' finest units, 'r' regions, 'g' constituent parts)
-  sub: { on: false, detail: 'u' },
+  sub: { on: false, detail: 'u', layer: {} }, // layer: country -> the subdivision layer chosen for it (units.js)
   subHov: null, // {country, feats, label} the units a click would paint, while the pointer is over them
   // pos: corner; xy: dragged position as fractions of the frame (null = use the corner); scale: size
   legend: { title: '', pos: 'bl', xy: null, scale: 1, show: true, note: true, order: [] },

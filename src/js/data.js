@@ -32,6 +32,7 @@ export const geo = {
   tiny: [], // [{n, id, a, c}] countries that can get a marker: total area and marker point
   polys: [], // unwrapped polygons with bounding boxes, for exact picking
   a1index: {}, // country name -> subdivision file info
+  layers: {}, // country name -> [other subdivision layers: {id, name, unit, ed, f, n, gr, credit, short, ...}]
   phys: null, // decoded lakes and rivers, once loaded
   sea: [], // always-water lake rings [{bb, r}], for picking
 };
@@ -65,9 +66,12 @@ export async function loadBase() {
   if (typeof DecompressionStream === 'undefined') throw new Error('this browser is too old (no DecompressionStream)');
   const phys = fetchBin('data/phys.bin').then(decodePhys);
   phys.catch(() => {}); // handled by the caller; avoid an unhandled-rejection warning meanwhile
+  // the other subdivision layers (scripts/build_layers.js); a site built without them still works
+  const layers = fetchJSON('layers/index.json').catch(() => ({}));
   const [topo, tris, a1] = await Promise.all([fetchJSON('data/countries.json'), fetchBin('data/tris.bin'), fetchJSON('admin1/index.json')]);
   indexCountries(topo);
   geo.a1index = a1;
+  geo.layers = await layers;
   return { tris: decodeTris(tris), phys };
 }
 

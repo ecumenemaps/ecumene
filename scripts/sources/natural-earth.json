@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ne-countries",
+    "kind": "reference",
+    "order": 1,
+    "title": "Countries (10m)",
+    "source": "Natural Earth via `world-atlas`",
+    "licence": { "name": "Public domain" }
+  },
+  {
+    "id": "ne-physical",
+    "kind": "reference",
+    "order": 2,
+    "title": "Lakes, rivers (10m)",
+    "source": "Natural Earth",
+    "licence": { "name": "Public domain" }
+  },
+  {
+    "id": "ne-admin1",
+    "kind": "reference",
+    "order": 3,
+    "title": "States and provinces (admin-1, 10m)",
+    "source": "Natural Earth",
+    "licence": { "name": "Public domain" }
+  }
+]

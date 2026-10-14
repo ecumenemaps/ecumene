@@ -47,19 +47,24 @@ The browser tests are slow on a software GPU (around 15 minutes); on a machine w
 - `src/template.html`: page shell, panel markup and CSS
 - `src/js/`: the app as ES modules, bundled by esbuild (see `HANDOFF.md` for the module map)
 - `src/groups.js`: country groups, name aliases and data parsing (shared with the build scripts and tests)
-- `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, helpers `lib/tri.js` and `lib/cut.js`, which the editor also uses), `fetch_data.js`, and `build.js`
+- `scripts/`: data builds (`build_tris.js`, `build_phys.js`, `build_admin1.js`, `build_layers.js`, helpers `lib/tri.js` and `lib/cut.js`, which the editor also uses), downloads (`fetch_data.js` for Natural Earth, `fetch_sources.js` for the layers listed in `scripts/sources/`), and `build.js`. See "Adding a data layer" in `HANDOFF.md`.
 - `src/home/`: the home page (template and the hero globe script); `site/examples/`: example maps (state JSON and thumbnails, made by `scripts/make_examples.js`); `site/data/`: data used by examples
 - `tests/unit/`, `tests/e2e/`: tests; `tests/server.js` is a minimal static server
 
 ## Data and licences
+<!-- sources:start (generated from scripts/sources by `node scripts/fetch_sources.js --readme`) -->
 | Data | Source | Licence |
 |---|---|---|
 | Countries (10m) | Natural Earth via `world-atlas` | Public domain |
 | Lakes, rivers (10m) | Natural Earth | Public domain |
 | States and provinces (admin-1, 10m) | Natural Earth | Public domain |
+| Westminster parliamentary constituencies (UK, July 2024) | [Office for National Statistics, Open Geography Portal](https://geoportal.statistics.gov.uk/datasets/ef63f363ac824b79ae9670744fcc4307), Boundaries as at 4 July 2024 | [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) |
 | Robinson and Winkel tripel projections | `d3-geo-projection` | ISC |
 | Home-page typeface: Source Serif 4 | Adobe, via `@fontsource-variable/source-serif-4` (self-hosted) | SIL OFL 1.1 |
 | GDP per capita example | World Bank (NY.GDP.MKTP.CD ÷ SP.POP.TOTL, 2022) via github.com/datasets | CC BY 4.0 |
+<!-- sources:end -->
+
+Layers other than Natural Earth are fitted to the Natural Earth coastline, so paint stays on the map's land; each export credits every layer it uses, in the source note and in the SVG's description.
 
 Natural Earth depicts de facto boundaries and is not authoritative for disputed areas. Any future data (geoBoundaries CC BY 4.0, GADM and Eurostat non-commercial, CShapes CC BY-NC-SA, historical-basemaps GPL-3.0, OpenHistoricalMap CC0) must be checked against this project's licence before use.
 

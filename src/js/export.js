@@ -7,7 +7,7 @@ import { render, RIVER_MIN_ZOOM, RIVER_WIDTH } from './gl.js';
 import { geo } from './data.js';
 import { Rb, withProjection, tinyMarkers, MARK_R } from './view.js';
 import { exportView } from './projections.js';
-import { unitsOf, splitKey, loadPainted } from './units.js';
+import { unitByKey, splitKey, layerOfCode, loadPainted } from './units.js';
 import { drawTinyMarkers, markerPaint, drawObjects, drawObjectLabels, drawCountryNames, drawLegend, drawSourceNote } from './overlay.js';
 import { SvgContext, esc } from './svgctx.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
@@ -18,9 +18,33 @@ export const setExportCanvas = (cv) => (canvas = cv);
 // ---- provenance
 const today = () => new Date().toISOString().slice(0, 10);
 
+/**
+ * The subdivision layers the map uses (painted units and exact outlines): {ne: true if Natural Earth's admin-1,
+ * other: [layer index entries]} — every one of them is credited.
+ */
+function usedLayers() {
+  const keys = new Set();
+  for (const k of app.units.keys()) {
+    const [n, code] = splitKey(k);
+    keys.add(n + '|' + layerOfCode(code));
+  }
+  for (const r of app.objects) if (r.t === 'shape' && r.ref && r.ref.k === 'a1') keys.add(r.ref.c + '|' + (r.ref.y || ''));
+  const other = new Map();
+  let ne = false;
+  for (const k of keys) {
+    const [n, y] = splitKey(k);
+    if (!y) ne = true;
+    else {
+      const x = (geo.layers[n] || []).find((l) => l.id === y);
+      if (x) other.set(x.id, x);
+    }
+  }
+  return { ne, other: [...other.values()] };
+}
 /** One line printed on the map. */
 export function sourceLine(label) {
-  return 'Data: Natural Earth (public domain) · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
+  const more = [...new Set(usedLayers().other.map((x) => x.short))];
+  return 'Data: Natural Earth (public domain)' + more.map((s) => ', ' + s).join('') + ' · ' + cap(label) + ' · Ecumene ' + VERSION + ' · ' + today();
 }
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const LAKE_SETS = { none: 'the IJsselmeer', major: 'the IJsselmeer and the major lakes', all: 'every lake' };
@@ -34,8 +58,9 @@ export function sourceDetails(label, cuts) {
   // the always-water lakes (the IJsselmeer) are drawn whatever the Lakes setting
   if (app.layers.lakes !== 'none' || app.layers.rivers || (geo.phys && geo.phys.lakeSea.rings))
     L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
-  if (app.units.size || app.objects.some((r) => r.t === 'shape' && r.ref && r.ref.k === 'a1'))
-    L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
+  const used = usedLayers();
+  if (used.ne) L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
+  for (const x of used.other) L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + x.credit + ' Fitted to the Natural Earth coastline.');
   if (cuts) {
     L.push('Country and subdivision shapes have ' + LAKE_SETS[cuts.set] + ' cut out, so they stop at the shore.');
     if (cuts.failed.size) L.push('Not cut, so their shapes still cover the water: ' + [...cuts.failed].join(', ') + '.');
@@ -212,9 +237,8 @@ async function cutShapes() {
   });
   const units = new Map();
   app.units.forEach((col, k) => {
-    const [n, code] = splitKey(k),
-      U = unitsOf(n),
-      f = U && U.byCode.get(code);
+    const n = splitKey(k)[0],
+      f = unitByKey(k);
     if (!f) return;
     if (!C.units.has(k)) C.units.set(k, cutLakes(f.geometry, C.lakes, pc));
     const r = C.units.get(k);
@@ -281,8 +305,7 @@ function drawSVG(v, cuts) {
     c.lineJoin = 'round';
     app.units.forEach((col, k) => {
       const [n, code] = splitKey(k),
-        U = unitsOf(n),
-        f = U && U.byCode.get(code);
+        f = unitByKey(k);
       if (!f) return;
       c.beginPath();
       path((cuts && cuts.units.get(k)) || f);

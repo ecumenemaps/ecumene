@@ -4,7 +4,7 @@ import { app, redraw } from './store.js';
 import { nameOf } from './data.js';
 import { Rb, geoAt, idAtPx, markerAt, setZoom, animate } from './view.js';
 import { setFill, toggleFill } from './paint.js';
-import { LOAD_DELAY, hasUnits, unitsOf, loadUnits, unitAtLL, targetsOf, targetLabel, paintUnits, clearUnits, clickUnits } from './units.js';
+import { LOAD_DELAY, hasUnits, unitsOf, loadUnits, unitAtLL, targetsOf, targetLabel, paintUnits, clearUnits, clickUnits, layersOf } from './units.js';
 import { commit, commitSoon, undo, redo } from './history.js';
 import { objectAt, handleAt, minPts } from './objects.js';
 import { addPoint, finishDraw, cancelDraw, select } from './editing.js';
@@ -86,6 +86,11 @@ export function refreshSub() {
   if (subMode() && app.hover) {
     const n = nameOf(app.hover);
     if (hasUnits(n)) {
+      // the panel's "Layer for <country>" menu follows the country pointed at
+      if (app.sub.country !== n && layersOf(n).length > 1) {
+        app.sub.country = n;
+        emit('subcountry');
+      }
       if (unitsOf(n)) {
         const f = unitAtLL(n, geoAt(app.mx, app.my));
         // between the two datasets' coastlines no unit may lie under the pointer; say so rather than show the

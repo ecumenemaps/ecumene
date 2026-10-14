@@ -5,8 +5,8 @@
   "description": "Paint countries on an accurate, draggable 3D globe. Open source.",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "fetch": "node scripts/fetch_data.js",
-    "data": "node scripts/build_tris.js 4 && node scripts/build_phys.js && node scripts/build_admin1.js",
+    "fetch": "node scripts/fetch_data.js && node scripts/fetch_sources.js",
+    "data": "node scripts/build_tris.js 4 && node scripts/build_phys.js && node scripts/build_admin1.js && node scripts/build_layers.js",
     "build": "node scripts/build.js",
     "dev": "node scripts/build.js --dev && node tests/server.js",
     "serve": "node tests/server.js",
@@ -28,6 +28,7 @@
     "@fontsource-variable/source-serif-4": "^5.3.1",
     "@playwright/test": "^1.56.0",
     "esbuild": "^0.24.2",
+    "mapshaper": "^0.6.121",
     "prettier": "^3.3.3"
   }
 }

@@ -16,7 +16,7 @@ import { geo } from './data.js';
 import { setFill, paintMany } from './paint.js';
 import { commit } from './history.js';
 import { animate, centreOn } from './view.js';
-import { DETAIL, clearUnits } from './units.js';
+import { DETAIL, clearUnits, layersOf, activeLayer, setLayer } from './units.js';
 import { refreshSub } from './input.js';
 import { $, el, note } from './util.js';
 import Ecu from '../groups.js';
@@ -186,6 +186,35 @@ function initSubdivisions() {
     refreshSub();
   };
   sync();
+  initLayerMenu();
+}
+
+// "Layer for <country>": shown for the last country pointed at in Subdivisions mode that offers several layers
+function initLayerMenu() {
+  const wrap = $('sublw'),
+    sel = $('subl');
+  const show = () => {
+    const c = app.sub.country,
+      L = c ? layersOf(c) : [];
+    wrap.hidden = !app.sub.on || L.length < 2;
+    if (wrap.hidden) return;
+    $('subln').textContent = c;
+    const y = activeLayer(c);
+    sel.replaceChildren(...L.map((x) => el('option', { value: x.id, textContent: x.name, selected: x.id === y })));
+    const x = L.find((l) => l.id === y);
+    $('subls').textContent = x && x.credit ? x.n + ' units · ' + x.ed + '. ' + x.credit : '';
+  };
+  sel.onchange = () => {
+    const c = app.sub.country;
+    if (c && !setLayer(c, sel.value, (m) => window.confirm(m))) return show();
+    app.subHov = null;
+    refreshSub();
+    show();
+  };
+  on('subcountry', show);
+  on('history', show);
+  $('sub').addEventListener('change', show);
+  show();
 }
 
 export function initPaintPanel() {

@@ -363,6 +363,96 @@ test('SVG export cuts the lakes the map shows out of country and subdivision sha
   expect(errors).toEqual([]);
 });
 
+test('subdivision layers: switch the UK to Westminster constituencies, paint, save and export with credits', async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => {
+    const s = window.ecumene.getState();
+    Object.assign(s, { r: [2.5, -54.5], z: 5, f: [], u: [] });
+    window.ecumene.setState(s);
+  });
+  await mode(page, 'paint');
+  await page.check('#sub');
+  const box = await page.locator('#cv').boundingBox(),
+    at = async (lon, lat) => {
+      const p = await page.evaluate((g) => window.ecumene.px(g), [lon, lat]);
+      return [box.x + p[0], box.y + p[1]];
+    };
+  const rest = async (lon, lat) => {
+    const q = await at(lon, lat);
+    await page.mouse.move(q[0], q[1]);
+    await page.mouse.move(q[0] + 1, q[1] + 1);
+    return [q[0] + 1, q[1] + 1];
+  };
+  const units = () => page.evaluate(() => window.ecumene.getState().u.flatMap((g) => g.k['United Kingdom'] || []));
+  // pointing at the UK shows its layers; Natural Earth's states and provinces come first
+  const yk = await rest(-1.1, 54.0);
+  await expect(page.locator('#sublw')).toBeVisible();
+  await expect(page.locator('#subln')).toHaveText('United Kingdom');
+  await expect(page.locator('#subl option')).toHaveText(['States and provinces (Natural Earth)', 'Westminster constituencies (2024)']);
+  await expect(page.locator('#tip')).toHaveText('York · Yorkshire and the Humber');
+  await page.mouse.click(yk[0], yk[1]);
+  await expect.poll(units).toEqual(['GBR-2120']);
+  // switching asks first; saying no keeps the painted county
+  page.once('dialog', (d) => d.dismiss());
+  await page.selectOption('#subl', 'gb-wpc-2024');
+  await expect(page.locator('#subl')).toHaveValue('');
+  expect(await units()).toEqual(['GBR-2120']);
+  let asked = '';
+  page.once('dialog', (d) => {
+    asked = d.message();
+    d.accept();
+  });
+  await page.selectOption('#subl', 'gb-wpc-2024');
+  await expect.poll(units).toEqual([]);
+  expect(asked).toContain('This clears 1 painted subdivision');
+  await expect(page.locator('#subls')).toContainText('650 units');
+  await expect(page.locator('#subls')).toContainText('Office for National Statistics');
+  // undo brings the county back (and with it the Natural Earth layer)
+  await page.keyboard.press('Control+z');
+  await expect.poll(units).toEqual(['GBR-2120']);
+  page.once('dialog', (d) => d.accept());
+  await page.selectOption('#subl', 'gb-wpc-2024');
+  await expect.poll(units).toEqual([]);
+  // one constituency, then every Scottish constituency (57) at once
+  const nn = await rest(-1.95, 55.45);
+  await expect(page.locator('#tip')).toHaveText('North Northumberland');
+  await page.mouse.click(nn[0], nn[1]);
+  await expect.poll(units).toEqual(['gb-wpc-2024:E14001397']);
+  await page.selectOption('#subd', 'g');
+  await page.click('#pal .sw >> nth=5');
+  const sc = await rest(-4.2, 56.8);
+  await expect(page.locator('#tip')).toHaveText('Scotland');
+  await page.mouse.click(sc[0], sc[1]);
+  await expect.poll(async () => (await units()).length).toBe(58);
+  // a map code keeps the layer
+  const code = await getCode(page);
+  await page.evaluate(() => window.ecumene.setState(Object.assign(window.ecumene.getState(), { u: [] })));
+  await useCode(page, code);
+  await expect.poll(async () => (await units()).length).toBe(58);
+  // exports name the units and credit ONS and OS
+  const svg = await page.evaluate(() => window.ecumene.svg());
+  expect(svg).toContain('data-name="North Northumberland" data-country="United Kingdom"');
+  expect(svg).toMatch(/<desc>[^<]*Westminster parliamentary constituencies \(UK, July 2024\)[^<]*Office for National Statistics licensed under the Open Government Licence v\.3\.0[^<]*Contains OS data/);
+  expect(svg).toContain('ONS, OS (OGL v3)');
+  expect(svg).not.toContain('Natural Earth 1:10m Admin 1');
+  // exact outlines from a layer: the picker opens on the layer the UK is painted with, and the outline remembers it
+  await mode(page, 'draw');
+  await page.click('#a1o');
+  await page.fill('#a1c', 'United Kingdom');
+  await page.locator('#a1c').dispatchEvent('change');
+  await expect(page.locator('#a1y')).toBeVisible();
+  await expect(page.locator('#a1y')).toHaveValue('gb-wpc-2024');
+  await expect(page.locator('#a1s')).toHaveText('0 of 650 selected');
+  await page.click('#a1g .chip:has-text("Wales")');
+  await expect(page.locator('#a1s')).toHaveText('32 of 650 selected');
+  await page.click('#a1ok');
+  await expect(page.locator('#st')).toHaveText('Exact outline added: Wales.');
+  const ref = await page.evaluate(() => window.ecumene.getState().g.at(-1).ref);
+  expect(ref.y).toBe('gb-wpc-2024');
+  expect(ref.ids.length).toBe(32);
+  expect(errors).toEqual([]);
+});
+
 test('areas the subdivision data leaves out paint as "Rest of" the country', async ({ page }) => {
   const errors = await openApp(page);
   await page.evaluate(() => {
