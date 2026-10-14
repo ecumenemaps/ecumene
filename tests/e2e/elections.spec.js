@@ -10,6 +10,9 @@ async function start(page, id) {
   await page.click('#elgo');
   await page.waitForFunction((id) => window.ecumene.seats() && window.ecumene.seats().el === id, id, { timeout: 60000 });
 }
+// the seat counter's text in an SVG, its wrapped lines joined
+const counterText = (svg) =>
+  [...(/<g id="seat-counter">([\s\S]*?)<\/g>/.exec(svg) || ['', ''])[1].matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map((m) => m[1]).join(' ');
 const seats = (page) => page.evaluate(() => window.ecumene.seats());
 const groups = async (page) => Object.fromEntries((await seats(page)).groups.map((g) => [g.key, [g.seats, g.held]]));
 async function clickAt(page, g) {
@@ -49,8 +52,8 @@ test('2026 Senate: 35 seats to paint, the others counted for the party holding t
   // the note on the image wraps where it fits, so read it as one line
   expect(sourceNote(svg)).toMatch(/Senate seats: congress-legislators \(CC0\), 2026-\d\d-\d\d/);
   expect(svg).toMatch(/<desc>[\s\S]*congress-legislators \(CC0\), read on 2026-\d\d-\d\d/);
-  expect(svg).toContain('2 independents caucus with the Democrats');
-  expect(svg).toMatch(/<g id="seat-counter">[\s\S]*Republican 32 \(31 not up\)/);
+  expect(counterText(svg)).toContain('2 independents caucus with the Democrats');
+  expect(counterText(svg)).toContain('Republican 32 (31 not up)');
   expect(errors).toEqual([]);
 });
 
