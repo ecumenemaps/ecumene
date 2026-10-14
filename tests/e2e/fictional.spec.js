@@ -1,6 +1,6 @@
 // Fictional scenario: the Byzantium example says so in its exports, and nothing else does.
 const { test, expect } = require('@playwright/test');
-const { openApp, getCode, useCode } = require('./helpers');
+const { openApp, getCode, useCode, sourceNote } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -20,7 +20,7 @@ test('the Byzantium example is marked as fictional in the SVG description and th
   expect(svg).toContain(NOTE);
   expect(svg).toContain('not historical borders or events');
   expect(svg).toContain('<title>A restored Byzantium, 1453 (fictional)</title>');
-  expect(svg).toContain('Fictional scenario ·'); // on the source line printed on the map
+  expect(sourceNote(svg)).toContain('Fictional scenario'); // on the source line printed on the map
   // saved and restored with the map code
   const code = await getCode(page);
   await open(page, 'eu');
@@ -35,7 +35,7 @@ test('the Byzantium example is marked as fictional in the SVG description and th
   });
   const quiet = await page.evaluate(() => window.ecumene.svg());
   expect(quiet).toContain(NOTE);
-  expect(quiet).not.toContain('Fictional scenario ·');
+  expect(sourceNote(quiet)).toBe('');
   expect(errors).toEqual([]);
 });
 

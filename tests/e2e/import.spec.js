@@ -2,7 +2,7 @@
 // the credit in exports and the table saved with the map. Google is answered from a fixture, so no network is needed.
 const { test, expect } = require('@playwright/test');
 const zlib = require('zlib');
-const { openApp, status, getCode, useCode, mode } = require('./helpers');
+const { openApp, status, getCode, useCode, mode, sourceNote } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -122,7 +122,7 @@ test('a pasted spreadsheet table: header, latest column, did-you-mean, legend ti
   expect((await fillOf(page, 'Brazil')).l).toBe('No data');
   // no source given: exports say so plainly
   const svg = await page.evaluate(() => window.ecumene.svg());
-  expect(svg).toContain("data: supplied by the map's author, not checked by Ecumene");
+  expect(sourceNote(svg)).toContain("data: supplied by the map's author, not checked by Ecumene");
   expect(svg).toContain('No source was given');
   // choosing the other year colours by it
   await page.selectOption('#dvc', { label: '2022' });
@@ -169,7 +169,7 @@ test('a CSV file with a source, and an XLSX file with two sheets', async ({ page
   expect(s.im.rows[0]).toEqual(['France', '68,5']);
   expect(s.lg.t).toBe('turnout');
   const svg = await page.evaluate(() => window.ecumene.svg());
-  expect(svg).toContain('data: National election offices, 2024');
+  expect(sourceNote(svg)).toContain('data: National election offices, 2024');
   expect(svg).toContain('the file turnout.csv');
   expect(svg).toContain('Not checked by Ecumene');
   // an .xlsx file: its sheets in a menu, numbers and text read
