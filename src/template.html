@@ -88,7 +88,7 @@ details{margin:0}
 .rg-row .src{font-size:12px;color:var(--mute);margin:-2px 0 4px 22px}
 .lg .kind{flex:none;width:14px;text-align:center;color:var(--mute);font-size:13px}
 #tip{position:absolute;left:0;top:0;z-index:5;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.22);padding:4px 9px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none}
-#tip .ti{display:block;font-weight:400;color:var(--mute)}
+#tip .ti{display:block;font-weight:400;color:var(--mute);white-space:normal;max-width:320px}
 #load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#aab4bf;font-size:14px;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
@@ -164,7 +164,7 @@ button.b,select,input[type=text],input[type=search]{min-height:40px}
 <h2>Subdivisions</h2>
 <label class="sw2"><input id="sub" type="checkbox"> Paint subdivisions</label>
 <select id="subd" aria-label="Subdivision detail" style="margin-top:8px" disabled></select>
-<div id="sublw" hidden style="margin-top:8px"><label for="subl" class="hint" style="display:block;margin:0 0 4px">Layer for <b id="subln"></b></label><select id="subl"></select><p id="subls" class="hint" style="margin-top:4px"></p></div>
+<div id="sublw" hidden style="margin-top:8px"><label for="subl" class="hint" style="display:block;margin:0 0 4px">Layer for <b id="subln"></b></label><select id="subl"></select><div id="sdw" hidden style="margin-top:8px"><label for="sdy" class="hint" style="display:block;margin:0 0 4px">Borders as of <b id="sdl"></b></label><input id="sdy" type="range" step="1" style="width:100%"><div id="sds" style="margin-top:4px"></div><label class="hint" style="display:block;margin-top:4px">Exact day <input id="sdd" type="date"></label></div><p id="subls" class="hint" style="margin-top:4px"></p></div>
 <p class="hint">Point at a country to load its subdivisions, then click to paint them. Regions and constituent parts (such as Scotland) paint all their units at once where the country has them. Some countries offer more than one layer (such as constituencies); a country is painted with one layer at a time. Painting a whole country again clears its subdivisions.</p>
 </section>
 <section>

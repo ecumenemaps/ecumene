@@ -4,7 +4,7 @@ import { app, setRenderer, redraw, emit, VERSION } from './store.js';
 import { initGL, uploadTris, uploadPhys, setBorders, setHoverOutline, setAnchors, anchorOf, segs, render } from './gl.js';
 import { geo, loadBase, nameOf, setPhys } from './data.js';
 import { Rb, tinyMarkers, setProj, proj } from './view.js';
-import { loadUnits } from './units.js';
+import { loadUnits, unitsOf } from './units.js';
 import { drawUnitHover, drawTinyMarkers, drawObjects, drawObjectLabels, drawCountryNames, drawLegend } from './overlay.js';
 import { drawSeatBar, currentTally } from './seatbar.js';
 import { electionById } from './seats.js';
@@ -190,6 +190,9 @@ async function main() {
     patternAnchor: (name) => anchorOf(geo.nameId.get(name)),
     // load a country's subdivisions (as resting the pointer on it does); resolves when they can be painted
     loadUnits: (c) => loadUnits(c).then(() => true),
+    // the day dated layers show (yyyymmdd), and the codes of a country's units shown in its layer
+    day: () => app.sub.date,
+    unitCodes: (c) => (unitsOf(c) || { feats: [] }).feats.map((f) => f.properties.c),
   };
 }
 main().catch((e) => {

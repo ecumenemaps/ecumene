@@ -8,7 +8,8 @@ import { geo } from './data.js';
 import { setFill, paintMany } from './paint.js';
 import { commit } from './history.js';
 import { animate, centreOn } from './view.js';
-import { DETAIL, clearUnits, layersOf, activeLayer, setLayer } from './units.js';
+import { DETAIL, clearUnits, layersOf, activeLayer, setLayer, setDate } from './units.js';
+import { fmtDay, isoDay, parseDay, yearDay, clampDay } from './dated.js';
 import { refreshSub } from './input.js';
 import { initStats, statChosen, colourStat } from './ui-stats.js';
 import { initImport, colourImport } from './ui-import.js';
@@ -272,7 +273,9 @@ function initLayerMenu() {
     const y = activeLayer(c);
     sel.replaceChildren(...L.map((x) => el('option', { value: x.id, textContent: x.name, selected: x.id === y })));
     const x = L.find((l) => l.id === y);
-    $('subls').textContent = x && x.credit ? x.n + ' units · ' + x.ed + '. ' + (x.note ? x.note + ' ' : '') + x.credit : '';
+    // a dated layer counts its versions, not the units on one day
+    $('subls').textContent = x && x.credit ? (x.dated ? '' : x.n + ' units · ') + x.ed + '. ' + (x.note ? x.note + ' ' : '') + x.credit : '';
+    showDate(x && x.dated);
   };
   sel.onchange = () => {
     const c = app.sub.country;
@@ -284,7 +287,59 @@ function initLayerMenu() {
   on('subcountry', show);
   on('history', show);
   $('sub').addEventListener('change', show);
+  initDate();
   show();
+}
+
+// The day a dated layer shows (#46): a slider by year (1 January, or the layer's first day in its first year), quick
+// stops, and an exact day. The globe follows the slider as it moves; letting go makes one undo step.
+let dated = null, // the dated layer's {from, to, stops} while its controls show
+  stepFrom = 0; // the day of the last undo step, so the same day is never a step twice
+function showDate(d) {
+  dated = d || null;
+  $('sdw').hidden = !dated;
+  if (!dated) return;
+  const day = clampDay(app.sub.date, dated.from, dated.to),
+    y = $('sdy'),
+    box = $('sdd');
+  y.min = Math.floor(dated.from / 1e4);
+  y.max = Math.floor(dated.to / 1e4);
+  y.value = Math.floor(day / 1e4);
+  box.min = isoDay(dated.from);
+  box.max = isoDay(dated.to);
+  box.value = isoDay(day);
+  $('sdl').textContent = fmtDay(day);
+  $('sds').replaceChildren(
+    ...dated.stops.map((s) =>
+      el('button', { type: 'button', class: 'chip' + (s === day ? ' on' : ''), textContent: String(Math.floor(s / 1e4)), title: fmtDay(s), onclick: () => goTo(s, true) }),
+    ),
+  );
+}
+function goTo(day, step) {
+  if (!dated) return;
+  setDate(clampDay(day, dated.from, dated.to));
+  showDate(dated);
+  if (step) stepDay();
+}
+// one undo step per day reached (the slider's input events move the globe; letting go makes the step)
+function stepDay() {
+  if (app.sub.date === stepFrom) return;
+  stepFrom = app.sub.date;
+  commit();
+}
+function initDate() {
+  const y = $('sdy');
+  stepFrom = app.sub.date;
+  y.oninput = () => goTo(yearDay(+y.value, dated.from, dated.to), false);
+  y.onchange = () => stepDay();
+  $('sdd').onchange = () => {
+    const n = parseDay($('sdd').value);
+    if (n) goTo(n, true);
+    else showDate(dated);
+  };
+  on('date', () => showDate(dated));
+  // undo, redo and opening a map set the day without a new step
+  on('history', () => (stepFrom = app.sub.date));
 }
 
 export function initPaintPanel() {

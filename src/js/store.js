@@ -1,5 +1,6 @@
 // The single shared state object. Modules read and write fields on `app` directly;
 // UI refreshes are requested through the tiny event bus at the bottom.
+import { DEFAULT_DAY } from './dated.js';
 
 /** App version, shown in exports and the scripting API. */
 export const VERSION = '0.2.0';
@@ -95,7 +96,8 @@ export const app = {
   // painted subdivisions: 'Country|adm1_code' -> hex (see units.js)
   units: new Map(),
   // Subdivisions setting: on, and detail ('u' finest units, 'r' regions, 'g' constituent parts)
-  sub: { on: false, detail: 'u', layer: {} }, // layer: country -> the subdivision layer chosen for it (units.js)
+  // layer: country -> the subdivision layer chosen for it (units.js); date: the day dated layers show (yyyymmdd, #46)
+  sub: { on: false, detail: 'u', layer: {}, date: DEFAULT_DAY },
   subHov: null, // {country, feats, label} the units a click would paint, while the pointer is over them
   // pos: corner; xy: dragged position as fractions of the frame (null = use the corner); scale: size
   legend: { title: '', pos: 'bl', xy: null, scale: 1, show: true, note: true, order: [] },

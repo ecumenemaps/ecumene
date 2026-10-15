@@ -5,7 +5,8 @@ import { app } from './store.js';
 import { geo } from './data.js';
 import { isoOf, ELECTORAL_VOTES, electoralName, NO_DATA_PAINT, NO_DATA_LABEL } from './stats.js';
 import { indicatorOf } from './statsrc.js';
-import { unitKey, layerOfCode } from './units.js';
+import { unitKey, layerOfCode, layerInfo } from './units.js';
+import { fmtSpan } from './dated.js';
 import { shownElection } from './seatbar.js';
 import { placeMatcher } from './table.js';
 import Ecu from '../groups.js';
@@ -69,5 +70,8 @@ export function unitInfo(country, feats) {
     el = app.seatbar.show && !app.stat ? shownElection() : null,
     seats = el && el.country === country && el.layer === layer ? feats.reduce((s, x) => s + el.seats(x.properties), 0) : 0;
   const s = seats ? seats + ' ' + (seats === 1 ? el.unit.replace(/s$/, '') : el.unit) : '';
-  return [name, s].filter(Boolean).join(' · ');
+  // a dated layer's unit: the days it was in force and the source's note on the change that made it
+  const info = feats.length === 1 && f.properties.d0 ? layerInfo(country, layer) : null,
+    when = info && info.dated ? fmtSpan(f.properties, info.dated.to) + (f.properties.x ? '. ' + f.properties.x : '') : '';
+  return [name, s, when].filter(Boolean).join(' · ');
 }

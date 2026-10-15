@@ -8,7 +8,8 @@ import { geoBounds, geoContains } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
 import earcut from 'earcut';
 import { triangulate } from '../../scripts/lib/tri.js';
-import { app, emit, redraw } from './store.js';
+import { app, emit, on, redraw } from './store.js';
+import { unitsAt, onDate } from './dated.js';
 import { geo, inSea } from './data.js';
 import { loadSubdivisions } from './objects.js';
 import { commit } from './history.js';
@@ -37,8 +38,7 @@ export function layersOf(country) {
     const a = geo.a1index[country];
     L.push({ id: '', name: 'States and provinces (Natural Earth)', unit: 'Subdivision', f: 'admin1/' + a.f, gr: a.gr || {}, n: a.n });
   }
-  // dated layers (units valid between two dates) wait for the year control (#46)
-  for (const x of geo.layers[country] || []) if (!x.dated) L.push({ ...x, f: 'layers/' + x.f, gr: x.gr || {} });
+  for (const x of geo.layers[country] || []) L.push({ ...x, f: 'layers/' + x.f, gr: x.gr || {} });
   return L;
 }
 export const layerInfo = (country, layer) => layersOf(country).find((x) => x.id === layer) || null;
@@ -122,13 +122,15 @@ function shownLayers() {
 }
 function linesOf(k) {
   const U = ready.get(k);
-  if (!U.lines) U.lines = unitLines(U.topo, U.gr);
+  // a dated layer's borders are those of the units on the day shown
+  const t = U.dated ? { ...U.topo, objects: { u: { type: 'GeometryCollection', geometries: U.topo.objects.u.geometries.filter((g) => onDate(g.properties, U.day)) } } } : U.topo;
+  if (!U.lines) U.lines = unitLines(t, U.gr);
   return U.lines;
 }
 function updateLines() {
   if (!app.sublines.on) return;
   const shown = shownLayers(),
-    sig = shown.join('\n');
+    sig = shown.join('\n') + '\n' + app.sub.date;
   if (sig === linesShown) return;
   linesShown = sig;
   const join = (part) => {
@@ -190,17 +192,25 @@ export function loadUnits(country, layer = activeLayer(country)) {
             // a layer's codes carry its id, so a painted key says which layer it belongs to
             if (layer) f.properties.c = layer + ':' + f.properties.c;
           });
-          // the same 4-degree grid as the country mesh, so long edges follow the sphere
-          const mesh = await triangulate(feats, earcut, 4, tick, feats.map((f) => f.gid));
-          const U = {
-            feats,
-            byCode: new Map(feats.map((f) => [f.properties.c, f])),
-            mesh: { ll: mesh.ll, id: mesh.id, idx: mesh.idx },
-            // borders are worked out the first time they are shown
-            topo: t,
-            gr: (layerInfo(country, layer) || {}).gr,
-            lines: null,
-          };
+          const info = layerInfo(country, layer) || {};
+          let U;
+          if (info.dated) {
+            // every version is loaded; those in force on the day shown are triangulated as they are first needed
+            U = { country, layer, dated: info.dated, all: feats, chunks: [], queue: Promise.resolve(), day: 0, feats: [], byCode: new Map(), mesh: null, topo: t, gr: info.gr, lines: null };
+            await showDay(U);
+          } else {
+            // the same 4-degree grid as the country mesh, so long edges follow the sphere
+            const mesh = await triangulate(feats, earcut, 4, tick, feats.map((f) => f.gid));
+            U = {
+              feats,
+              byCode: new Map(feats.map((f) => [f.properties.c, f])),
+              mesh: { ll: mesh.ll, id: mesh.id, idx: mesh.idx },
+              // borders are worked out the first time they are shown
+              topo: t,
+              gr: info.gr,
+              lines: null,
+            };
+          }
           ready.set(key, U);
           loading.delete(key);
           uploadMeshes();
@@ -215,6 +225,82 @@ export function loadUnits(country, layer = activeLayer(country)) {
     );
   return loading.get(key);
 }
+// ---- dated layers (#46): the units in force on app.sub.date
+/**
+ * Show a dated layer on app.sub.date: triangulate the units not seen before (kept, so moving back and forth costs only
+ * putting the mesh together), then its units, codes and mesh become that day's. Calls run one after another, each
+ * for the day set when it runs.
+ */
+function showDay(U) {
+  U.queue = U.queue.then(async () => {
+    const day = app.sub.date;
+    if (U.day === day) return;
+    const on = unitsAt(U.all, day),
+      done = new Set(U.chunks.flatMap((c) => c.gids)),
+      todo = on.filter((f) => !done.has(f.gid));
+    if (todo.length) {
+      const m = await triangulate(todo, earcut, 4, tick, todo.map((f) => f.gid));
+      U.chunks.push({ gids: todo.map((f) => f.gid), ll: m.ll, id: m.id, idx: m.idx });
+    }
+    // a later day was set while triangulating: its own call follows
+    if (app.sub.date !== day) return;
+    const gids = new Set(on.map((f) => f.gid));
+    let nv = 0;
+    for (const c of U.chunks) nv += c.id.length;
+    const ll = new Float32Array(2 * nv),
+      id = new Uint16Array(nv),
+      idx = [];
+    let v = 0;
+    for (const c of U.chunks) {
+      ll.set(c.ll, 2 * v);
+      id.set(c.id, v);
+      for (let k = 0; k < c.idx.length; k += 3) if (gids.has(c.id[c.idx[k]])) idx.push(c.idx[k] + v, c.idx[k + 1] + v, c.idx[k + 2] + v);
+      v += c.id.length;
+    }
+    Object.assign(U, { day, feats: on, byCode: new Map(on.map((f) => [f.properties.c, f])), mesh: { ll, id, idx: Uint32Array.from(idx) }, lines: null });
+  });
+  return U.queue;
+}
+/** Show dated layers on day n (yyyymmdd); true if the day changed. Undo and opening a map set app.sub.date and emit 'date' themselves. */
+export function setDate(n) {
+  if (app.sub.date === n) return false;
+  app.sub.date = n;
+  emit('date');
+  return true;
+}
+on('date', () => {
+  const U = [...ready.values()].filter((x) => x.dated);
+  if (!U.length) return;
+  app.subHov = null;
+  Promise.all(U.map(showDay)).then(() => {
+    linesShown = '';
+    uploadMeshes();
+    emit('legend');
+    redraw();
+  });
+});
+/** The dated layer of a country, if it offers one: its index entry. */
+export const datedLayer = (country) => layersOf(country).find((x) => x.dated) || null;
+/**
+ * The country whose dated layer has a unit at a lon/lat beyond its own border (Oregon Country over today's Canada), when
+ * that layer is the one it is painted with and is loaded; else the country under the pointer.
+ */
+export function claimOf(country, g) {
+  if (!g) return country;
+  for (const U of ready.values())
+    if (U.dated && U.country !== country && activeLayer(U.country) === U.layer && U.feats.some((f) => inBounds(f, g) && geoContains(f, g))) return U.country;
+  return country;
+}
+/** The day dated layers show, for credits: their index entries and the day, or null when none is used. */
+export function datedInUse() {
+  const L = [];
+  for (const c of new Set([...paintedCountries(), ...Object.keys(app.sub.layer)])) {
+    const x = layerInfo(c, activeLayer(c));
+    if (x && x.dated) L.push(x);
+  }
+  return L.length ? { layers: L, day: app.sub.date } : null;
+}
+
 /** Load every country and layer that has painted units (before an export, after opening a map). */
 export const loadPainted = () =>
   Promise.all([...paintedCountries()].flatMap((c) => [...paintedLayers(c)].map((y) => loadUnits(c, y).catch(() => null))));
@@ -231,6 +317,8 @@ export function unitAtLL(country, g) {
   const U = unitsOf(country);
   return U && g && !inSea(g[0], g[1]) ? U.feats.find((f) => inBounds(f, g) && geoContains(f, g)) || null : null;
 }
+/** The paint a dated layer's "outside" unit (land not yet part of the country) gets when the layer is chosen. */
+export const OUTSIDE_PAINT = 'p:diag:#f2f0eb:#b8b2a7';
 /** The units a click on f paints at the current detail: its region or part where the layer has them, else f alone. */
 export function targetsOf(country, f) {
   const k = app.sub.detail,
@@ -308,8 +396,16 @@ export function setLayer(country, layer, confirmFn) {
     if (!confirmFn(msg)) return false;
   }
   app.sub.layer[country] = layer;
-  if (other.length) {
-    other.forEach((k) => app.units.delete(k));
+  other.forEach((k) => app.units.delete(k));
+  // a dated layer marks the land not yet part of the country, so it never reads as the country's own
+  const info = layerInfo(country, layer),
+    out = info && info.dated ? unitKey(country, layer + ':outside') : '';
+  const mark = out && !app.units.has(out);
+  if (mark) {
+    app.units.set(out, OUTSIDE_PAINT);
+    if (!app.labels[OUTSIDE_PAINT]) app.labels[OUTSIDE_PAINT] = info.dated.outside || 'Outside the country';
+  }
+  if (other.length || mark) {
     emit('legend');
     commit();
   }

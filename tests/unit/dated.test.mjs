@@ -5,7 +5,7 @@ import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { geoArea, geoBounds } from 'd3-geo';
 import { feature } from 'topojson-client';
-import { onDate, unitsAt } from '../../src/js/dated.js';
+import { onDate, unitsAt, validDay, fmtDay, fmtSpan, parseDay, isoDay, yearDay } from '../../src/js/dated.js';
 
 const file = (p) => JSON.parse(readFileSync(new URL('../../' + p, import.meta.url), 'utf8'));
 const entry = file('data/layers/index.json')['United States of America'].find((x) => x.id === 'us-ahcb-states-2011');
@@ -22,6 +22,20 @@ test('onDate includes both the first and the last day', () => {
   const p = { d0: 18210810, d1: 20001231 };
   assert.ok(onDate(p, 18210810) && onDate(p, 20001231));
   assert.ok(!onDate(p, 18210809) && !onDate(p, 20010101));
+});
+
+test('days: checked, written out, read from a date input, a year kept within the layer', () => {
+  assert.ok(validDay(18500101) && validDay(18960229) && !validDay(19000229) && !validDay(18501301) && !validDay(1850.5));
+  assert.strictEqual(fmtDay(18500101), '1 January 1850');
+  assert.strictEqual(fmtDay(18121207, true), '7 Dec 1812');
+  assert.strictEqual(fmtSpan({ d0: 18121207, d1: 18210809 }, 20001231), '7 Dec 1812 – 9 Aug 1821');
+  assert.strictEqual(fmtSpan({ d0: 19590103, d1: 20001231 }, 20001231), 'from 3 Jan 1959');
+  assert.strictEqual(parseDay('1861-04-12'), 18610412);
+  assert.strictEqual(parseDay('1861-02-30'), null);
+  assert.strictEqual(parseDay(''), null);
+  assert.strictEqual(isoDay(17830903), '1783-09-03');
+  assert.strictEqual(yearDay(1783, 17830903, 20001231), 17830903, 'the layer starts in September 1783');
+  assert.strictEqual(yearDay(1850, 17830903, 20001231), 18500101);
 });
 
 test('the layer covers 3 September 1783 to 31 December 2000 with the quick stops', () => {

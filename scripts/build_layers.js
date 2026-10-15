@@ -345,7 +345,7 @@ async function buildDated(index, e, C) {
   units.length = 0;
   for (const [f, u] of kept) (f.id = out.length), out.push(f), units.push(u);
   const topo = ts.topology({ u: { type: 'FeatureCollection', features: out } }, quantFor(out.flatMap((f) => f.geometry.coordinates)));
-  const kb = writeLayer(index, e, topo, out.length, {}, { dated: { from: Math.min(...V.map((v) => v.d0)), to: last, stops: D.stops || [] } });
+  const kb = writeLayer(index, e, topo, out.length, {}, { dated: { from: Math.min(...V.map((v) => v.d0)), to: last, stops: D.stops || [], outside: D.outside } });
 
   // what a person checking the build needs: totals, the disputed areas, the units at each stop
   const area = (u) => u.faces.reduce((s, i) => s + [...faces[i].inC, ...(u.label === 'outside' ? [] : faces[i].out)].reduce((t, Q) => t + km2(Q), 0), 0);
