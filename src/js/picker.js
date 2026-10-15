@@ -41,9 +41,11 @@ export function closePicker() {
   refreshTip();
   redraw();
 }
+// exact outlines are saved by unit ids; a dated layer's ids are versions on different days, so it is not offered here
+const pickable = (c) => layersOf(c).filter((x) => !x.dated);
 /** Show the layer menu for the picked country when it offers more than one layer. */
 function layerMenu(c, y) {
-  const L = layersOf(c),
+  const L = pickable(c),
     sel = $('a1y');
   sel.hidden = L.length < 2;
   sel.replaceChildren(...L.map((x) => el('option', { value: x.id, textContent: x.name, selected: x.id === y })));
@@ -53,7 +55,8 @@ export async function pickCountry(c, layer) {
     note(c + ' has no subdivisions in the data.', 1);
     return;
   }
-  const y = layer !== undefined ? layer : activeLayer(c);
+  let y = layer !== undefined ? layer : activeLayer(c);
+  if (!pickable(c).some((x) => x.id === y)) y = pickable(c).length ? pickable(c)[0].id : '';
   if (app.pick && app.pick.c === c && app.pick.y === y && app.pick.feats) {
     $('a1c').value = c;
     return;

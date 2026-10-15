@@ -7,7 +7,8 @@ import { commit } from './history.js';
 import { FONTS, loadFont } from './fonts.js';
 import { hexOk, clamp } from './util.js';
 import { OVERSEAS } from '../overseas.js';
-import { hasUnits, setUnit, splitKey, loadPainted } from './units.js';
+import { hasUnits, setUnit, splitKey, loadPainted, datedInUse } from './units.js';
+import { validDay, DEFAULT_DAY } from './dated.js';
 import { SCALES, PAINT_SETS } from './schemes.js';
 import { validRecord } from './stats.js';
 import { electionById } from './seats.js';
@@ -82,6 +83,8 @@ export function getState() {
     ...(app.stat ? { st: app.stat } : {}),
     // or the rows of your own data it was colored with, and where they came from
     ...(app.imported ? { im: app.imported } : {}),
+    // the day a dated layer shows (historical borders), when the map uses one
+    ...(datedInUse() ? { sd: app.sub.date } : {}),
     r: [+app.rot[0].toFixed(2), +app.rot[1].toFixed(2)],
     z: +app.zoom.toFixed(2),
   };
@@ -161,6 +164,13 @@ export function setState(o) {
         for (const code of g.k[n]) if (typeof code === 'string' && unitCodeOk(n, code)) setUnit(n, code, c);
       }
     }
+  // the day dated layers show: one any dated layer covers, else the default
+  const dl = Object.values(geo.layers).flat().filter((x) => x.dated),
+    sd = validDay(o.sd) && dl.some((x) => x.dated.from <= o.sd && o.sd <= x.dated.to) ? o.sd : DEFAULT_DAY;
+  if (app.sub.date !== sd) {
+    app.sub.date = sd;
+    emit('date');
+  }
   // their outlines arrive after the first frame
   if (app.units.size)
     loadPainted().then(() => {

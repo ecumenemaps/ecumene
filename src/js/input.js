@@ -4,7 +4,7 @@ import { app, redraw } from './store.js';
 import { nameOf } from './data.js';
 import { Rb, geoAt, idAtPx, markerAt, setZoom, animate } from './view.js';
 import { setFill, toggleFill } from './paint.js';
-import { LOAD_DELAY, hasUnits, unitsOf, loadUnits, unitAtLL, targetsOf, targetLabel, paintUnits, clearUnits, clickUnits, layersOf } from './units.js';
+import { LOAD_DELAY, hasUnits, unitsOf, loadUnits, unitAtLL, targetsOf, targetLabel, paintUnits, clearUnits, clickUnits, layersOf, claimOf } from './units.js';
 import { commit, commitSoon, undo, redo } from './history.js';
 import { objectAt, handleAt, minPts } from './objects.js';
 import { addPoint, finishDraw, cancelDraw, select } from './editing.js';
@@ -38,7 +38,7 @@ function placeTip() {
 let under = null;
 function unitUnder() {
   if (!app.hover || app.pick || app.drawing || app.sel >= 0 || app.hoverObj >= 0) return null;
-  const n = nameOf(app.hover);
+  const n = claimOf(nameOf(app.hover), geoAt(app.mx, app.my));
   if (!unitsOf(n) || !(subMode() || [...app.units.keys()].some((k) => k.startsWith(n + '|')))) return null;
   const f = unitAtLL(n, geoAt(app.mx, app.my));
   return f && { country: n, f };
@@ -113,7 +113,8 @@ export function refreshSub() {
   let h = null,
     want = '';
   if (subMode() && app.hover) {
-    const n = nameOf(app.hover);
+    // a dated layer's claim beyond its country's border (Oregon Country over Canada) is its country's
+    const n = claimOf(nameOf(app.hover), geoAt(app.mx, app.my));
     if (hasUnits(n)) {
       // the panel's "Layer for <country>" menu follows the country pointed at
       if (app.sub.country !== n && layersOf(n).length > 1) {
@@ -138,11 +139,11 @@ export function refreshSub() {
 }
 /** A click on a country: paint its units in Subdivisions mode, else the whole country. */
 function paintClick(id) {
-  const n = nameOf(id);
+  const g = geoAt(app.mx, app.my),
+    n = app.sub.on ? claimOf(nameOf(id), g) : nameOf(id);
   // a tiny country's marker paints the whole country; its units are too small to aim at
   if (!app.sub.on || !hasUnits(n) || markerAt(app.mx, app.my) === id) return toggleFill(n);
-  const g = geoAt(app.mx, app.my),
-    wait = !unitsOf(n);
+  const wait = !unitsOf(n);
   if (wait) note('Loading the subdivisions of ' + n + '…');
   clickUnits(n, g).then(
     () => {
@@ -164,7 +165,7 @@ function paintAt(x, y) {
       py = a[1] + ((y - a[1]) * s) / n,
       id = idAtPx(px, py);
     if (!id) continue;
-    const nm = nameOf(id);
+    const nm = app.sub.on ? claimOf(nameOf(id), geoAt(px, py)) : nameOf(id);
     if (app.sub.on && hasUnits(nm) && markerAt(px, py) !== id) {
       // units paint once loaded; a stroke across a country not yet loaded starts the load
       if (!unitsOf(nm)) loadUnits(nm).catch(() => {});

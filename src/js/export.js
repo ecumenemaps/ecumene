@@ -15,6 +15,7 @@ import { statCredit } from './statsrc.js';
 import { drawSeatBar, currentTally } from './seatbar.js';
 import { seatCredit } from './seatsrc.js';
 import { importCredit } from './table.js';
+import { fmtDay } from './dated.js';
 import { lakePolygons, prepareLakes, cutLakes } from '../../scripts/lib/cut.js';
 
 let canvas = null;
@@ -53,7 +54,8 @@ function counterCredit() {
 }
 /** One line printed on the map. */
 export function sourceLine(label) {
-  const more = [...new Set(usedLayers().other.map((x) => x.short))],
+  // a dated layer says which day its borders are shown on
+  const more = [...new Set(usedLayers().other.map((x) => x.short + (x.dated ? ' (borders as of ' + fmtDay(app.sub.date) + ')' : '')))],
     st = statCredit(app.stat),
     im = importCredit(app.imported),
     sc = counterCredit();
@@ -93,7 +95,8 @@ export function sourceDetails(label, cuts) {
     L.push('Lakes and rivers: Natural Earth 1:10m physical vectors. Public domain.');
   const used = usedLayers();
   if (used.ne) L.push('Subdivisions: Natural Earth 1:10m Admin 1 states and provinces. Public domain.');
-  for (const x of used.other) L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + (x.note ? x.note + ' ' : '') + x.credit + ' Fitted to the Natural Earth coastline.');
+  for (const x of used.other)
+    L.push(x.title + ': ' + x.ed + ', ' + x.url + '. ' + (x.dated ? 'Shown as of ' + fmtDay(app.sub.date) + '. ' : '') + (x.note ? x.note + ' ' : '') + x.credit + ' Fitted to the Natural Earth coastline.');
   const st = statCredit(app.stat),
     im = importCredit(app.imported);
   if (st) L.push(st.detail);
@@ -280,8 +283,9 @@ async function cutShapes() {
     const n = splitKey(k)[0],
       f = unitByKey(k);
     if (!f) return;
-    if (!C.units.has(k)) C.units.set(k, cutLakes(f.geometry, C.lakes, pc));
-    const r = C.units.get(k);
+    // by the unit's shape: in a dated layer the same code is another shape on another day
+    if (!C.units.has(f.gid)) C.units.set(f.gid, cutLakes(f.geometry, C.lakes, pc));
+    const r = C.units.get(f.gid);
     if (r.failed) failed.add(f.properties.n + ' (' + n + ')');
     units.set(k, r.geometry);
   });
