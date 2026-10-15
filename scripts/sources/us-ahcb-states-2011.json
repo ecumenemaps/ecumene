@@ -1,0 +1,54 @@
+{
+  "id": "us-ahcb-states-2011",
+  "kind": "layer",
+  "order": 60,
+  "title": "Historical states and territories (United States, 3 September 1783 to 31 December 2000)",
+  "menu": "States and territories in history",
+  "country": "United States of America",
+  "unit": "State or territory",
+  "publisher": "The Newberry Library, Atlas of Historical County Boundaries",
+  "url": "https://publications.newberry.org/ahcb/pages/United_States.html",
+  "edition": "U.S. Historical States and Territories, edition 2.0 (October 2011), generalized to 0.001°",
+  "note": "Every change of a state's or territory's borders, dated to the day, as the Atlas records it. Areas claimed beyond today's border are kept (Oregon Country to 54°40′N, the Louisiana Purchase north of 49° until 1818), and where two jurisdictions claimed the same land the Atlas's overlap is shown as its own disputed unit. Deseret, a state proposed in 1849 that Congress never recognised, is left out. Land of today's United States that was not yet part of it on the chosen date is one unit, \"Outside the United States\". Borders of every other country on the map are present-day ones. The dataset's own metadata still names CC BY-NC-SA 2.5; the Newberry's Smith Center confirmed by email on 15 October 2026 that the terms on its downloads page apply instead.",
+  "licence": {
+    "name": "Free for any lawful purpose, including commercial use (The Newberry Library's terms)",
+    "url": "https://www.newberry.org/rights-and-reproductions"
+  },
+  "credit": "U.S. historical state and territory boundaries: Siczewicz, Peter. U.S. Historical States and Territories (Generalized .001 deg). Emily Kelley, digital comp. Atlas of Historical County Boundaries, ed. by John H. Long. Chicago: The Newberry Library, 2011.",
+  "short": "Atlas of Historical County Boundaries, The Newberry Library, Chicago",
+  "simplify": "interval=150",
+  "maxKB": 2000,
+  "download": {
+    "origin": "https://publications.newberry.org/ahcb/downloads/gis/US_AtlasHCB_StateTerr_Gen001.zip",
+    "extract": "US_AtlasHCB_StateTerr_Gen001/US_HistStateTerr_Gen001_Shapefile/US_HistStateTerr_Gen001",
+    "file": "us-ahcb-states-2011-gen001.geojson.gz",
+    "sha256": "b5ee3535c6f507147e3c509ce687d3d3cc6658c43cab20e1c707fadbd632f9ec"
+  },
+  "filter": {
+    "field": "ID",
+    "notIn": [
+      "ds_deseret"
+    ]
+  },
+  "fields": {
+    "code": "ID",
+    "name": "FULL_NAME"
+  },
+  "dated": {
+    "start": "START_N",
+    "end": "END_N",
+    "type": "TERR_TYPE",
+    "change": "CHANGE",
+    "beyond": [
+      "Canada"
+    ],
+    "outside": "Outside the United States",
+    "stops": [
+      17900101,
+      18200101,
+      18500101,
+      18610101,
+      18900101
+    ]
+  }
+}
