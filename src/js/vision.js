@@ -2,7 +2,7 @@
 // Legend panel when two of the map's colors look alike with one. Both use the matrices in schemes.js; the preview is
 // an SVG color-matrix filter on the globe and overlay canvases, so exports are never affected.
 import { app, on } from './store.js';
-import { legendColours } from './paint.js';
+import { shownColours } from './paint.js';
 import { CVD, CVD_NAMES, clashes } from './schemes.js';
 import { $, el } from './util.js';
 import { isPattern } from './patterns.js';
@@ -36,7 +36,7 @@ const SHORT = { deuteranopia: 'deuteranopia (green-blind)', protanopia: 'protano
 function warn() {
   // patterned entries are told apart by their pattern, so only plain colors are compared
   const w = $('cvdw'),
-    cols = legendColours().filter((c) => !isPattern(c)),
+    cols = shownColours().filter((c) => !isPattern(c)),
     found = clashes(cols);
   w.hidden = !found.length;
   if (!found.length) return;

@@ -6,7 +6,9 @@ const { openApp, getCode, useCode, mode, sourceNote } = require('./helpers');
 const L = 'us-ahcb-states-2011';
 const US = 'United States of America';
 
-test('historical US borders: choose the layer, move through the years, paint a territory and a claim, save and export', async ({ page }) => {
+test('historical US borders: choose the layer, move through the years, paint a territory and a claim, save and export', async ({
+  page,
+}) => {
   const errors = await openApp(page);
   await page.evaluate(() => {
     const s = window.ecumene.getState();
@@ -22,7 +24,8 @@ test('historical US borders: choose the layer, move through the years, paint a t
     await page.mouse.move(box.x + p[0] + 1, box.y + p[1] + 1);
     return [box.x + p[0] + 1, box.y + p[1] + 1];
   };
-  const painted = () => page.evaluate((us) => Object.fromEntries(window.ecumene.getState().u.flatMap((g) => (g.k[us] || []).map((c) => [c, g.c]))), US);
+  const painted = () =>
+    page.evaluate((us) => Object.fromEntries(window.ecumene.getState().u.flatMap((g) => (g.k[us] || []).map((c) => [c, g.c]))), US);
   const day = () => page.evaluate(() => window.ecumene.day());
 
   // choosing the layer shows the day controls on 1 January 1850 and marks the land not yet part of the US
@@ -91,7 +94,48 @@ test('historical US borders: choose the layer, move through the years, paint a t
   const svg = await page.evaluate(() => window.ecumene.svg());
   expect(svg).toContain('data-name="Oregon Country" data-country="United States of America"');
   expect(svg).toContain('data-name="Missouri Territory"');
-  expect(svg).toMatch(/<desc>[^<]*Shown as of 1 January 1820\.[^<]*Borders of every other country on the map are present-day ones\.[^<]*The Newberry Library, 2011\./);
+  expect(svg).toMatch(
+    /<desc>[^<]*Shown as of 1 January 1820\.[^<]*Borders of every other country on the map are present-day ones\.[^<]*The Newberry Library, 2011\./,
+  );
   expect(sourceNote(svg)).toContain('Atlas of Historical County Boundaries, The Newberry Library, Chicago (borders as of 1 January 1820)');
+  expect(errors).toEqual([]);
+});
+
+test('historical US borders: the legend lists only colors on the map on the day shown', async ({ page }) => {
+  const errors = await openApp(page);
+  const legendText = async () => {
+    const svg = await page.evaluate(() => window.ecumene.svg());
+    return svg.slice(svg.indexOf('id="legend"')).replace(/<[^>]+>/g, ' ');
+  };
+  const open = (sd) =>
+    page.evaluate(
+      ({ sd, L, US }) => {
+        const s = window.ecumene.getState();
+        Object.assign(s, {
+          r: [98, -40],
+          z: 2,
+          f: [],
+          sd,
+          u: [
+            { c: '#e4572e', k: { [US]: [L + ':mo_terr'] }, l: 'Missouri Territory' },
+            { c: '#1b9e77', k: { [US]: [L + ':mo_state'] }, l: 'State of Missouri' },
+          ],
+        });
+        window.ecumene.setState(s);
+        return window.ecumene.loadUnits(US);
+      },
+      { sd, L, US },
+    );
+  // 1820: only the territory is on the map
+  await open(18200101);
+  let text = await legendText();
+  expect(text).toContain('Missouri Territory');
+  expect(text).not.toContain('State of Missouri');
+  // 1861: only the state; the territory's color stays painted (it shows again on an earlier day) but leaves the legend
+  await open(18610101);
+  text = await legendText();
+  expect(text).toContain('State of Missouri');
+  expect(text).not.toContain('Missouri Territory');
+  expect(await page.evaluate(() => window.ecumene.getState().lg.o)).toEqual(['#e4572e', '#1b9e77']);
   expect(errors).toEqual([]);
 });

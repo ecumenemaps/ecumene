@@ -3,7 +3,7 @@ import { app, emit, redraw } from './store.js';
 import { geo } from './data.js';
 import { setCountryColor } from './gl.js';
 import { commit } from './history.js';
-import { clearUnits } from './units.js';
+import { clearUnits, unitShown } from './units.js';
 
 /** Fill a country by name with a hex colour, or clear it (null). */
 export function setFill(name, col) {
@@ -94,4 +94,15 @@ export function legendColours() {
   });
   L.order = o;
   return o;
+}
+/**
+ * The legend's colors that something on the map has, in legend order: a color only on units of a dated layer not in
+ * force on the day shown is left out (it keeps its place in the order for when it shows again).
+ */
+export function shownColours() {
+  const shown = new Set(app.fills.values());
+  app.units.forEach((c, k) => {
+    if (unitShown(k)) shown.add(c);
+  });
+  return legendColours().filter((c) => shown.has(c));
 }

@@ -122,9 +122,11 @@ function shownLayers() {
 }
 function linesOf(k) {
   const U = ready.get(k);
-  // a dated layer's borders are those of the units on the day shown
-  const t = U.dated ? { ...U.topo, objects: { u: { type: 'GeometryCollection', geometries: U.topo.objects.u.geometries.filter((g) => onDate(g.properties, U.day)) } } } : U.topo;
-  if (!U.lines) U.lines = unitLines(t, U.gr);
+  if (!U.lines) {
+    // a dated layer's borders are those of the units on the day shown
+    const t = U.dated ? { ...U.topo, objects: { u: { type: 'GeometryCollection', geometries: U.topo.objects.u.geometries.filter((g) => onDate(g.properties, U.day)) } } } : U.topo;
+    U.lines = unitLines(t, U.gr);
+  }
   return U.lines;
 }
 function updateLines() {
@@ -196,8 +198,10 @@ export function loadUnits(country, layer = activeLayer(country)) {
           let U;
           if (info.dated) {
             // every version is loaded; those in force on the day shown are triangulated as they are first needed
-            U = { country, layer, dated: info.dated, all: feats, chunks: [], queue: Promise.resolve(), day: 0, feats: [], byCode: new Map(), mesh: null, topo: t, gr: info.gr, lines: null };
-            await showDay(U);
+            U = { country, layer, dated: info.dated, all: feats, parts: new Map(), queue: Promise.resolve(), day: 0, feats: [], byCode: new Map(), mesh: null, topo: t, gr: info.gr, lines: null };
+            // until it is ready the 'date' event does not see it, so keep up with a day changed meanwhile (undo)
+            do await showDay(U);
+            while (U.day !== app.sub.date);
           } else {
             // the same 4-degree grid as the country mesh, so long edges follow the sphere
             const mesh = await triangulate(feats, earcut, 4, tick, feats.map((f) => f.gid));
@@ -236,30 +240,58 @@ function showDay(U) {
     const day = app.sub.date;
     if (U.day === day) return;
     const on = unitsAt(U.all, day),
-      done = new Set(U.chunks.flatMap((c) => c.gids)),
-      todo = on.filter((f) => !done.has(f.gid));
+      todo = on.filter((f) => !U.parts.has(f.gid));
     if (todo.length) {
       const m = await triangulate(todo, earcut, 4, tick, todo.map((f) => f.gid));
-      U.chunks.push({ gids: todo.map((f) => f.gid), ll: m.ll, id: m.id, idx: m.idx });
+      splitMesh(m, U.parts);
+      for (const f of todo) if (!U.parts.has(f.gid)) U.parts.set(f.gid, { ll: new Float32Array(0), id: new Uint16Array(0), idx: new Uint32Array(0) });
     }
     // a later day was set while triangulating: its own call follows
     if (app.sub.date !== day) return;
-    const gids = new Set(on.map((f) => f.gid));
-    let nv = 0;
-    for (const c of U.chunks) nv += c.id.length;
-    const ll = new Float32Array(2 * nv),
+    // only this day's units, so the mesh stays the size of one country however many days have been seen
+    const P = on.map((f) => U.parts.get(f.gid)),
+      nv = P.reduce((s, p) => s + p.id.length, 0),
+      ll = new Float32Array(2 * nv),
       id = new Uint16Array(nv),
-      idx = [];
-    let v = 0;
-    for (const c of U.chunks) {
-      ll.set(c.ll, 2 * v);
-      id.set(c.id, v);
-      for (let k = 0; k < c.idx.length; k += 3) if (gids.has(c.id[c.idx[k]])) idx.push(c.idx[k] + v, c.idx[k + 1] + v, c.idx[k + 2] + v);
-      v += c.id.length;
+      idx = new Uint32Array(P.reduce((s, p) => s + p.idx.length, 0));
+    let v = 0,
+      i = 0;
+    for (const p of P) {
+      ll.set(p.ll, 2 * v);
+      id.set(p.id, v);
+      for (let k = 0; k < p.idx.length; k++) idx[i + k] = p.idx[k] + v;
+      v += p.id.length;
+      i += p.idx.length;
     }
-    Object.assign(U, { day, feats: on, byCode: new Map(on.map((f) => [f.properties.c, f])), mesh: { ll, id, idx: Uint32Array.from(idx) }, lines: null });
+    Object.assign(U, { day, feats: on, byCode: new Map(on.map((f) => [f.properties.c, f])), mesh: { ll, id, idx }, lines: null });
   });
   return U.queue;
+}
+/** Split a triangulated mesh into one mesh per unit (by the palette id on each vertex), added to parts. */
+function splitMesh(m, parts) {
+  const at = new Int32Array(m.id.length).fill(-1),
+    acc = new Map();
+  for (let k = 0; k < m.idx.length; k++) {
+    const v = m.idx[k],
+      g = m.id[v];
+    if (!acc.has(g)) acc.set(g, { ll: [], idx: [] });
+    const a = acc.get(g);
+    if (at[v] < 0) {
+      at[v] = a.ll.length / 2;
+      a.ll.push(m.ll[2 * v], m.ll[2 * v + 1]);
+    }
+    a.idx.push(at[v]);
+  }
+  for (const [g, a] of acc) parts.set(g, { ll: Float32Array.from(a.ll), id: new Uint16Array(a.ll.length / 2).fill(g), idx: Uint32Array.from(a.idx) });
+}
+/**
+ * Is a painted unit ('Country|code') on the map? Not when its layer is dated and the unit is not in force on the day
+ * shown (Missouri Territory in 1861), so the legend does not list a color nothing on the map has.
+ */
+export function unitShown(k) {
+  const [n, code] = splitKey(k),
+    U = ready.get(n + '|' + layerOfCode(code));
+  return !U || !U.dated || U.byCode.has(code);
 }
 /** Show dated layers on day n (yyyymmdd); true if the day changed. Undo and opening a map set app.sub.date and emit 'date' themselves. */
 export function setDate(n) {

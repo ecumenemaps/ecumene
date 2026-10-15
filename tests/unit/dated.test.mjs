@@ -62,7 +62,7 @@ test('disputed areas are their own units, named for both claimants', () => {
   assert.ok(!names(18970101).some((n) => n.includes('disputed')), 'Greer County settled in 1896');
 });
 
-test('Deseret is left out; claims beyond today\'s border are kept', () => {
+test("Deseret is left out; claims beyond today's border are kept", () => {
   assert.ok(!feats.some((f) => /deseret/i.test(f.properties.c)));
   const oregon = unit(18200101, 'or_country');
   assert.ok(geoBounds(oregon)[1][1] > 54.5, 'Oregon Country reaches 54°40′N');
