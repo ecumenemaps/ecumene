@@ -37,7 +37,8 @@ export function layersOf(country) {
     const a = geo.a1index[country];
     L.push({ id: '', name: 'States and provinces (Natural Earth)', unit: 'Subdivision', f: 'admin1/' + a.f, gr: a.gr || {}, n: a.n });
   }
-  for (const x of geo.layers[country] || []) L.push({ ...x, f: 'layers/' + x.f, gr: x.gr || {} });
+  // dated layers (units valid between two dates) wait for the year control (#46)
+  for (const x of geo.layers[country] || []) if (!x.dated) L.push({ ...x, f: 'layers/' + x.f, gr: x.gr || {} });
   return L;
 }
 export const layerInfo = (country, layer) => layersOf(country).find((x) => x.id === layer) || null;

@@ -7,6 +7,8 @@ import { createRequire } from 'node:module';
 import { geoArea } from 'd3-geo';
 import { feature } from 'topojson-client';
 
+import { unitsAt } from '../../src/js/dated.js';
+
 const require = createRequire(import.meta.url);
 const { loadSources, layers, readmeTable, README_START, README_END } = require('../../scripts/lib/sources.js');
 const pc = require('polygon-clipping');
@@ -49,6 +51,7 @@ for (const e of layers())
     const t = JSON.parse(readFileSync(file('data/layers/' + entry.f))),
       feats = feature(t, t.objects.u).features;
     assert.strictEqual(feats.length, entry.n);
+    if (e.dated) return datedChecks(e, entry, feats);
     const codes = new Set();
     for (const f of feats) {
       const p = f.properties;
@@ -92,3 +95,53 @@ for (const e of layers())
     const country = C.reduce((s, P) => s + km2(P), 0);
     assert.ok(units / country > 0.95, 'units cover ' + ((100 * units) / country).toFixed(1) + '% of ' + e.country);
   });
+
+const snap = (P) => P.map((r) => r.map(([x, y]) => [Math.round(x * 1e5) / 1e5, Math.round(y * 1e5) / 1e5]));
+const bbox = (f) => {
+  let b = [1e9, 1e9, -1e9, -1e9];
+  for (const P of polys(f.geometry)) for (const [x, y] of P[0]) b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)];
+  return b;
+};
+/**
+ * A dated layer (units valid from d0 to d1, see build_layers.js buildDated): codes repeat across dates, so the checks
+ * are per day. On each stop and the last day no code repeats and no two units overlap; every unit lies in the country
+ * or, for claims, in the countries named in `beyond`; on the last day the units cover the country.
+ */
+function datedChecks(e, entry, feats) {
+  assert.ok(entry.dated && entry.dated.from < entry.dated.to, 'index entry has the dates it covers');
+  for (const f of feats) {
+    const p = f.properties;
+    assert.ok(p.n && p.c, 'unit ' + f.id + ' has a name and a code');
+    assert.ok(/^[A-Za-z0-9_.+-]{1,64}$/.test(p.c), p.c + ': codes are saved in maps as layer:code (persist.js LAYER_CODE)');
+    assert.ok(Number.isInteger(p.d0) && Number.isInteger(p.d1) && p.d0 <= p.d1, p.n + ': has its days');
+    for (const P of polys(f.geometry)) assert.ok(geoArea({ type: 'Polygon', coordinates: P }) < 2 * Math.PI, p.n + ': a polygon is inside out');
+  }
+  const land = countries.filter((f) => [e.country, ...(e.dated.beyond || [])].includes(f.properties.name)).flatMap((f) => polys(f.geometry)).map(snap);
+  for (const f of feats) {
+    const U = polys(f.geometry).map(snap),
+      area = U.reduce((s, P) => s + km2(P), 0),
+      outside = pc.difference(U, ...land).reduce((s, P) => s + km2(P), 0);
+    assert.ok(outside < 1 + 0.001 * area, f.properties.n + ': ' + outside.toFixed(1) + ' km² outside ' + e.country);
+  }
+  for (const day of [...entry.dated.stops, entry.dated.to]) {
+    const on = unitsAt(feats, day),
+      codes = new Set(),
+      boxes = on.map(bbox);
+    for (const f of on) {
+      assert.ok(!codes.has(f.properties.c), day + ': two units ' + f.properties.c);
+      codes.add(f.properties.c);
+    }
+    for (let i = 0; i < on.length; i++)
+      for (let j = i + 1; j < on.length; j++) {
+        const a = boxes[i],
+          b = boxes[j];
+        if (a[0] > b[2] || b[0] > a[2] || a[1] > b[3] || b[1] > a[3]) continue;
+        const over = pc.intersection(polys(on[i].geometry).map(snap), polys(on[j].geometry).map(snap)).reduce((s, P) => s + km2(P), 0);
+        assert.ok(over < 1, day + ': ' + on[i].properties.n + ' and ' + on[j].properties.n + ' overlap by ' + over.toFixed(1) + ' km²');
+      }
+  }
+  const C = countries.filter((f) => f.properties.name === e.country).flatMap((f) => polys(f.geometry)),
+    country = C.reduce((s, P) => s + km2(P), 0),
+    units = unitsAt(feats, entry.dated.to).reduce((s, f) => s + polys(f.geometry).reduce((t, P) => t + km2(P), 0), 0);
+  assert.ok(units / country > 0.95, 'units on the last day cover ' + ((100 * units) / country).toFixed(1) + '% of ' + e.country);
+}
