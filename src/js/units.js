@@ -179,7 +179,11 @@ setUnitPainter(paintPalette);
 /** Load a country's units in a layer, by default the one it is painted with (cached). Resolves to {feats, byCode, mesh}. */
 export function loadUnits(country, layer = activeLayer(country)) {
   const key = country + '|' + layer;
-  if (ready.has(key)) return Promise.resolve(ready.get(key));
+  if (ready.has(key)) {
+    // a dated layer is ready once it shows the day set now (exports and opening a map wait for this)
+    const U = ready.get(key);
+    return U.dated ? showDay(U).then(() => U) : Promise.resolve(U);
+  }
   if (!loading.has(key))
     loading.set(
       key,
