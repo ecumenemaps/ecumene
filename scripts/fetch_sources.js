@@ -79,6 +79,10 @@ function recordSha(e, file, h) {
         console.log(what + ': up to date');
         continue;
       }
+      if (origin && d.manual) {
+        console.log(what + ': ' + d.manual);
+        continue;
+      }
       if (origin) {
         const b = await fromOrigin(d),
           h = sha(b);

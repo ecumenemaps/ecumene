@@ -1,0 +1,48 @@
+{
+  "id": "us-nhgis-states-2026",
+  "kind": "layer",
+  "order": 61,
+  "title": "Census-year states and territories (United States, 1790 to 2020)",
+  "menu": "States and territories at each census",
+  "country": "United States of America",
+  "unit": "State or territory",
+  "publisher": "IPUMS NHGIS, University of Minnesota",
+  "url": "https://www.nhgis.org",
+  "edition": "NHGIS version 21.0, state boundary files for the censuses of 1790 to 2020, simplified",
+  "note": "The borders of every state and territory at each census from 1790 to 2020, as NHGIS draws them. Each census's map is shown from 1 January of that year to the end of the year before the next census, so changes between censuses (a state admitted in 1796, say) appear at the next census. For borders to the day, use the Atlas of Historical County Boundaries layer, which ends in 2000. These are simplified copies of NHGIS's boundaries, kept to names and years: the shapes are reprojected, thinned (so small bends in a coast or border are lost) and fitted to this map's present-day coastline, and none of NHGIS's data tables are included. Land of today's United States that was not yet part of it at a census is one unit, \"Outside the United States\". Puerto Rico, in NHGIS's 2010 and 2020 files, is not shown here because this map draws it as a separate country. NHGIS gave permission on 15 October 2026 to include simplified copies of its decennial state and territory boundaries with this citation.",
+  "licence": {
+    "name": "Simplified copy included with the permission of IPUMS NHGIS, with the citation given",
+    "url": "https://www.nhgis.org/citation-and-use-nhgis-data"
+  },
+  "credit": "U.S. census-year state and territory boundaries: Jonathan Schroeder, David Van Riper, Steven Manson, Grace Cooper, Zachary Krause, Tracy Kugler, Tsu Zhu, and Steven Ruggles. IPUMS National Historical Geographic Information System: Version 21.0 [dataset]. Minneapolis, MN: IPUMS. 2026. http://doi.org/10.18128/D050.V21.0 (simplified)",
+  "short": "IPUMS NHGIS, University of Minnesota (simplified)",
+  "maxKB": 2000,
+  "download": {
+    "origin": "https://data2.nhgis.org/main",
+    "manual": "Made by node scripts/prepare_nhgis.js from an extract downloaded by hand (NHGIS needs a login): State, GIS Files, 1790-2020. Extract nhgis0001, 679326554 bytes, sha256 369f023bc4e9d4eb100000b805033785e2d0bd4700a13accf158688dcce21631",
+    "file": "us-nhgis-states-2026-simplified.geojson.gz",
+    "sha256": "e3632aee02020e1be9c25dc20d096d9bf24911ac9dcb4ef0f5cfbb87dbfff979"
+  },
+  "fields": {
+    "code": "@slug",
+    "name": "n"
+  },
+  "dated": {
+    "start": "d0",
+    "end": "d1",
+    "type": "t",
+    "change": "x",
+    "snapshots": true,
+    "basis": "b",
+    "outside": "Outside the United States",
+    "stops": [
+      17900101,
+      18200101,
+      18500101,
+      19000101,
+      19500101,
+      20000101,
+      20200101
+    ]
+  }
+}

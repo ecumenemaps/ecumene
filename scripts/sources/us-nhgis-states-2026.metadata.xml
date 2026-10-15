@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Metadata for the altered copy of the NHGIS state boundary files used by Ecumene's layer us-nhgis-states-2026,
+     in the structure of the Content Standard for Digital Geospatial Metadata (FGDC-STD-001-1998) that the NHGIS files
+     use. Written by hand and not run through a metadata validator. -->
+<metadata>
+  <idinfo>
+    <citation>
+      <citeinfo>
+        <origin>Ecumene (https://github.com/ecumenemaps/ecumene), from data of IPUMS NHGIS, University of Minnesota</origin>
+        <pubdate>20261016</pubdate>
+        <title>Ecumene census-year US states and territories 1790 to 2020 (simplified copy of IPUMS NHGIS state boundary files)</title>
+        <geoform>vector digital data (TopoJSON)</geoform>
+        <onlink>https://www.nhgis.org</onlink>
+      </citeinfo>
+    </citation>
+    <descript>
+      <abstract>The outlines of the states and territories of the United States at each census from 1790 to 2020, one map per census, cut down to a name, a type and the days the map is shown for. It is an altered, simplified copy of the NHGIS state boundary files (the "GIS Files" at the State level for 1790 to 2020, NHGIS extract nhgis0001): reprojected, thinned and fitted to the coastline of the Ecumene map. None of NHGIS's data tables or other attributes are included. Puerto Rico, in the 2010 and 2020 files, is left out because the Ecumene map draws it as a separate country. Land of today's United States not yet part of it at a census is one unit named "Outside the United States", made by Ecumene and not part of NHGIS's data.</abstract>
+      <purpose>To let people colour a map of the United States as it was at each census, with the source named.</purpose>
+    </descript>
+    <timeperd>
+      <timeinfo>
+        <rngdates>
+          <begdate>17900101</begdate>
+          <enddate>20201231</enddate>
+        </rngdates>
+      </timeinfo>
+      <current>Each census's boundaries are shown from 1 January of its year to the end of the year before the next census. Changes between censuses are not shown.</current>
+    </timeperd>
+    <status>
+      <progress>Complete</progress>
+      <update>None planned</update>
+    </status>
+    <spdom>
+      <bounding>
+        <westbc>-179.14</westbc>
+        <eastbc>179.77</eastbc>
+        <northbc>71.35</northbc>
+        <southbc>18.91</southbc>
+      </bounding>
+    </spdom>
+    <keywords>
+      <theme>
+        <themekt>None</themekt>
+        <themekey>census</themekey>
+        <themekey>states</themekey>
+        <themekey>territories</themekey>
+        <themekey>historical boundaries</themekey>
+      </theme>
+      <place>
+        <placekt>None</placekt>
+        <placekey>United States</placekey>
+      </place>
+    </keywords>
+    <accconst>Free of charge. Included with the permission of IPUMS NHGIS (given on 15 October 2026 to include simplified copies of its decennial state and territory boundaries together with the citation below).</accconst>
+    <useconst>Simplified and altered: do not use it where the exact line matters. Under the terms in the NHGIS files, an altered copy may be redistributed only if it carries a different dataset name, this metadata describing the alteration, and the NHGIS source citation; no fee may be charged for use or distribution. The citation NHGIS asks for: Jonathan Schroeder, David Van Riper, Steven Manson, Grace Cooper, Zachary Krause, Tracy Kugler, Tsu Zhu, and Steven Ruggles. IPUMS National Historical Geographic Information System: Version 21.0 [dataset]. Minneapolis, MN: IPUMS. 2026. http://doi.org/10.18128/D050.V21.0</useconst>
+  </idinfo>
+  <dataqual>
+    <lineage>
+      <srcinfo>
+        <srccite>
+          <citeinfo>
+            <origin>Jonathan Schroeder, David Van Riper, Steven Manson, Grace Cooper, Zachary Krause, Tracy Kugler, Tsu Zhu, and Steven Ruggles</origin>
+            <pubdate>2026</pubdate>
+            <title>IPUMS National Historical Geographic Information System: Version 21.0 [dataset]</title>
+            <pubinfo>
+              <pubplace>Minneapolis, MN</pubplace>
+              <publish>IPUMS</publish>
+            </pubinfo>
+            <onlink>http://doi.org/10.18128/D050.V21.0</onlink>
+          </citeinfo>
+        </srccite>
+        <srccitea>NHGIS 21.0</srccitea>
+        <srccontr>Boundaries of the states and territories at each census 1790 to 2020. NHGIS's own source notes: 1790 to 1990 on the 2000 TIGER/Line+ basis, 2010 on the 2010 TIGER/Line+ basis, 2020 on the 2020 TIGER/Line+ basis.</srccontr>
+      </srcinfo>
+      <procstep>
+        <procdesc>Downloaded the 24 State GIS files (1790, 1800, ... 2020) as extract nhgis0001 (679,326,554 bytes, SHA-256 369f023bc4e9d4eb100000b805033785e2d0bd4700a13accf158688dcce21631).</procdesc>
+        <procdate>20261015</procdate>
+      </procstep>
+      <procstep>
+        <procdesc>Reprojected each file from USA Contiguous Albers Equal Area Conic to longitude and latitude (WGS 84) with mapshaper, kept only the unit's name (STATENAM in the files to 2000, NAME10 in 2010, NAME in 2020), and dropped every other attribute (identifiers, areas, perimeters, population-centre points).</procdesc>
+        <procdate>20261016</procdate>
+      </procstep>
+      <procstep>
+        <procdesc>Simplified each census's map with mapshaper (-simplify interval=1700 keep-shapes, the interval in metres) so that borders shared by neighbouring units stay shared, then removed islands under 2 km². Script: scripts/prepare_nhgis.js in the Ecumene repository.</procdesc>
+        <procdate>20261016</procdate>
+      </procstep>
+      <procstep>
+        <procdesc>Added to each unit a type (State, Territory or Federal district, from its name), the days it is shown for (1 January of the census year to 31 December of the year before the next census) and a note naming its census. Left out Puerto Rico (2010, 2020). Script: scripts/prepare_nhgis.js.</procdesc>
+        <procdate>20261016</procdate>
+      </procstep>
+      <procstep>
+        <procdesc>Fitted each unit to the coastline of the Ecumene map (Natural Earth 10m countries): parts outside it are cut off and pieces under 0.5 km² are dropped. Added, for each census before the last on its basis (2000, 2010, 2020), a unit "Outside the United States": the land that the last map on the same basis covers and this one does not, keeping pieces at least 5 km wide so strips where two simplified maps differ are not counted. Stored the units as TopoJSON quantised to about 1e-4 degrees. Script: scripts/build_layers.js (buildSnapshots).</procdesc>
+        <procdate>20261016</procdate>
+      </procstep>
+    </lineage>
+  </dataqual>
+  <spref>
+    <horizsys>
+      <geograph>
+        <latres>0.0001</latres>
+        <longres>0.0001</longres>
+        <geogunit>Decimal degrees</geogunit>
+      </geograph>
+      <geodetic>
+        <horizdn>World Geodetic System 1984</horizdn>
+        <ellips>WGS 84</ellips>
+        <semiaxis>6378137</semiaxis>
+        <denflat>298.257223563</denflat>
+      </geodetic>
+    </horizsys>
+  </spref>
+  <distinfo>
+    <distrib>
+      <cntinfo>
+        <cntorgp>
+          <cntorg>Ecumene</cntorg>
+        </cntorgp>
+        <cntaddr>
+          <addrtype>web</addrtype>
+          <address>https://github.com/ecumenemaps/ecumene</address>
+        </cntaddr>
+      </cntinfo>
+    </distrib>
+    <resdesc>Part of the Ecumene map maker (layer us-nhgis-states-2026).</resdesc>
+    <distliab>Provided as is. Simplified from NHGIS's data; NHGIS is not responsible for this copy.</distliab>
+  </distinfo>
+  <metainfo>
+    <metd>20261016</metd>
+    <metc>
+      <cntinfo>
+        <cntorgp>
+          <cntorg>Ecumene</cntorg>
+        </cntorgp>
+        <cntaddr>
+          <addrtype>web</addrtype>
+          <address>https://github.com/ecumenemaps/ecumene</address>
+        </cntaddr>
+      </cntinfo>
+    </metc>
+    <metstdn>Content Standard for Digital Geospatial Metadata</metstdn>
+    <metstdv>FGDC-STD-001-1998</metstdv>
+  </metainfo>
+</metadata>
