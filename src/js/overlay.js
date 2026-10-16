@@ -6,7 +6,7 @@ import { geo } from './data.js';
 import { proj, setProj, pxPerRad, isFlat, geoAt, onFront, tinyMarkers, MARK_R } from './view.js';
 import { arrowLine } from './shapes.js';
 import { isRegion, isArea, areaGeo, areaAnchor } from './objects.js';
-import { legendColours } from './paint.js';
+import { shownColours } from './paint.js';
 import { font } from './fonts.js';
 import { D, darker, halo, hx, lum } from './util.js';
 import { fillWith, baseColor } from './patterns.js';
@@ -364,7 +364,8 @@ export function drawSourceNote(c, w, h, text, legend) {
 export function drawLegend(c, w, h) {
   const L = app.legend;
   if (!L.show) return null;
-  const items = legendColours()
+  // only colors something on the map has (a dated layer's units may not be in force on the day shown)
+  const items = shownColours()
     .map((col) => ({ col, label: (app.labels[col] || '').trim() }))
     .filter((x) => x.label);
   if (app.layers.regions)

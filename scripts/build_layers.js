@@ -357,6 +357,73 @@ async function buildDated(index, e, C) {
   }
 }
 
+/**
+ * A dated layer made of snapshots (`dated.snapshots`): each unit belongs to one map of the whole country (a census),
+ * shown for the days d0 to d1 of that map, and no two maps overlap in time. So there is nothing to cut into faces:
+ * every unit is fitted to the country like in an undated layer, and each map but the last also gets an "outside"
+ * unit, the land that the last map covers and this one does not. As in buildDated, a strip along a border or coast
+ * narrower than BEYOND_KM is a mismatch between two simplified maps, not land outside the country, and is dropped.
+ */
+async function buildSnapshots(index, e, C) {
+  const D = e.dated,
+    part = partsOf(e)[0],
+    F = part.fields,
+    src = R('data/src/' + part.download.file);
+  if (!fs.existsSync(src)) throw new Error(e.id + ': ' + src + ' is missing; run node scripts/fetch_sources.js');
+  const j = JSON.parse(zlib.gunzipSync(fs.readFileSync(src))),
+    maps = new Map();
+  for (const f of j.features.filter((f) => keep(part.filter, f.properties))) {
+    const p = f.properties,
+      name = nameOf(F, p),
+      code = codeOf(F, p, name),
+      d0 = +p[D.start],
+      d1 = +p[D.end];
+    if (!code || !name || !(d0 <= d1)) throw new Error(e.id + ': a unit has no code, name or dates: ' + JSON.stringify(p));
+    const raw = polysOf(f.geometry).map(snap),
+      [polys] = fit(raw, C);
+    if (!polys.length) {
+      console.warn(e.id + ': ' + name + ' (' + d0 + ') lies outside ' + e.country + ' on the map and is left out');
+      continue;
+    }
+    if (!maps.has(d0)) maps.set(d0, { d0, d1, basis: String(p[D.basis] || ''), units: [], codes: new Set() });
+    const m = maps.get(d0);
+    if (m.d1 !== d1) throw new Error(e.id + ': units of the map from ' + d0 + ' disagree on its last day');
+    if (m.codes.has(code)) throw new Error(e.id + ': duplicate code ' + code + ' in the map from ' + d0);
+    m.codes.add(code);
+    m.units.push({ name, code, ty: String(p[D.type] || '') || e.unit, x: String(p[D.change] || '').trim(), polys, raw });
+  }
+  const order = [...maps.values()].sort((a, b) => a.d0 - b.d0);
+  for (const [i, m] of order.entries()) if (i && m.d0 !== nextDay(order[i - 1].d1)) throw new Error(e.id + ': the map from ' + m.d0 + ' does not follow the one before it');
+  // unions are taken of the publisher's own shapes, whose shared borders are exact; the units fitted to the coast one
+  // by one no longer match each other to the last digit, which the clipper cannot always resolve
+  const union = (m) => pc.union(...m.units.flatMap((u) => u.raw).map((Q) => [Q])),
+    last = order[order.length - 1],
+    // a map is compared with the last map drawn on the same basis (`dated.basis`): maps of one basis share a coast,
+    // while another basis may include coastal water the first leaves out, which would read as land not yet in the country
+    ref = (m) => [...order].reverse().find((o) => o.basis === m.basis),
+    refUnion = new Map();
+  for (const m of order) if (!refUnion.has(ref(m))) refUnion.set(ref(m), union(ref(m)));
+
+  const out = [];
+  const outsideKm2 = [];
+  for (const m of order) {
+    for (const u of m.units) out.push({ type: 'Feature', id: out.length, geometry: { type: 'MultiPolygon', coordinates: u.polys }, properties: { n: u.name, c: u.code, ty: u.ty, x: u.x, d0: m.d0, d1: m.d1, r: '', g: '' } });
+    if (m === ref(m)) continue;
+    const notYet = pc.difference(refUnion.get(ref(m)), union(m)),
+      gone = (notYet.length ? fit(notYet, C)[0] : []).filter((Q) => km2(Q) >= MIN_KM2 && widthKm(Q) >= BEYOND_KM);
+    outsideKm2.push(Math.round(gone.reduce((s, Q) => s + km2(Q), 0)));
+    if (gone.length) out.push({ type: 'Feature', id: out.length, geometry: { type: 'MultiPolygon', coordinates: gone }, properties: { n: D.outside, c: 'outside', ty: 'Not part of the country on this date', d0: m.d0, d1: m.d1, r: '', g: '' } });
+  }
+  const topo = ts.topology({ u: { type: 'FeatureCollection', features: out } }, quantFor(out.flatMap((f) => f.geometry.coordinates))),
+    kb = writeLayer(index, e, topo, out.length, {}, { dated: { from: order[0].d0, to: last.d1, stops: D.stops || [], outside: D.outside } });
+  // a layer's own metadata file (scripts/sources/<id>.metadata.xml) goes out with its data
+  const meta = R('scripts/sources/' + e.id + '.metadata.xml');
+  if (fs.existsSync(meta)) fs.copyFileSync(meta, R('data/layers/' + e.id + '/metadata.xml'));
+  console.log(e.id + ': ' + order.length + ' maps, ' + out.length + ' units, ' + kb + ' KB');
+  let k = 0;
+  for (const m of order) console.log('  ' + m.d0 + '..' + m.d1 + ': ' + m.units.length + ' units' + (m === ref(m) ? '' : ', ' + outsideKm2[k++] + ' km² outside'));
+}
+
 (async () => {
 const only = process.argv.slice(2);
 const indexFile = R('data/layers/index.json');
@@ -368,7 +435,7 @@ for (const e of layers()) {
   if (!C0) throw new Error(e.id + ': no country "' + country + '" on the map');
   const C = { list: C0.map((P) => ({ P: snap(P), b: bboxOf([P]) })) };
   if (e.dated) {
-    await buildDated(index, e, C);
+    await (e.dated.snapshots ? buildSnapshots : buildDated)(index, e, C);
     continue;
   }
   const countryKm2 = C0.reduce((s, P) => s + km2(P.map((r) => r.slice().reverse())), 0);
