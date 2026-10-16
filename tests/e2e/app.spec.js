@@ -528,7 +528,7 @@ test('US pack: counties by state, congressional districts, Puerto Rico municipio
   };
   const units = () => page.evaluate(() => window.ecumene.getState().u.flatMap((g) => g.k['United States of America'] || []));
   await rest(-98.5, 38.5);
-  await expect(page.locator('#subl option')).toHaveText(['States and provinces (Natural Earth)', 'Counties (2024)', 'Congressional districts (119th Congress)', 'States and territories in history']);
+  await expect(page.locator('#subl option')).toHaveText(['States and provinces (Natural Earth)', 'Counties (2024)', 'Congressional districts (119th Congress)', 'States and territories in history', 'States and territories at each census']);
   // 3,144 counties: the largest layer; note how long they take to load and triangulate
   const t0 = Date.now();
   await page.selectOption('#subl', 'us-counties-2024');
