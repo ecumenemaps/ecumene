@@ -18,7 +18,7 @@
     "termsEnd": "2027-01-03"
   },
   "verified": {
-    "date": "2026-10-14",
+    "date": "2026-10-27",
     "by": "node scripts/fetch_senate.js",
     "origin": "https://unitedstates.github.io/congress-legislators/legislators-current.json",
     "sha256": "ae8cb9477c48715df71a7d860854229d799dc90a254d61badc1efb770f892b2c",
