@@ -121,7 +121,7 @@ export const ELECTIONS = [
 export const electionById = (id) => ELECTIONS.find((e) => e.id === id) || null;
 
 /**
- * The Senate election in the bundled table (scripts/sources/stat-us-senate.json): only the seats up can be painted,
+ * A Senate election from its bundled table (scripts/sources/stat-us-senate-<year>.json): only the seats up can be painted,
  * one per state (a state with two races would carry two), and the others count for the party holding them.
  */
 export function senateElection(S) {

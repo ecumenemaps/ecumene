@@ -1,11 +1,30 @@
 // Seat counter (src/js/seats.js): every election map's seats add up to the real total, and the tally and bar layout.
 import test from 'node:test';
 import assert from 'node:assert';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { ELECTIONS, electionById, tally, arrange, paintedElections, senateElection, partyOf, US_PARTIES } from '../../src/js/seats.js';
 
 const file = (p) => JSON.parse(readFileSync(new URL('../../' + p, import.meta.url), 'utf8'));
-const SENATE = file('scripts/sources/stat-us-senate.json');
+const text = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+const SENATE = file('scripts/sources/stat-us-senate-2026.json');
+
+test('every Senate table is its own election, registered in the editor and known to the script', () => {
+  const tables = readdirSync(new URL('../../scripts/sources/', import.meta.url)).filter((f) => /^stat-us-senate.*\.json$/.test(f));
+  assert.ok(tables.includes('stat-us-senate-2026.json'));
+  const seatsrc = text('src/js/seatsrc.js'),
+    script = text('scripts/fetch_senate.js');
+  for (const f of tables) {
+    const year = (f.match(/^stat-us-senate-(\d{4})\.json$/) || [])[1];
+    assert.ok(year, f + ': named stat-us-senate-<year>.json');
+    const S = file('scripts/sources/' + f);
+    assert.strictEqual(S.id, 'stat-us-senate-' + year, f + ': id');
+    assert.strictEqual(S.election.year, +year, f + ': election year');
+    // imported and listed in SENATES, so the editor offers it and saved maps naming it keep their counter
+    assert.match(seatsrc, new RegExp("import SENATE_" + year + " from '\\.\\./\\.\\./scripts/sources/" + f.replace('.', '\\.') + "'"), f + ' imported');
+    assert.match(seatsrc, new RegExp('SENATES = \\[[^\\]]*\\bSENATE_' + year + '\\b'), f + ' in SENATES');
+    assert.match(script, new RegExp('\\b' + year + ": \\{ year: " + year + ", day: '" + S.election.day + "', cls: " + S.election.cls + ", termsEnd: '" + S.election.termsEnd + "' \\}"), f + ': same election in the script');
+  }
+});
 // the units of an election as the editor loads them: layer codes carry the layer's id (units.js)
 function unitsOf(el) {
   let t;

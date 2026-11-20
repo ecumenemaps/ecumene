@@ -1,16 +1,45 @@
-// Writes the US Senate table the editor bundles (scripts/sources/stat-us-senate.json): for each state, its two seats
-// by class, the party holding each, and which are up at the next election (the regular class and any special
-// elections). Read from the congress-legislators dataset (public domain, CC0), whose current file lists each
+// Writes a US Senate table the editor bundles (scripts/sources/stat-us-senate-<year>.json), one per election: for each
+// state, its two seats by class, the party holding each, and which are up at that election (the regular class and any
+// special elections). Read from the congress-legislators dataset (public domain, CC0), whose current file lists each
 // senator's state, class, party, caucus and term; senate.gov answers scripts with "403 Forbidden".
-// Usage: node scripts/fetch_senate.js [path to legislators-current.json]   (downloads it when no path is given)
-// Not part of CI (it needs the network); run it after a change in the Senate, and before and after an election.
+// Usage: node scripts/fetch_senate.js <year> [path to legislators-current.json]   (downloads it when no path is given)
+// Not part of CI (it needs the network). A table can be written from the day the previous election's winners take
+// their seats until the day this election's winners take theirs; after that it is final and the script refuses, since
+// the current senators would then include the winners. Run it after a change in the Senate, and before an election.
+// A new election also needs its table imported in src/js/seatsrc.js (a unit test checks).
 const fs = require('fs'),
   path = require('path'),
   crypto = require('crypto');
 const URL = 'https://unitedstates.github.io/congress-legislators/legislators-current.json';
-const OUT = path.join(__dirname, 'sources', 'stat-us-senate.json');
-// the regular election this table is for: its class, the day, and when the new terms begin
-const ELECTION = { year: 2026, day: '2026-11-03', cls: 2, termsEnd: '2027-01-03' };
+// each regular election: its class, the day, and when the new terms begin (3 January after it, 20th Amendment)
+const ELECTIONS = {
+  2026: { year: 2026, day: '2026-11-03', cls: 2, termsEnd: '2027-01-03' },
+  2028: { year: 2028, day: '2028-11-07', cls: 3, termsEnd: '2029-01-03' },
+  2030: { year: 2030, day: '2030-11-05', cls: 1, termsEnd: '2031-01-03' },
+};
+const ELECTION = ELECTIONS[process.argv[2]];
+if (!ELECTION) {
+  console.error('usage: node scripts/fetch_senate.js <' + Object.keys(ELECTIONS).join('|') + '> [legislators-current.json]');
+  process.exit(1);
+}
+const OUT = path.join(__dirname, 'sources', 'stat-us-senate-' + ELECTION.year + '.json');
+// what a new table's file says about itself; an existing file keeps its own wording
+const template = (E) => ({
+  id: 'stat-us-senate-' + E.year,
+  kind: 'statistic',
+  order: 62,
+  title: 'US Senate seats: who holds each and which are up in ' + E.year + ' (election maps)',
+  publisher: '@unitedstates congress-legislators, current legislators',
+  url: 'https://github.com/unitedstates/congress-legislators',
+  licence: { name: 'Public domain (CC0 1.0)', url: 'https://creativecommons.org/publicdomain/zero/1.0/' },
+  note:
+    'Bundled with the editor, not fetched. Each state’s two seats by class, the party holding each, and which are up at the ' +
+    E.year +
+    ' election (class ' +
+    ['', 'I', 'II', 'III'][E.cls] +
+    ' and special elections). Written by node scripts/fetch_senate.js, which keeps parties, not names. The Senate changes between elections (deaths, resignations, appointments): the counter says the date the table was read.',
+  credit: 'Senate seats: @unitedstates congress-legislators (CC0), read on {date}.',
+});
 const PARTY = { Democrat: 'D', Republican: 'R', Independent: 'I' };
 // USPS codes to the state names the map and the electoral votes use
 const STATES = {
@@ -67,8 +96,16 @@ const STATES = {
 };
 
 async function main() {
+  const today = new Date().toISOString().slice(0, 10),
+    before = Object.values(ELECTIONS).find((e) => e.year === ELECTION.year - 2);
+  if (today >= ELECTION.termsEnd)
+    throw new Error(
+      'The ' + ELECTION.year + ' table is final: its winners took their seats on ' + ELECTION.termsEnd + ', so the current senators no longer show who held the seats before it.',
+    );
+  if (before && today < before.termsEnd)
+    throw new Error('Too early for ' + ELECTION.year + ': the ' + before.year + ' winners take their seats on ' + before.termsEnd + '; run it on or after that day.');
   let buf;
-  if (process.argv[2]) buf = fs.readFileSync(process.argv[2]);
+  if (process.argv[3]) buf = fs.readFileSync(process.argv[3]);
   else {
     const r = await fetch(URL);
     if (!r.ok) throw new Error(URL + ': HTTP ' + r.status);
@@ -118,9 +155,9 @@ async function main() {
     };
   const result = { all: count(() => true), up: seats.filter((x) => x.up).length, held: count((x) => !x.up) };
   console.log('all', result.all, '| up', result.up, '| not up', result.held, '| sha256', sha256);
-  const entry = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+  const entry = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : template(ELECTION);
   entry.election = ELECTION;
-  entry.verified = { date: new Date().toISOString().slice(0, 10), by: 'node scripts/fetch_senate.js', origin: URL, sha256, result };
+  entry.verified = { date: today, by: 'node scripts/fetch_senate.js ' + ELECTION.year, origin: URL, sha256, result };
   entry.states = '@states';
   // one line per state
   const lines = Object.entries(out).map(([s, v]) => '    ' + JSON.stringify(s) + ': ' + JSON.stringify(v));
