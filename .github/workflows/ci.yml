@@ -15,7 +15,8 @@ jobs:
   # which is slow, so they take about four times as long as everything else)
   build-and-test:
     name: build-and-test (${{ matrix.part }})
-    runs-on: ubuntu-latest
+    # pinned: ubuntu-latest moved to 26.04, where Playwright 1.56 cannot install Chromium (move on when Playwright supports it)
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       fail-fast: false
